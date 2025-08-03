@@ -4,6 +4,11 @@ import { LoginModal } from '@/components/forms/LoginModal';
 import { Sidebar, Header } from '@/components/layout';
 import { MainDashboard } from '@/components/dashboard';
 import { AlunosPage } from '@/components/alunos';
+import { ProfessoresPage } from '@/components/professores';
+import { PresencasPage } from '@/components/presencas';
+import { PlanosPage } from '@/components/planos';
+import { ProdutosPage } from '@/components/produtos';
+import { FinanceiroPage } from '@/components/financeiro';
 import { ErrorBoundary } from '@/components/common';
 
 export const MainApp: React.FC = () => {
@@ -26,27 +31,9 @@ export const MainApp: React.FC = () => {
       case 'alunos':
         return <AlunosPage />;
       case 'professores':
-        return (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              Gestão de Professores
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Módulo de professores em desenvolvimento...
-            </p>
-          </div>
-        );
+        return <ProfessoresPage />;
       case 'presencas':
-        return (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              Sistema de Presenças
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Módulo de presenças em desenvolvimento...
-            </p>
-          </div>
-        );
+        return <PresencasPage />;
       case 'treinos':
         return (
           <div className="text-center py-12">
@@ -59,38 +46,11 @@ export const MainApp: React.FC = () => {
           </div>
         );
       case 'planos':
-        return (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              Gestão de Planos
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Módulo de planos em desenvolvimento...
-            </p>
-          </div>
-        );
+        return <PlanosPage />;
       case 'produtos':
-        return (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              Sistema de Produtos/Loja
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Módulo de produtos em desenvolvimento...
-            </p>
-          </div>
-        );
+        return <ProdutosPage />;
       case 'financeiro':
-        return (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              Módulo Financeiro
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Módulo financeiro em desenvolvimento...
-            </p>
-          </div>
-        );
+        return <FinanceiroPage />;
       default:
         return <MainDashboard />;
     }
