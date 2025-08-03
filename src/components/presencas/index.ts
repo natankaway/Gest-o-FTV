@@ -1,0 +1,1 @@
+export { PresencasPage } from './PresencasPage';
