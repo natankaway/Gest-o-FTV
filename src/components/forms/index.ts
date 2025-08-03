@@ -4,3 +4,4 @@ export { NovoProfessorModal } from './NovoProfessorModal';
 export { NovaPresencaModal } from './NovaPresencaModal';
 export { NovoPlanoModal } from './NovoPlanoModal';
 export { NovoAgendamentoModal } from './NovoAgendamentoModal';
+export { NovaTransacaoModal } from './NovaTransacaoModal';
