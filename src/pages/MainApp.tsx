@@ -1,67 +1,135 @@
-import React from 'react';
-import { useAppState, useTheme } from '@/contexts';
-import { Button, LoadingSpinner } from '@/components/common';
+import React, { useState, useCallback } from 'react';
+import { useAppState } from '@/contexts';
 import { LoginModal } from '@/components/forms/LoginModal';
-import { Sun, Moon, LogOut } from 'lucide-react';
+import { Sidebar, Header } from '@/components/layout';
+import { MainDashboard } from '@/components/dashboard';
+import { ErrorBoundary } from '@/components/common';
 
 export const MainApp: React.FC = () => {
-  const { userLogado, setUserLogado } = useAppState();
-  const { isDarkMode, toggleTheme } = useTheme();
+  const { userLogado, activeTab } = useAppState();
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  const handleLogout = () => {
-    setUserLogado(null);
-  };
+  const toggleMobileSidebar = useCallback(() => {
+    setIsMobileSidebarOpen(prev => !prev);
+  }, []);
+
+  const toggleSidebarCollapse = useCallback(() => {
+    setIsSidebarCollapsed(prev => !prev);
+  }, []);
+
+  const renderContent = useCallback(() => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <MainDashboard />;
+      case 'alunos':
+        return (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Gestão de Alunos
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Módulo de alunos em desenvolvimento...
+            </p>
+          </div>
+        );
+      case 'professores':
+        return (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Gestão de Professores
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Módulo de professores em desenvolvimento...
+            </p>
+          </div>
+        );
+      case 'presencas':
+        return (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Sistema de Presenças
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Módulo de presenças em desenvolvimento...
+            </p>
+          </div>
+        );
+      case 'treinos':
+        return (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Treinos e Prancheta Tática
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Módulo de treinos em desenvolvimento...
+            </p>
+          </div>
+        );
+      case 'planos':
+        return (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Gestão de Planos
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Módulo de planos em desenvolvimento...
+            </p>
+          </div>
+        );
+      case 'produtos':
+        return (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Sistema de Produtos/Loja
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Módulo de produtos em desenvolvimento...
+            </p>
+          </div>
+        );
+      case 'financeiro':
+        return (
+          <div className="text-center py-12">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Módulo Financeiro
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Módulo financeiro em desenvolvimento...
+            </p>
+          </div>
+        );
+      default:
+        return <MainDashboard />;
+    }
+  }, [activeTab]);
 
   if (!userLogado) {
     return <LoginModal />;
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold mb-2">Sistema de Gestão FTV</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Refatoração para TypeScript em andamento...
-          </p>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <span>Tema:</span>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={toggleTheme}
-              leftIcon={isDarkMode ? <Sun size={16} /> : <Moon size={16} />}
-            >
-              {isDarkMode ? 'Claro' : 'Escuro'}
-            </Button>
-          </div>
-
-          <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-            <p><strong>Status:</strong> TypeScript setup funcionando ✅</p>
-            <p><strong>Tema:</strong> {isDarkMode ? 'Escuro' : 'Claro'}</p>
-            <p><strong>Usuário:</strong> {userLogado.nome} ({userLogado.perfil})</p>
-            {userLogado.unidade && <p><strong>Unidade:</strong> {userLogado.unidade}</p>}
-            {userLogado.unidades && (
-              <p><strong>Unidades:</strong> {userLogado.unidades.join(', ')}</p>
-            )}
-          </div>
-
-          <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
-            <LoadingSpinner size="sm" text="Migração em progresso..." />
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleLogout}
-              leftIcon={<LogOut size={16} />}
-            >
-              Sair
-            </Button>
-          </div>
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
+        <Sidebar 
+          isMobileOpen={isMobileSidebarOpen} 
+          setMobileOpen={setIsMobileSidebarOpen} 
+          isCollapsed={isSidebarCollapsed} 
+        />
+        
+        <div className={`transition-all duration-300 ${
+          isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'
+        } min-h-screen flex flex-col`}>
+          <Header 
+            toggleMobileSidebar={toggleMobileSidebar} 
+            toggleSidebarCollapse={toggleSidebarCollapse} 
+          />
+          
+          <main className="flex-grow p-3 sm:p-4 lg:p-6">
+            {renderContent()}
+          </main>
         </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 };

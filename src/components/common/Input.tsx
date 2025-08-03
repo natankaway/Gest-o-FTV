@@ -3,7 +3,7 @@ import { useTheme } from '@/contexts';
 
 interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   label?: string;
-  error?: string;
+  error?: string | undefined;
   required?: boolean;
   'aria-describedby'?: string;
 }
