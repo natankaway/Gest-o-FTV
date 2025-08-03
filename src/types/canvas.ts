@@ -1,6 +1,6 @@
 // Canvas and Prancheta Types for Tactical Training Board
 
-export type ToolType = 'select' | 'player' | 'ball' | 'arrow' | 'text' | 'block';
+export type ToolType = 'select' | 'player' | 'ball' | 'arrow' | 'text' | 'block' | 'curved-arrow' | 'circle' | 'triangle';
 
 export interface Point {
   x: number;
@@ -18,7 +18,7 @@ export interface CanvasItem {
 export interface PlayerItem extends CanvasItem {
   type: 'player';
   number?: number;
-  teamColor?: string;
+  teamColor?: 'red' | 'blue';
 }
 
 export interface BallItem extends CanvasItem {
@@ -26,9 +26,10 @@ export interface BallItem extends CanvasItem {
 }
 
 export interface ArrowItem extends CanvasItem {
-  type: 'arrow';
+  type: 'arrow' | 'curved-arrow';
   endPosition: Point;
   thickness?: number;
+  curveAmount?: number; // For curved arrows
 }
 
 export interface TextItem extends CanvasItem {
@@ -39,10 +40,10 @@ export interface TextItem extends CanvasItem {
 }
 
 export interface BlockItem extends CanvasItem {
-  type: 'block';
+  type: 'block' | 'circle' | 'triangle';
   width: number;
   height: number;
-  shape?: 'rectangle' | 'circle';
+  shape?: 'rectangle' | 'circle' | 'triangle';
 }
 
 export type CanvasItemUnion = PlayerItem | BallItem | ArrowItem | TextItem | BlockItem;
