@@ -1,6 +1,7 @@
 import React, { memo, useState, useCallback } from 'react';
-import { useNotifications } from '@/contexts';
+import { useAppState, useNotifications } from '@/contexts';
 import { Button } from '@/components/common';
+import { NovoTreinoModal } from '@/components/forms';
 import { 
   Target, 
   Plus, 
@@ -13,116 +14,7 @@ import {
   Edit,
   Trash
 } from 'lucide-react';
-
-interface Exercicio {
-  id: number;
-  nome: string;
-  categoria: 'aquecimento' | 'tecnica' | 'tatica' | 'fisico' | 'finalizacao';
-  duracao: number; // em minutos
-  descricao: string;
-  equipamentos: string[];
-  nivel: 'iniciante' | 'intermediario' | 'avancado';
-}
-
-interface Treino {
-  id: number;
-  nome: string;
-  data: string;
-  professorId: number;
-  professorNome: string;
-  exercicios: {
-    exercicioId: number;
-    nome: string;
-    duracao: number;
-    ordem: number;
-  }[];
-  duracaoTotal: number;
-  participantes: number;
-  status: 'planejado' | 'em-andamento' | 'concluido';
-  observacoes?: string;
-}
-
-// Mock data for exercises
-const mockExercicios: Exercicio[] = [
-  {
-    id: 1,
-    nome: 'Aquecimento Articular',
-    categoria: 'aquecimento',
-    duracao: 10,
-    descricao: 'Movimentação articular para preparar o corpo',
-    equipamentos: [],
-    nivel: 'iniciante'
-  },
-  {
-    id: 2,
-    nome: 'Controle de Bola',
-    categoria: 'tecnica',
-    duracao: 15,
-    descricao: 'Exercícios de domínio e controle da bola',
-    equipamentos: ['Bola', 'Cones'],
-    nivel: 'intermediario'
-  },
-  {
-    id: 3,
-    nome: 'Movimentação em Dupla',
-    categoria: 'tatica',
-    duracao: 20,
-    descricao: 'Trabalho de coordenação entre duplas',
-    equipamentos: ['Bola', 'Rede'],
-    nivel: 'intermediario'
-  },
-  {
-    id: 4,
-    nome: 'Finalização Cruzada',
-    categoria: 'finalizacao',
-    duracao: 15,
-    descricao: 'Exercícios de finalização em diferentes ângulos',
-    equipamentos: ['Bola', 'Rede', 'Cones'],
-    nivel: 'avancado'
-  },
-  {
-    id: 5,
-    nome: 'Condicionamento Físico',
-    categoria: 'fisico',
-    duracao: 12,
-    descricao: 'Exercícios de resistência e agilidade',
-    equipamentos: ['Cones', 'Escada de Agilidade'],
-    nivel: 'intermediario'
-  }
-];
-
-// Mock data for treinos
-const mockTreinos: Treino[] = [
-  {
-    id: 1,
-    nome: 'Treino Técnico - Iniciantes',
-    data: '2024-01-15',
-    professorId: 1,
-    professorNome: 'Prof. João Silva',
-    exercicios: [
-      { exercicioId: 1, nome: 'Aquecimento Articular', duracao: 10, ordem: 1 },
-      { exercicioId: 2, nome: 'Controle de Bola', duracao: 15, ordem: 2 },
-    ],
-    duracaoTotal: 25,
-    participantes: 8,
-    status: 'concluido'
-  },
-  {
-    id: 2,
-    nome: 'Treino Tático - Avançados',
-    data: '2024-01-16',
-    professorId: 2,
-    professorNome: 'Prof. Ana Costa',
-    exercicios: [
-      { exercicioId: 1, nome: 'Aquecimento Articular', duracao: 10, ordem: 1 },
-      { exercicioId: 3, nome: 'Movimentação em Dupla', duracao: 20, ordem: 2 },
-      { exercicioId: 4, nome: 'Finalização Cruzada', duracao: 15, ordem: 3 }
-    ],
-    duracaoTotal: 45,
-    participantes: 6,
-    status: 'planejado'
-  }
-];
+import type { Exercicio, Treino } from '@/types';
 
 interface ExercicioCardProps {
   exercicio: Exercicio;
@@ -219,11 +111,11 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onEdit, onDelete }) => 
             {treino.nome}
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            {treino.professorNome} • {new Date(treino.data).toLocaleDateString('pt-BR')}
+            {treino.professor} • {treino.data ? new Date(treino.data).toLocaleDateString('pt-BR') : 'Data não definida'}
           </p>
         </div>
-        <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(treino.status)}`}>
-          {treino.status}
+        <span className={`px-3 py-1 text-sm font-semibold rounded-full ${getStatusColor(treino.status || 'planejado')}`}>
+          {treino.status || 'planejado'}
         </span>
       </div>
 
@@ -231,13 +123,13 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onEdit, onDelete }) => 
         <div className="flex items-center">
           <Clock className="h-4 w-4 text-gray-500 mr-2" />
           <span className="text-sm text-gray-600 dark:text-gray-300">
-            {treino.duracaoTotal} minutos
+            {treino.duracao} minutos
           </span>
         </div>
         <div className="flex items-center">
           <Users className="h-4 w-4 text-gray-500 mr-2" />
           <span className="text-sm text-gray-600 dark:text-gray-300">
-            {treino.participantes} participantes
+            {treino.nivel}
           </span>
         </div>
       </div>
@@ -248,7 +140,7 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onEdit, onDelete }) => 
         </p>
         <div className="space-y-1">
           {treino.exercicios.slice(0, 3).map((ex, index) => (
-            <div key={ex.exercicioId} className="text-sm text-gray-600 dark:text-gray-300">
+            <div key={ex.id} className="text-sm text-gray-600 dark:text-gray-300">
               {index + 1}. {ex.nome} ({ex.duracao}min)
             </div>
           ))}
@@ -285,11 +177,11 @@ const TreinoCard: React.FC<TreinoCardProps> = ({ treino, onEdit, onDelete }) => 
 };
 
 export const TreinosPage: React.FC = memo(() => {
+  const { dadosMockados, setTreinos } = useAppState();
+  const { treinos, exercicios } = dadosMockados;
   const { addNotification } = useNotifications();
   
   const [activeTab, setActiveTab] = useState<'biblioteca' | 'treinos' | 'prancheta'>('biblioteca');
-  const [exercicios] = useState<Exercicio[]>(mockExercicios);
-  const [treinos, setTreinos] = useState<Treino[]>(mockTreinos);
   const [selectedExercicios, setSelectedExercicios] = useState<Exercicio[]>([]);
   const [filtroCategoria, setFiltroCategoria] = useState<string>('todas');
   const [showModal, setShowModal] = useState(false);
@@ -370,7 +262,7 @@ export const TreinosPage: React.FC = memo(() => {
               >
                 Limpar
               </Button>
-              <Button size="sm">
+              <Button size="sm" onClick={() => setShowModal(true)}>
                 Criar Treino
               </Button>
             </div>
@@ -397,7 +289,7 @@ export const TreinosPage: React.FC = memo(() => {
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
           Treinos Planejados
         </h2>
-        <Button leftIcon={<Plus className="h-4 w-4" />}>
+        <Button leftIcon={<Plus className="h-4 w-4" />} onClick={() => setShowModal(true)}>
           Novo Treino
         </Button>
       </div>
@@ -529,24 +421,12 @@ export const TreinosPage: React.FC = memo(() => {
         {activeTab === 'prancheta' && renderPrancheta()}
       </div>
 
-      {/* Modal Placeholder */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              {editingTreino ? 'Editar Treino' : 'Novo Treino'}
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Formulário de treino será implementado em breve.
-            </p>
-            <div className="flex space-x-3">
-              <Button variant="secondary" onClick={() => setShowModal(false)} className="flex-1">
-                Fechar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Novo Treino Modal */}
+      <NovoTreinoModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        editingTreino={editingTreino}
+      />
     </div>
   );
 });
