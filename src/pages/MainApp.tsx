@@ -3,6 +3,7 @@ import { useAppState } from '@/contexts';
 import { LoginModal } from '@/components/forms/LoginModal';
 import { Sidebar, Header } from '@/components/layout';
 import { MainDashboard } from '@/components/dashboard';
+import { AlunosPage } from '@/components/alunos';
 import { ErrorBoundary } from '@/components/common';
 
 export const MainApp: React.FC = () => {
@@ -23,16 +24,7 @@ export const MainApp: React.FC = () => {
       case 'dashboard':
         return <MainDashboard />;
       case 'alunos':
-        return (
-          <div className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              Gestão de Alunos
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              Módulo de alunos em desenvolvimento...
-            </p>
-          </div>
-        );
+        return <AlunosPage />;
       case 'professores':
         return (
           <div className="text-center py-12">
