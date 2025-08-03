@@ -1,13 +1,21 @@
 import React from 'react';
 import { useAppState, useTheme } from '@/contexts';
 import { Button, LoadingSpinner } from '@/components/common';
-import { Sun, Moon } from 'lucide-react';
+import { LoginModal } from '@/components/forms/LoginModal';
+import { Sun, Moon, LogOut } from 'lucide-react';
 
 export const MainApp: React.FC = () => {
-  const { userLogado } = useAppState();
+  const { userLogado, setUserLogado } = useAppState();
   const { isDarkMode, toggleTheme } = useTheme();
 
-  // For now, just show a basic UI to test our setup
+  const handleLogout = () => {
+    setUserLogado(null);
+  };
+
+  if (!userLogado) {
+    return <LoginModal />;
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-6">
@@ -31,13 +39,27 @@ export const MainApp: React.FC = () => {
             </Button>
           </div>
 
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            <p>Status: TypeScript setup funcionando</p>
-            <p>Tema: {isDarkMode ? 'Escuro' : 'Claro'}</p>
-            <p>Usuário: {userLogado ? userLogado.nome : 'Não logado'}</p>
+          <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+            <p><strong>Status:</strong> TypeScript setup funcionando ✅</p>
+            <p><strong>Tema:</strong> {isDarkMode ? 'Escuro' : 'Claro'}</p>
+            <p><strong>Usuário:</strong> {userLogado.nome} ({userLogado.perfil})</p>
+            {userLogado.unidade && <p><strong>Unidade:</strong> {userLogado.unidade}</p>}
+            {userLogado.unidades && (
+              <p><strong>Unidades:</strong> {userLogado.unidades.join(', ')}</p>
+            )}
           </div>
 
-          <LoadingSpinner size="sm" text="Migração em progresso..." />
+          <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
+            <LoadingSpinner size="sm" text="Migração em progresso..." />
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleLogout}
+              leftIcon={<LogOut size={16} />}
+            >
+              Sair
+            </Button>
+          </div>
         </div>
       </div>
     </div>
