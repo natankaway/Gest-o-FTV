@@ -46,6 +46,14 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     },
   });
 
+  // State for text editing
+  const [textEditor, setTextEditor] = useState({
+    isEditing: false,
+    selectedTextId: null as string | null,
+    inputPosition: { x: 0, y: 0 },
+    inputValue: '',
+  });
+
   const config: CanvasConfig = { ...DEFAULT_CANVAS_CONFIG, ...configOverride };
 
   // Update canvas state when props change
@@ -605,6 +613,79 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     }));
   }, [readonly, selectedTool, canvasState.isDrawing, getMousePosition, generateId, selectedColor]);
 
+  // Handle double click for text editing
+  const handleDoubleClick = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (readonly) return;
+
+    const position = getMousePosition(event);
+    const clickedItem = findItemAtPosition(position);
+
+    if (clickedItem && clickedItem.type === 'text') {
+      const textItem = clickedItem as TextItem;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      
+      setTextEditor({
+        isEditing: true,
+        selectedTextId: textItem.id,
+        inputPosition: {
+          x: rect.left + (textItem.position.x * rect.width) / config.width,
+          y: rect.top + (textItem.position.y * rect.height) / config.height,
+        },
+        inputValue: textItem.text,
+      });
+    }
+  }, [readonly, getMousePosition, findItemAtPosition, config.width, config.height]);
+
+  // Handle text input change
+  const handleTextInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setTextEditor(prev => ({
+      ...prev,
+      inputValue: event.target.value,
+    }));
+  }, []);
+
+  // Handle text input submit
+  const handleTextInputSubmit = useCallback(() => {
+    if (!textEditor.selectedTextId || !textEditor.isEditing) return;
+
+    setCanvasState(prev => ({
+      ...prev,
+      items: prev.items.map(item => {
+        if (item.id === textEditor.selectedTextId && item.type === 'text') {
+          return {
+            ...item,
+            text: textEditor.inputValue || 'Texto',
+          } as TextItem;
+        }
+        return item;
+      }),
+    }));
+
+    setTextEditor({
+      isEditing: false,
+      selectedTextId: null,
+      inputPosition: { x: 0, y: 0 },
+      inputValue: '',
+    });
+  }, [textEditor]);
+
+  // Handle text input key press
+  const handleTextInputKeyPress = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleTextInputSubmit();
+    } else if (event.key === 'Escape') {
+      setTextEditor({
+        isEditing: false,
+        selectedTextId: null,
+        inputPosition: { x: 0, y: 0 },
+        inputValue: '',
+      });
+    }
+  }, [handleTextInputSubmit]);
+
   // Update parent component when data changes
   useEffect(() => {
     if (!onDataChange || readonly || !canvasState.items) return;
@@ -676,6 +757,7 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onDoubleClick={handleDoubleClick}
         style={{
           width: 'auto',
           height: '60vh', // Limit height to 60% of viewport for better display
@@ -684,6 +766,24 @@ export const Canvas: React.FC<CanvasProps> = memo(({
           aspectRatio: `${config.width}/${config.height}`, // Maintain correct aspect ratio
         }}
       />
+      
+      {/* Text editing input */}
+      {textEditor.isEditing && (
+        <input
+          type="text"
+          value={textEditor.inputValue}
+          onChange={handleTextInputChange}
+          onKeyDown={handleTextInputKeyPress}
+          onBlur={handleTextInputSubmit}
+          autoFocus
+          className="absolute z-10 px-2 py-1 text-sm border border-blue-500 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-lg"
+          style={{
+            left: textEditor.inputPosition.x,
+            top: textEditor.inputPosition.y,
+            minWidth: '100px',
+          }}
+        />
+      )}
       
       {!readonly && (
         <div className="absolute top-2 right-2 flex gap-2">
