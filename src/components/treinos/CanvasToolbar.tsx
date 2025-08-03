@@ -6,7 +6,9 @@ import {
   ArrowRight, 
   Type, 
   Square,
-  Palette
+  Palette,
+  ArrowUpRight,
+  Triangle
 } from 'lucide-react';
 import type { ToolType } from '@/types/canvas';
 import { DEFAULT_COLORS } from '@/types/canvas';
@@ -49,7 +51,13 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = memo(({
       type: 'arrow' as ToolType,
       icon: ArrowRight,
       label: 'Seta',
-      description: 'Desenhar seta'
+      description: 'Desenhar seta reta'
+    },
+    {
+      type: 'curved-arrow' as ToolType,
+      icon: ArrowUpRight,
+      label: 'Seta Curva',
+      description: 'Desenhar seta curva'
     },
     {
       type: 'text' as ToolType,
@@ -60,8 +68,20 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = memo(({
     {
       type: 'block' as ToolType,
       icon: Square,
-      label: 'Bloqueio',
-      description: 'Adicionar obstáculo'
+      label: 'Retângulo',
+      description: 'Adicionar retângulo'
+    },
+    {
+      type: 'circle' as ToolType,
+      icon: Circle,
+      label: 'Círculo',
+      description: 'Adicionar círculo'
+    },
+    {
+      type: 'triangle' as ToolType,
+      icon: Triangle,
+      label: 'Triângulo',
+      description: 'Adicionar triângulo'
     },
   ];
 
@@ -104,7 +124,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = memo(({
             <MousePointer2 size={16} />
             Ferramentas
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-9 gap-2">
             {tools.map((tool) => {
               const Icon = tool.icon;
               return (

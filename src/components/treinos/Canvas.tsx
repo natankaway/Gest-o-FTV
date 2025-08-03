@@ -46,6 +46,14 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     },
   });
 
+  // State for text editing
+  const [textEditor, setTextEditor] = useState({
+    isEditing: false,
+    selectedTextId: null as string | null,
+    inputPosition: { x: 0, y: 0 },
+    inputValue: '',
+  });
+
   const config: CanvasConfig = { ...DEFAULT_CANVAS_CONFIG, ...configOverride };
 
   // Update canvas state when props change
@@ -63,45 +71,86 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     return `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }, []);
 
-  // Draw field background and lines
+  // Draw futevolei court background and lines
   const drawField = useCallback((ctx: CanvasRenderingContext2D) => {
-    const { width, height, fieldColor, lineColor, lineWidth, centerCircleRadius } = config;
+    const { width, height, sandColor, courtLineColor, netColor, lineWidth, netHeight, netWidth } = config;
 
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
-    // Draw field background
-    ctx.fillStyle = fieldColor;
+    // Draw sand background
+    ctx.fillStyle = sandColor;
     ctx.fillRect(0, 0, width, height);
 
-    // Set line style
-    ctx.strokeStyle = lineColor;
+    // Set court line style
+    ctx.strokeStyle = courtLineColor;
     ctx.lineWidth = lineWidth;
     ctx.lineCap = 'round';
 
-    // Draw field borders
+    // Draw court borders (blue lines)
     ctx.strokeRect(lineWidth / 2, lineWidth / 2, width - lineWidth, height - lineWidth);
 
-    // Draw center line
+    // Draw center line (dividing the court)
     ctx.beginPath();
-    ctx.moveTo(width / 2, lineWidth);
-    ctx.lineTo(width / 2, height - lineWidth);
+    ctx.moveTo(lineWidth, height / 2);
+    ctx.lineTo(width - lineWidth, height / 2);
     ctx.stroke();
 
-    // Draw center circle
+    // Draw net in the center
+    ctx.strokeStyle = netColor;
+    ctx.lineWidth = netWidth;
+    
+    // Vertical net post on the left
     ctx.beginPath();
-    ctx.arc(width / 2, height / 2, centerCircleRadius, 0, 2 * Math.PI);
+    ctx.moveTo(0, height / 2 - netHeight / 2);
+    ctx.lineTo(0, height / 2 + netHeight / 2);
     ctx.stroke();
+    
+    // Vertical net post on the right
+    ctx.beginPath();
+    ctx.moveTo(width, height / 2 - netHeight / 2);
+    ctx.lineTo(width, height / 2 + netHeight / 2);
+    ctx.stroke();
+    
+    // Net mesh (simplified pattern)
+    ctx.strokeStyle = netColor;
+    ctx.lineWidth = 1;
+    const meshSpacing = 10;
+    
+    // Horizontal net lines
+    for (let y = height / 2 - netHeight / 2; y <= height / 2 + netHeight / 2; y += meshSpacing) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+    
+    // Vertical net lines
+    for (let x = 0; x <= width; x += meshSpacing) {
+      ctx.beginPath();
+      ctx.moveTo(x, height / 2 - netHeight / 2);
+      ctx.lineTo(x, height / 2 + netHeight / 2);
+      ctx.stroke();
+    }
 
-    // Draw goal areas (simplified for futevôlei)
-    const goalWidth = config.goalWidth;
-    const goalHeight = config.goalHeight;
+    // Draw service areas (optional - small marks)
+    ctx.strokeStyle = courtLineColor;
+    ctx.lineWidth = 2;
     
-    // Left goal area
-    ctx.strokeRect(lineWidth, (height - goalHeight) / 2, goalWidth, goalHeight);
+    // Service line marks (small lines at 1/4 and 3/4 of court height)
+    const serviceLineLength = 20;
     
-    // Right goal area
-    ctx.strokeRect(width - goalWidth - lineWidth, (height - goalHeight) / 2, goalWidth, goalHeight);
+    // Top court service area
+    ctx.beginPath();
+    ctx.moveTo(width / 2 - serviceLineLength / 2, height / 4);
+    ctx.lineTo(width / 2 + serviceLineLength / 2, height / 4);
+    ctx.stroke();
+    
+    // Bottom court service area
+    ctx.beginPath();
+    ctx.moveTo(width / 2 - serviceLineLength / 2, (3 * height) / 4);
+    ctx.lineTo(width / 2 + serviceLineLength / 2, (3 * height) / 4);
+    ctx.stroke();
   }, [config]);
 
   // Draw a single canvas item
@@ -117,20 +166,29 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     switch (item.type) {
       case 'player': {
         const playerItem = item as PlayerItem;
-        ctx.fillStyle = playerItem.color;
-        ctx.strokeStyle = playerItem.teamColor || '#000000';
-        ctx.lineWidth = 2;
+        
+        // Set colors based on team
+        const teamColors = {
+          red: { bg: '#EF4444', border: '#DC2626', text: '#FFFFFF' },
+          blue: { bg: '#3B82F6', border: '#2563EB', text: '#FFFFFF' },
+        };
+        
+        const colors = teamColors[playerItem.teamColor || 'red'];
+        
+        ctx.fillStyle = colors.bg;
+        ctx.strokeStyle = colors.border;
+        ctx.lineWidth = 3;
 
         // Draw player circle
         ctx.beginPath();
-        ctx.arc(playerItem.position.x, playerItem.position.y, 15, 0, 2 * Math.PI);
+        ctx.arc(playerItem.position.x, playerItem.position.y, 18, 0, 2 * Math.PI);
         ctx.fill();
         ctx.stroke();
 
         // Draw player number
         if (playerItem.number) {
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = 'bold 12px Arial';
+          ctx.fillStyle = colors.text;
+          ctx.font = 'bold 14px Arial';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(
@@ -150,20 +208,26 @@ export const Canvas: React.FC<CanvasProps> = memo(({
 
         // Draw ball
         ctx.beginPath();
-        ctx.arc(ballItem.position.x, ballItem.position.y, 8, 0, 2 * Math.PI);
+        ctx.arc(ballItem.position.x, ballItem.position.y, 10, 0, 2 * Math.PI);
         ctx.fill();
         ctx.stroke();
 
-        // Draw ball pattern
+        // Draw ball pattern (volleyball stripes)
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(ballItem.position.x, ballItem.position.y, 5, 0, Math.PI);
+        // Vertical line
+        ctx.moveTo(ballItem.position.x, ballItem.position.y - 8);
+        ctx.lineTo(ballItem.position.x, ballItem.position.y + 8);
+        // Horizontal line
+        ctx.moveTo(ballItem.position.x - 8, ballItem.position.y);
+        ctx.lineTo(ballItem.position.x + 8, ballItem.position.y);
         ctx.stroke();
         break;
       }
 
-      case 'arrow': {
+      case 'arrow':
+      case 'curved-arrow': {
         const arrowItem = item as ArrowItem;
         ctx.strokeStyle = arrowItem.color;
         ctx.fillStyle = arrowItem.color;
@@ -172,11 +236,35 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         const start = arrowItem.position;
         const end = arrowItem.endPosition;
 
-        // Draw arrow line
-        ctx.beginPath();
-        ctx.moveTo(start.x, start.y);
-        ctx.lineTo(end.x, end.y);
-        ctx.stroke();
+        if (item.type === 'curved-arrow') {
+          // Draw curved arrow
+          const midX = (start.x + end.x) / 2;
+          const midY = (start.y + end.y) / 2;
+          const curveAmount = arrowItem.curveAmount || 50;
+          
+          // Calculate perpendicular offset for curve
+          const dx = end.x - start.x;
+          const dy = end.y - start.y;
+          const length = Math.sqrt(dx * dx + dy * dy);
+          const unitX = dx / length;
+          const unitY = dy / length;
+          const perpX = -unitY * curveAmount;
+          const perpY = unitX * curveAmount;
+          
+          const controlX = midX + perpX;
+          const controlY = midY + perpY;
+
+          ctx.beginPath();
+          ctx.moveTo(start.x, start.y);
+          ctx.quadraticCurveTo(controlX, controlY, end.x, end.y);
+          ctx.stroke();
+        } else {
+          // Draw straight arrow line
+          ctx.beginPath();
+          ctx.moveTo(start.x, start.y);
+          ctx.lineTo(end.x, end.y);
+          ctx.stroke();
+        }
 
         // Draw arrowhead
         const angle = Math.atan2(end.y - start.y, end.x - start.x);
@@ -207,13 +295,15 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         break;
       }
 
-      case 'block': {
+      case 'block':
+      case 'circle':
+      case 'triangle': {
         const blockItem = item as BlockItem;
         ctx.fillStyle = blockItem.color;
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 2;
 
-        if (blockItem.shape === 'circle') {
+        if (item.type === 'circle' || blockItem.shape === 'circle') {
           const radius = Math.min(blockItem.width, blockItem.height) / 2;
           ctx.beginPath();
           ctx.arc(
@@ -225,7 +315,22 @@ export const Canvas: React.FC<CanvasProps> = memo(({
           );
           ctx.fill();
           ctx.stroke();
+        } else if (item.type === 'triangle' || blockItem.shape === 'triangle') {
+          const centerX = blockItem.position.x + blockItem.width / 2;
+          const topY = blockItem.position.y;
+          const bottomY = blockItem.position.y + blockItem.height;
+          const leftX = blockItem.position.x;
+          const rightX = blockItem.position.x + blockItem.width;
+          
+          ctx.beginPath();
+          ctx.moveTo(centerX, topY);
+          ctx.lineTo(leftX, bottomY);
+          ctx.lineTo(rightX, bottomY);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
         } else {
+          // Rectangle
           ctx.fillRect(
             blockItem.position.x,
             blockItem.position.y,
@@ -402,19 +507,23 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     };
 
     switch (selectedTool) {
-      case 'player':
+      case 'player': {
         // Find next player number
         const playerNumbers = canvasState.items
           .filter(item => item.type === 'player')
           .map(item => (item as PlayerItem).number || 0);
         const nextNumber = playerNumbers.length > 0 ? Math.max(...playerNumbers) + 1 : 1;
         
+        // Alternate team colors
+        const teamColor = playerNumbers.length % 2 === 0 ? 'red' : 'blue';
+        
         return {
           ...baseItem,
           type: 'player',
           number: nextNumber,
-          teamColor: '#000000',
+          teamColor: teamColor,
         } as PlayerItem;
+      }
 
       case 'ball':
         return {
@@ -438,6 +547,24 @@ export const Canvas: React.FC<CanvasProps> = memo(({
           width: 40,
           height: 40,
           shape: 'rectangle',
+        } as BlockItem;
+
+      case 'circle':
+        return {
+          ...baseItem,
+          type: 'circle',
+          width: 40,
+          height: 40,
+          shape: 'circle',
+        } as BlockItem;
+
+      case 'triangle':
+        return {
+          ...baseItem,
+          type: 'triangle',
+          width: 40,
+          height: 40,
+          shape: 'triangle',
         } as BlockItem;
 
       default:
@@ -480,7 +607,7 @@ export const Canvas: React.FC<CanvasProps> = memo(({
           items: prev.items.map(item => ({ ...item, selected: false })),
         }));
       }
-    } else if (selectedTool === 'arrow') {
+    } else if (selectedTool === 'arrow' || selectedTool === 'curved-arrow') {
       // Start drawing arrow
       setCanvasState(prev => ({
         ...prev,
@@ -534,7 +661,7 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     const position = getMousePosition(event);
 
     if (selectedTool === 'arrow' && canvasState.isDrawing) {
-      // Finish drawing arrow - for simplicity, create a basic arrow
+      // Finish drawing straight arrow
       const newArrow: ArrowItem = {
         id: generateId(),
         type: 'arrow',
@@ -542,6 +669,24 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         endPosition: position,
         color: selectedColor,
         thickness: 3,
+        selected: false,
+      };
+
+      setCanvasState(prev => ({
+        ...prev,
+        items: [...prev.items, newArrow],
+        isDrawing: false,
+      }));
+    } else if (selectedTool === 'curved-arrow' && canvasState.isDrawing) {
+      // Finish drawing curved arrow
+      const newArrow: ArrowItem = {
+        id: generateId(),
+        type: 'curved-arrow',
+        position: { x: position.x - 50, y: position.y },
+        endPosition: position,
+        color: selectedColor,
+        thickness: 3,
+        curveAmount: 30, // Default curve amount
         selected: false,
       };
 
@@ -563,6 +708,79 @@ export const Canvas: React.FC<CanvasProps> = memo(({
       },
     }));
   }, [readonly, selectedTool, canvasState.isDrawing, getMousePosition, generateId, selectedColor]);
+
+  // Handle double click for text editing
+  const handleDoubleClick = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (readonly) return;
+
+    const position = getMousePosition(event);
+    const clickedItem = findItemAtPosition(position);
+
+    if (clickedItem && clickedItem.type === 'text') {
+      const textItem = clickedItem as TextItem;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      
+      setTextEditor({
+        isEditing: true,
+        selectedTextId: textItem.id,
+        inputPosition: {
+          x: rect.left + (textItem.position.x * rect.width) / config.width,
+          y: rect.top + (textItem.position.y * rect.height) / config.height,
+        },
+        inputValue: textItem.text,
+      });
+    }
+  }, [readonly, getMousePosition, findItemAtPosition, config.width, config.height]);
+
+  // Handle text input change
+  const handleTextInputChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setTextEditor(prev => ({
+      ...prev,
+      inputValue: event.target.value,
+    }));
+  }, []);
+
+  // Handle text input submit
+  const handleTextInputSubmit = useCallback(() => {
+    if (!textEditor.selectedTextId || !textEditor.isEditing) return;
+
+    setCanvasState(prev => ({
+      ...prev,
+      items: prev.items.map(item => {
+        if (item.id === textEditor.selectedTextId && item.type === 'text') {
+          return {
+            ...item,
+            text: textEditor.inputValue || 'Texto',
+          } as TextItem;
+        }
+        return item;
+      }),
+    }));
+
+    setTextEditor({
+      isEditing: false,
+      selectedTextId: null,
+      inputPosition: { x: 0, y: 0 },
+      inputValue: '',
+    });
+  }, [textEditor]);
+
+  // Handle text input key press
+  const handleTextInputKeyPress = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      handleTextInputSubmit();
+    } else if (event.key === 'Escape') {
+      setTextEditor({
+        isEditing: false,
+        selectedTextId: null,
+        inputPosition: { x: 0, y: 0 },
+        inputValue: '',
+      });
+    }
+  }, [handleTextInputSubmit]);
 
   // Update parent component when data changes
   useEffect(() => {
@@ -635,13 +853,33 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onDoubleClick={handleDoubleClick}
         style={{
-          width: '100%',
-          height: 'auto',
-          maxWidth: `${config.width}px`,
-          maxHeight: `${config.height}px`,
+          width: 'auto',
+          height: '60vh', // Limit height to 60% of viewport for better display
+          maxWidth: '100%',
+          maxHeight: '70vh',
+          aspectRatio: `${config.width}/${config.height}`, // Maintain correct aspect ratio
         }}
       />
+      
+      {/* Text editing input */}
+      {textEditor.isEditing && (
+        <input
+          type="text"
+          value={textEditor.inputValue}
+          onChange={handleTextInputChange}
+          onKeyDown={handleTextInputKeyPress}
+          onBlur={handleTextInputSubmit}
+          autoFocus
+          className="absolute z-10 px-2 py-1 text-sm border border-blue-500 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-lg"
+          style={{
+            left: textEditor.inputPosition.x,
+            top: textEditor.inputPosition.y,
+            minWidth: '100px',
+          }}
+        />
+      )}
       
       {!readonly && (
         <div className="absolute top-2 right-2 flex gap-2">
