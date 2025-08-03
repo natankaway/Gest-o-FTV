@@ -236,7 +236,7 @@ export interface SearchState {
 }
 
 // Export utility types
-export type TabKeys = 'dashboard' | 'alunos' | 'professores' | 'presencas' | 'planos' | 'unidades' | 'financeiro' | 'produtos' | 'alugueis';
+export type TabKeys = 'dashboard' | 'alunos' | 'professores' | 'gestores' | 'presencas' | 'agendamentos' | 'treinos' | 'planos' | 'unidades' | 'financeiro' | 'produtos' | 'alugueis';
 
 export interface Tab {
   key: TabKeys;
