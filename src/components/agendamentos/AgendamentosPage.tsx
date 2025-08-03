@@ -1,6 +1,7 @@
 import React, { memo, useState, useMemo, useCallback } from 'react';
 import { useAppState, useNotifications } from '@/contexts';
 import { Button } from '@/components/common';
+import { NovoAgendamentoModal } from '@/components/forms';
 import { 
   Calendar, 
   Plus, 
@@ -12,67 +13,12 @@ import {
   Edit,
   Trash
 } from 'lucide-react';
-
-interface Agendamento {
-  id: number;
-  professorId: number;
-  professorNome: string;
-  alunoId?: number;
-  alunoNome?: string;
-  data: string;
-  horaInicio: string;
-  horaFim: string;
-  tipo: 'aula-individual' | 'aula-grupo' | 'treino';
-  status: 'confirmado' | 'pendente' | 'cancelado';
-  observacoes?: string;
-  unidade: string;
-}
+import type { Agendamento } from '@/types';
 
 const DAYS_WEEK = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const MONTHS = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-];
-
-// Mock data for agendamentos
-const mockAgendamentos: Agendamento[] = [
-  {
-    id: 1,
-    professorId: 1,
-    professorNome: 'Prof. João Silva',
-    alunoId: 1,
-    alunoNome: 'Maria Santos',
-    data: '2024-01-15',
-    horaInicio: '09:00',
-    horaFim: '10:00',
-    tipo: 'aula-individual',
-    status: 'confirmado',
-    unidade: 'Centro'
-  },
-  {
-    id: 2,
-    professorId: 2,
-    professorNome: 'Prof. Ana Costa',
-    data: '2024-01-15',
-    horaInicio: '14:00',
-    horaFim: '15:30',
-    tipo: 'treino',
-    status: 'confirmado',
-    unidade: 'Centro'
-  },
-  {
-    id: 3,
-    professorId: 1,
-    professorNome: 'Prof. João Silva',
-    alunoId: 2,
-    alunoNome: 'Carlos Oliveira',
-    data: '2024-01-16',
-    horaInicio: '10:00',
-    horaFim: '11:00',
-    tipo: 'aula-individual',
-    status: 'pendente',
-    unidade: 'Centro'
-  }
 ];
 
 interface AgendamentoCardProps {
@@ -97,12 +43,13 @@ const AgendamentoCard: React.FC<AgendamentoCardProps> = ({ agendamento, onEdit, 
 
   const getTipoColor = (tipo: string) => {
     switch (tipo) {
-      case 'aula-individual':
+      case 'aula':
+      case 'individual':
         return 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400';
-      case 'aula-grupo':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400';
       case 'treino':
         return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400';
+      case 'avaliacao':
+        return 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400';
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400';
     }
@@ -121,14 +68,14 @@ const AgendamentoCard: React.FC<AgendamentoCardProps> = ({ agendamento, onEdit, 
           <div className="flex items-center space-x-2 mb-1">
             <User className="h-4 w-4 text-gray-500" />
             <span className="text-sm text-gray-600 dark:text-gray-300">
-              {agendamento.professorNome}
+              {agendamento.professor}
             </span>
           </div>
-          {agendamento.alunoNome && (
+          {agendamento.aluno && (
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4 text-gray-500" />
               <span className="text-sm text-gray-600 dark:text-gray-300">
-                {agendamento.alunoNome}
+                {agendamento.aluno}
               </span>
             </div>
           )}
@@ -168,11 +115,10 @@ const AgendamentoCard: React.FC<AgendamentoCardProps> = ({ agendamento, onEdit, 
 };
 
 export const AgendamentosPage: React.FC = memo(() => {
-  const { dadosMockados } = useAppState();
-  const { professores } = dadosMockados;
+  const { dadosMockados, setAgendamentos } = useAppState();
+  const { professores, agendamentos } = dadosMockados;
   const { addNotification } = useNotifications();
   
-  const [agendamentos, setAgendamentos] = useState<Agendamento[]>(mockAgendamentos);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
   const [editingAgendamento, setEditingAgendamento] = useState<Agendamento | null>(null);
@@ -404,24 +350,12 @@ export const AgendamentosPage: React.FC = memo(() => {
         </div>
       </div>
 
-      {/* Modal Placeholder */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-              {editingAgendamento ? 'Editar Agendamento' : 'Novo Agendamento'}
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Formulário de agendamento será implementado em breve.
-            </p>
-            <div className="flex space-x-3">
-              <Button variant="secondary" onClick={() => setShowModal(false)} className="flex-1">
-                Fechar
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Novo Agendamento Modal */}
+      <NovoAgendamentoModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        editingAgendamento={editingAgendamento}
+      />
     </div>
   );
 });

@@ -84,23 +84,35 @@ export interface RegistroFinanceiro {
   id: number;
   alunoId?: number;
   aluno?: string;
+  professorId?: number;
+  professor?: string;
   valor: number;
   data: string;
+  vencimento?: string;
   status: 'pago' | 'pendente' | 'vencido';
   tipo: 'receita' | 'despesa';
-  metodo: 'mensalidade' | 'diaria-dinheiro' | 'diaria-plataforma' | 'aluguel' | 'produto';
+  categoria: string;
+  metodo: 'dinheiro' | 'pix' | 'cartao-credito' | 'cartao-debito' | 'transferencia' | 'mensalidade' | 'diaria-dinheiro' | 'diaria-plataforma' | 'aluguel' | 'produto';
   descricao: string;
   unidade?: string;
+  observacoes?: string;
 }
 
 export interface Produto {
   id: number;
   nome: string;
   preco: number;
+  precoCusto?: number;
   categoria: string;
   estoque: number;
+  estoqueMinimo?: number;
   descricao?: string;
+  marca?: string;
+  fornecedor?: string;
+  codigoBarras?: string;
   unidade: string;
+  ativo?: boolean;
+  imagem?: string;
 }
 
 export interface CartItem {
@@ -154,6 +166,58 @@ export interface Aluguel {
   observacoes?: string;
 }
 
+export interface Agendamento {
+  id: number;
+  alunoId?: number;
+  aluno?: string;
+  professorId: number;
+  professor: string;
+  data: string;
+  horaInicio: string;
+  horaFim: string;
+  tipo: 'aula' | 'treino' | 'avaliacao' | 'individual';
+  unidade: string;
+  status: 'confirmado' | 'pendente' | 'cancelado';
+  observacoes?: string;
+  recorrencia?: {
+    tipo: 'nenhuma' | 'semanal' | 'quinzenal' | 'mensal';
+    quantidade?: number;
+  };
+}
+
+export interface Exercicio {
+  id: number;
+  nome: string;
+  duracao: number;
+  descricao: string;
+  categoria: 'aquecimento' | 'tecnica' | 'tatica' | 'fisico' | 'finalizacao';
+  equipamentos: string[];
+  nivel: 'iniciante' | 'intermediario' | 'avancado';
+}
+
+export interface Treino {
+  id: number;
+  nome: string;
+  tipo: 'tecnico' | 'fisico' | 'tatico' | 'jogo';
+  nivel: 'iniciante' | 'intermediario' | 'avancado';
+  duracao: number;
+  objetivo: string;
+  equipamentos: string[];
+  exercicios: {
+    id: string;
+    nome: string;
+    duracao: number;
+    descricao: string;
+    ordem: number;
+  }[];
+  observacoes?: string;
+  professorId: number;
+  professor?: string;
+  unidade: string;
+  data?: string;
+  status?: 'planejado' | 'em-andamento' | 'concluido';
+}
+
 // UI and state types
 export interface ModalProps {
   isOpen: boolean;
@@ -189,6 +253,9 @@ export interface MockData {
   gestores: Gestor[];
   metas: Meta[];
   alugueis: Aluguel[];
+  agendamentos: Agendamento[];
+  treinos: Treino[];
+  exercicios: Exercicio[];
 }
 
 export interface ThemeContextType {
@@ -217,6 +284,9 @@ export interface ProfessorFormData extends Omit<Professor, 'id'> {}
 export interface UnidadeFormData extends Omit<Unidade, 'id'> {}
 export interface PlanoFormData extends Omit<Plano, 'id'> {}
 export interface ProdutoFormData extends Omit<Produto, 'id'> {}
+export interface AgendamentoFormData extends Omit<Agendamento, 'id' | 'professor' | 'aluno'> {}
+export interface TreinoFormData extends Omit<Treino, 'id' | 'professor'> {}
+export interface TransacaoFormData extends Omit<RegistroFinanceiro, 'id' | 'aluno' | 'professor'> {}
 
 // Filter and search types
 export interface FilterOptions {
