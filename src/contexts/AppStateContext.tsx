@@ -40,6 +40,8 @@ interface AppStateContextType extends AppState {
   setUnidadeSelecionada: React.Dispatch<React.SetStateAction<string>>;
   activeTab: TabKeys;
   setActiveTab: React.Dispatch<React.SetStateAction<TabKeys>>;
+  activeTabFilter: string | null;
+  setActiveTabFilter: React.Dispatch<React.SetStateAction<string | null>>;
   cart: CartItem[];
   setCart: React.Dispatch<React.SetStateAction<CartItem[]>>;
   
@@ -49,6 +51,7 @@ interface AppStateContextType extends AppState {
   updateCartQuantity: (produtoId: number, quantidade: number) => void;
   clearCart: () => void;
   getTotalCart: () => number;
+  navigateToTab: (tab: TabKeys, filter?: string) => void;
 }
 
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined);
@@ -84,6 +87,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const [userLogado, setUserLogado] = useState<User | null>(null);
   const [unidadeSelecionada, setUnidadeSelecionada] = useState<string>('Centro');
   const [activeTab, setActiveTab] = useState<TabKeys>('dashboard');
+  const [activeTabFilter, setActiveTabFilter] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
 
   // Cart helper functions
@@ -128,6 +132,11 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     return cart.reduce((total, item) => total + (item.produto.preco * item.quantidade), 0);
   }, [cart]);
 
+  const navigateToTab = useCallback((tab: TabKeys, filter?: string) => {
+    setActiveTab(tab);
+    setActiveTabFilter(filter || null);
+  }, []);
+
   const dadosMockados = useMemo(() => ({
     planos,
     alunos,
@@ -171,6 +180,8 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     // Session state
     activeTab,
     setActiveTab,
+    activeTabFilter,
+    setActiveTabFilter,
     cart,
     setCart,
     
@@ -179,7 +190,8 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     removeFromCart,
     updateCartQuantity,
     clearCart,
-    getTotalCart
+    getTotalCart,
+    navigateToTab
   }), [
     dadosMockados,
     userLogado,
@@ -197,12 +209,14 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setMetas,
     setAlugueis,
     activeTab,
+    activeTabFilter,
     cart,
     addToCart,
     removeFromCart,
     updateCartQuantity,
     clearCart,
-    getTotalCart
+    getTotalCart,
+    navigateToTab
   ]);
 
   return (

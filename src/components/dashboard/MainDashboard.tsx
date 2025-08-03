@@ -71,7 +71,7 @@ const StatCard: React.FC<StatCardProps> = ({ title, value, icon, trend, onClick 
 };
 
 export const MainDashboard: React.FC = memo(() => {
-  const { dadosMockados, setActiveTab } = useAppState();
+  const { dadosMockados, navigateToTab } = useAppState();
   const { alunos, financeiro } = dadosMockados;
 
   const stats: DashboardStats = useMemo(() => {
@@ -132,21 +132,21 @@ export const MainDashboard: React.FC = memo(() => {
           title="Total de Alunos"
           value={stats.totalAlunos}
           icon={<Users className="h-6 w-6 text-blue-600" />}
-          onClick={() => setActiveTab('alunos')}
+          onClick={() => navigateToTab('alunos')}
         />
         
         <StatCard
           title="Alunos Ativos"
           value={stats.alunosAtivos}
           icon={<Users className="h-6 w-6 text-green-600" />}
-          onClick={() => setActiveTab('alunos')}
+          onClick={() => navigateToTab('alunos')}
         />
         
         <StatCard
           title="Receita do Mês"
           value={stats.receitaTotal}
           icon={<DollarSign className="h-6 w-6 text-emerald-600" />}
-          onClick={() => setActiveTab('financeiro')}
+          onClick={() => navigateToTab('financeiro')}
         />
         
         <StatCard
@@ -157,7 +157,7 @@ export const MainDashboard: React.FC = memo(() => {
             value: 12.5,
             isPositive: stats.lucroLiquido > 0
           }}
-          onClick={() => setActiveTab('financeiro')}
+          onClick={() => navigateToTab('financeiro')}
         />
       </div>
 
@@ -176,7 +176,7 @@ export const MainDashboard: React.FC = memo(() => {
               {stats.alunosPendentes.length} aluno(s) com pagamento em atraso
             </p>
             <button
-              onClick={() => setActiveTab('financeiro')}
+              onClick={() => navigateToTab('alunos', 'pendente')}
               className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
             >
               Ver Pendências
@@ -197,7 +197,7 @@ export const MainDashboard: React.FC = memo(() => {
               {proximosVencimentos.length} mensalidade(s) vencem em até 7 dias
             </p>
             <button
-              onClick={() => setActiveTab('financeiro')}
+              onClick={() => navigateToTab('financeiro')}
               className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
             >
               Ver Vencimentos

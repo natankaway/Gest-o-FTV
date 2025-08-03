@@ -160,7 +160,7 @@ const StudentCard: React.FC<StudentCardProps> = ({ aluno, onEdit, onDelete, plan
 };
 
 export const AlunosPage: React.FC = memo(() => {
-  const { dadosMockados, setAlunos } = useAppState();
+  const { dadosMockados, setAlunos, activeTabFilter, setActiveTabFilter } = useAppState();
   const { alunos, planos } = dadosMockados;
   const { addNotification } = useNotifications();
   
@@ -171,6 +171,15 @@ export const AlunosPage: React.FC = memo(() => {
   const [tipoPlanoFilter, setTipoPlanoFilter] = useState('todos');
   const [showModal, setShowModal] = useState(false);
   const [editingAluno, setEditingAluno] = useState<Aluno | null>(null);
+
+  // Apply filter from navigation (e.g., from dashboard "Ver Pendências")
+  React.useEffect(() => {
+    if (activeTabFilter === 'pendente') {
+      setStatusFilter('pendente');
+      // Clear the filter after applying it
+      setActiveTabFilter(null);
+    }
+  }, [activeTabFilter, setActiveTabFilter]);
 
   // Dados filtrados
   const filteredAlunos = useMemo(() => {

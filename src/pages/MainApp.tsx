@@ -9,6 +9,7 @@ import { PresencasPage } from '@/components/presencas';
 import { PlanosPage } from '@/components/planos';
 import { ProdutosPage } from '@/components/produtos';
 import { FinanceiroPage } from '@/components/financeiro';
+import { AgendamentosPage } from '@/components/agendamentos';
 import { ErrorBoundary } from '@/components/common';
 
 export const MainApp: React.FC = () => {
@@ -34,6 +35,8 @@ export const MainApp: React.FC = () => {
         return <ProfessoresPage />;
       case 'presencas':
         return <PresencasPage />;
+      case 'agendamentos':
+        return <AgendamentosPage />;
       case 'treinos':
         return (
           <div className="text-center py-12">
