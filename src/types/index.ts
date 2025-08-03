@@ -218,9 +218,6 @@ export interface Treino {
   status?: 'planejado' | 'em-andamento' | 'concluido';
 }
 
-// Canvas and training related exports
-export * from './canvas';
-
 // UI and state types
 export interface ModalProps {
   isOpen: boolean;
