@@ -188,12 +188,12 @@ export const mockData: MockData = {
   ],
 
   financeiro: [
-    { id: 1, alunoId: 1, aluno: 'João Silva', valor: 150, data: '2025-07-05', status: 'pago', tipo: 'receita', metodo: 'mensalidade', descricao: 'Mensalidade Julho' },
-    { id: 2, alunoId: 2, aluno: 'Maria Santos', valor: 120, data: '2025-07-03', status: 'pago', tipo: 'receita', metodo: 'mensalidade', descricao: 'Mensalidade Julho' },
-    { id: 3, alunoId: 3, aluno: 'Pedro Costa', valor: 180, data: '2025-07-01', status: 'pendente', tipo: 'receita', metodo: 'mensalidade', descricao: 'Mensalidade Julho' },
-    { id: 4, alunoId: 4, aluno: 'Ana Oliveira', valor: 50, data: '2025-07-06', status: 'pago', tipo: 'receita', metodo: 'diaria-dinheiro', descricao: 'Diária avulsa' },
-    { id: 5, valor: 500, data: '2025-07-01', status: 'pago', tipo: 'despesa', metodo: 'aluguel', descricao: 'Aluguel Quadra' },
-    { id: 6, valor: 45.50, data: '2025-07-02', status: 'pago', tipo: 'receita', metodo: 'diaria-plataforma', descricao: 'Wellhub (Gympass)' }
+    { id: 1, alunoId: 1, aluno: 'João Silva', valor: 150, data: '2025-07-05', status: 'pago', tipo: 'receita', categoria: 'Mensalidade', metodo: 'mensalidade', descricao: 'Mensalidade Julho' },
+    { id: 2, alunoId: 2, aluno: 'Maria Santos', valor: 120, data: '2025-07-03', status: 'pago', tipo: 'receita', categoria: 'Mensalidade', metodo: 'mensalidade', descricao: 'Mensalidade Julho' },
+    { id: 3, alunoId: 3, aluno: 'Pedro Costa', valor: 180, data: '2025-07-01', status: 'pendente', tipo: 'receita', categoria: 'Mensalidade', metodo: 'mensalidade', descricao: 'Mensalidade Julho' },
+    { id: 4, alunoId: 4, aluno: 'Ana Oliveira', valor: 50, data: '2025-07-06', status: 'pago', tipo: 'receita', categoria: 'Diária', metodo: 'diaria-dinheiro', descricao: 'Diária avulsa' },
+    { id: 5, valor: 500, data: '2025-07-01', status: 'pago', tipo: 'despesa', categoria: 'Aluguel', metodo: 'aluguel', descricao: 'Aluguel Quadra' },
+    { id: 6, valor: 45.50, data: '2025-07-02', status: 'pago', tipo: 'receita', categoria: 'Plataforma', metodo: 'diaria-plataforma', descricao: 'Wellhub (Gympass)' }
   ],
 
   produtos: [
@@ -228,5 +228,85 @@ export const mockData: MockData = {
   alugueis: [
     { id: 1, cliente: 'Empresa XYZ', telefone: '(11) 3000-9000', data: '2025-07-15', horario: '14:00', duracao: 2, valor: 200, status: 'confirmado', unidade: 'Centro' },
     { id: 2, cliente: 'Grupo ABC', telefone: '(11) 3000-8000', data: '2025-07-20', horario: '16:00', duracao: 1, valor: 120, status: 'pendente', unidade: 'Barra' }
+  ],
+
+  agendamentos: [
+    {
+      id: 1,
+      alunoId: 1,
+      aluno: 'João Silva',
+      professorId: 1,
+      professor: 'Carlos Mendes',
+      data: '2024-01-15',
+      horaInicio: '09:00',
+      horaFim: '10:00',
+      tipo: 'aula',
+      unidade: 'Centro',
+      status: 'confirmado',
+      observacoes: 'Aula particular de técnica'
+    },
+    {
+      id: 2,
+      professorId: 2,
+      professor: 'Ana Paula Costa',
+      data: '2024-01-15',
+      horaInicio: '14:00',
+      horaFim: '15:30',
+      tipo: 'treino',
+      unidade: 'Centro',
+      status: 'confirmado'
+    }
+  ],
+
+  exercicios: [
+    {
+      id: 1,
+      nome: 'Aquecimento Articular',
+      duracao: 10,
+      descricao: 'Movimentação articular para preparar o corpo',
+      categoria: 'aquecimento',
+      equipamentos: [],
+      nivel: 'iniciante'
+    },
+    {
+      id: 2,
+      nome: 'Controle de Bola',
+      duracao: 15,
+      descricao: 'Exercícios de domínio e controle da bola',
+      categoria: 'tecnica',
+      equipamentos: ['Bola', 'Cones'],
+      nivel: 'intermediario'
+    },
+    {
+      id: 3,
+      nome: 'Movimentação em Dupla',
+      duracao: 20,
+      descricao: 'Trabalho de coordenação entre duplas',
+      categoria: 'tatica',
+      equipamentos: ['Bola', 'Rede'],
+      nivel: 'intermediario'
+    }
+  ],
+
+  treinos: [
+    {
+      id: 1,
+      nome: 'Treino Técnico - Iniciantes',
+      tipo: 'tecnico',
+      nivel: 'iniciante',
+      duracao: 60,
+      objetivo: 'Desenvolver técnicas básicas de futevôlei',
+      equipamentos: ['Bola', 'Cones', 'Rede'],
+      exercicios: [
+        { id: '1', nome: 'Aquecimento Articular', duracao: 10, descricao: 'Preparação do corpo', ordem: 1 },
+        { id: '2', nome: 'Controle de Bola', duracao: 15, descricao: 'Domínio básico', ordem: 2 }
+      ],
+      observacoes: 'Treino focado em fundamentos',
+      professorId: 1,
+      professor: 'Carlos Mendes',
+      unidade: 'Centro',
+      data: '2024-01-15',
+      status: 'concluido'
+    }
   ]
 };

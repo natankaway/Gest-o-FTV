@@ -16,6 +16,9 @@ import type {
   Horario, 
   Meta, 
   Aluguel, 
+  Agendamento,
+  Treino,
+  Exercicio,
   CartItem,
   TabKeys
 } from '@/types';
@@ -34,6 +37,9 @@ interface AppStateContextType extends AppState {
   setHorarios: React.Dispatch<React.SetStateAction<Horario[]>>;
   setMetas: React.Dispatch<React.SetStateAction<Meta[]>>;
   setAlugueis: React.Dispatch<React.SetStateAction<Aluguel[]>>;
+  setAgendamentos: React.Dispatch<React.SetStateAction<Agendamento[]>>;
+  setTreinos: React.Dispatch<React.SetStateAction<Treino[]>>;
+  setExercicios: React.Dispatch<React.SetStateAction<Exercicio[]>>;
   
   // Session state
   setUserLogado: React.Dispatch<React.SetStateAction<User | null>>;
@@ -82,6 +88,9 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const [horarios, setHorarios] = useLocalStorage<Horario[]>('horarios', mockData.horarios);
   const [metas, setMetas] = useLocalStorage<Meta[]>('metas', mockData.metas);
   const [alugueis, setAlugueis] = useLocalStorage<Aluguel[]>('alugueis', mockData.alugueis);
+  const [agendamentos, setAgendamentos] = useLocalStorage<Agendamento[]>('agendamentos', mockData.agendamentos);
+  const [treinos, setTreinos] = useLocalStorage<Treino[]>('treinos', mockData.treinos);
+  const [exercicios, setExercicios] = useLocalStorage<Exercicio[]>('exercicios', mockData.exercicios);
 
   // Session state (not persisted)
   const [userLogado, setUserLogado] = useState<User | null>(null);
@@ -149,10 +158,14 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     horarios,
     gestores,
     metas,
-    alugueis
+    alugueis,
+    agendamentos,
+    treinos,
+    exercicios
   }), [
     planos, alunos, professores, unidades, presencas,
-    financeiro, produtos, plataformas, horarios, gestores, metas, alugueis
+    financeiro, produtos, plataformas, horarios, gestores, metas, alugueis,
+    agendamentos, treinos, exercicios
   ]);
 
   const value = useMemo(() => ({
@@ -174,6 +187,9 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setHorarios,
     setMetas,
     setAlugueis,
+    setAgendamentos,
+    setTreinos,
+    setExercicios,
     setUserLogado,
     setUnidadeSelecionada,
     
@@ -208,6 +224,9 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setHorarios,
     setMetas,
     setAlugueis,
+    setAgendamentos,
+    setTreinos,
+    setExercicios,
     activeTab,
     activeTabFilter,
     cart,

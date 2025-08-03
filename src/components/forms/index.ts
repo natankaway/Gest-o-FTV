@@ -3,3 +3,7 @@ export { NovoAlunoModal } from './NovoAlunoModal';
 export { NovoProfessorModal } from './NovoProfessorModal';
 export { NovaPresencaModal } from './NovaPresencaModal';
 export { NovoPlanoModal } from './NovoPlanoModal';
+export { NovoAgendamentoModal } from './NovoAgendamentoModal';
+export { NovaTransacaoModal } from './NovaTransacaoModal';
+export { NovoTreinoModal } from './NovoTreinoModal';
+export { NovoProdutoModal } from './NovoProdutoModal';
