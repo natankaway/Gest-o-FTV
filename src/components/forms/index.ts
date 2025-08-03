@@ -6,3 +6,4 @@ export { NovoPlanoModal } from './NovoPlanoModal';
 export { NovoAgendamentoModal } from './NovoAgendamentoModal';
 export { NovaTransacaoModal } from './NovaTransacaoModal';
 export { NovoTreinoModal } from './NovoTreinoModal';
+export { NovoProdutoModal } from './NovoProdutoModal';
