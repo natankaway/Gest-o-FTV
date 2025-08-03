@@ -109,26 +109,57 @@ export interface CanvasState {
   };
 }
 
+export interface FutevoleiField {
+  width: number;
+  height: number;
+  aspectRatio: number; // 1:2 para futevôlei
+  sandColor: string;
+  lineColor: string;
+  netHeight: number;
+  netWidth: number;
+}
+
+export interface TextEditor {
+  isEditing: boolean;
+  selectedTextId: string | null;
+  fontSize: number;
+  fontFamily: string;
+  backgroundColor?: string;
+  textAlign: 'left' | 'center' | 'right';
+}
+
+export interface AdvancedTools {
+  shapeType: 'circle' | 'rectangle' | 'triangle';
+  lineStyle: 'solid' | 'dashed' | 'dotted';
+  arrowType: 'straight' | 'curved';
+  thickness: number;
+}
+
 export interface CanvasConfig {
   width: number;
   height: number;
   fieldColor: string;
   lineColor: string;
   lineWidth: number;
-  centerCircleRadius: number;
-  goalWidth: number;
-  goalHeight: number;
+  // Futevolei-specific properties
+  sandColor: string;
+  courtLineColor: string;
+  netColor: string;
+  netHeight: number;
+  netWidth: number;
 }
 
 export const DEFAULT_CANVAS_CONFIG: CanvasConfig = {
-  width: 800,
-  height: 500,
-  fieldColor: '#22C55E', // Green field
+  width: 500,  // Adjusted for futevolei proportions (9m equivalent)
+  height: 1000, // Adjusted for futevolei proportions (18m equivalent, 1:2 ratio)
+  fieldColor: '#F4A460', // Sand color for futevolei
+  sandColor: '#F4A460',  // Sand color
   lineColor: '#FFFFFF',  // White lines
+  courtLineColor: '#1E40AF', // Blue court boundaries
+  netColor: '#374151',   // Dark gray net
   lineWidth: 3,
-  centerCircleRadius: 60,
-  goalWidth: 120,
-  goalHeight: 20,
+  netHeight: 100,  // Net height in the middle
+  netWidth: 4,     // Net thickness
 };
 
 export const DEFAULT_COLORS = [

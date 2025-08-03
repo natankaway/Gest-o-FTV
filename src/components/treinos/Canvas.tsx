@@ -63,45 +63,86 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     return `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }, []);
 
-  // Draw field background and lines
+  // Draw futevolei court background and lines
   const drawField = useCallback((ctx: CanvasRenderingContext2D) => {
-    const { width, height, fieldColor, lineColor, lineWidth, centerCircleRadius } = config;
+    const { width, height, sandColor, courtLineColor, netColor, lineWidth, netHeight, netWidth } = config;
 
     // Clear canvas
     ctx.clearRect(0, 0, width, height);
 
-    // Draw field background
-    ctx.fillStyle = fieldColor;
+    // Draw sand background
+    ctx.fillStyle = sandColor;
     ctx.fillRect(0, 0, width, height);
 
-    // Set line style
-    ctx.strokeStyle = lineColor;
+    // Set court line style
+    ctx.strokeStyle = courtLineColor;
     ctx.lineWidth = lineWidth;
     ctx.lineCap = 'round';
 
-    // Draw field borders
+    // Draw court borders (blue lines)
     ctx.strokeRect(lineWidth / 2, lineWidth / 2, width - lineWidth, height - lineWidth);
 
-    // Draw center line
+    // Draw center line (dividing the court)
     ctx.beginPath();
-    ctx.moveTo(width / 2, lineWidth);
-    ctx.lineTo(width / 2, height - lineWidth);
+    ctx.moveTo(lineWidth, height / 2);
+    ctx.lineTo(width - lineWidth, height / 2);
     ctx.stroke();
 
-    // Draw center circle
+    // Draw net in the center
+    ctx.strokeStyle = netColor;
+    ctx.lineWidth = netWidth;
+    
+    // Vertical net post on the left
     ctx.beginPath();
-    ctx.arc(width / 2, height / 2, centerCircleRadius, 0, 2 * Math.PI);
+    ctx.moveTo(0, height / 2 - netHeight / 2);
+    ctx.lineTo(0, height / 2 + netHeight / 2);
     ctx.stroke();
+    
+    // Vertical net post on the right
+    ctx.beginPath();
+    ctx.moveTo(width, height / 2 - netHeight / 2);
+    ctx.lineTo(width, height / 2 + netHeight / 2);
+    ctx.stroke();
+    
+    // Net mesh (simplified pattern)
+    ctx.strokeStyle = netColor;
+    ctx.lineWidth = 1;
+    const meshSpacing = 10;
+    
+    // Horizontal net lines
+    for (let y = height / 2 - netHeight / 2; y <= height / 2 + netHeight / 2; y += meshSpacing) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+      ctx.stroke();
+    }
+    
+    // Vertical net lines
+    for (let x = 0; x <= width; x += meshSpacing) {
+      ctx.beginPath();
+      ctx.moveTo(x, height / 2 - netHeight / 2);
+      ctx.lineTo(x, height / 2 + netHeight / 2);
+      ctx.stroke();
+    }
 
-    // Draw goal areas (simplified for futevôlei)
-    const goalWidth = config.goalWidth;
-    const goalHeight = config.goalHeight;
+    // Draw service areas (optional - small marks)
+    ctx.strokeStyle = courtLineColor;
+    ctx.lineWidth = 2;
     
-    // Left goal area
-    ctx.strokeRect(lineWidth, (height - goalHeight) / 2, goalWidth, goalHeight);
+    // Service line marks (small lines at 1/4 and 3/4 of court height)
+    const serviceLineLength = 20;
     
-    // Right goal area
-    ctx.strokeRect(width - goalWidth - lineWidth, (height - goalHeight) / 2, goalWidth, goalHeight);
+    // Top court service area
+    ctx.beginPath();
+    ctx.moveTo(width / 2 - serviceLineLength / 2, height / 4);
+    ctx.lineTo(width / 2 + serviceLineLength / 2, height / 4);
+    ctx.stroke();
+    
+    // Bottom court service area
+    ctx.beginPath();
+    ctx.moveTo(width / 2 - serviceLineLength / 2, (3 * height) / 4);
+    ctx.lineTo(width / 2 + serviceLineLength / 2, (3 * height) / 4);
+    ctx.stroke();
   }, [config]);
 
   // Draw a single canvas item
@@ -636,10 +677,11 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         style={{
-          width: '100%',
-          height: 'auto',
-          maxWidth: `${config.width}px`,
-          maxHeight: `${config.height}px`,
+          width: 'auto',
+          height: '60vh', // Limit height to 60% of viewport for better display
+          maxWidth: '100%',
+          maxHeight: '70vh',
+          aspectRatio: `${config.width}/${config.height}`, // Maintain correct aspect ratio
         }}
       />
       
