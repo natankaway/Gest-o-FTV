@@ -314,3 +314,6 @@ export interface Tab {
   icon: React.ComponentType;
   requiredRole?: User['perfil'][];
 }
+
+// Export canvas types
+export * from './canvas';
