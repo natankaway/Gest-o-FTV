@@ -566,7 +566,7 @@ export const Canvas: React.FC<CanvasProps> = memo(({
 
   // Update parent component when data changes
   useEffect(() => {
-    if (!onDataChange || readonly) return;
+    if (!onDataChange || readonly || !canvasState.items) return;
 
     const newData: PranchetaData = {
       id: data?.id || generateId(),
@@ -580,8 +580,14 @@ export const Canvas: React.FC<CanvasProps> = memo(({
       updatedAt: new Date().toISOString(),
     };
 
-    onDataChange(newData);
-  }, [canvasState.items, onDataChange, readonly, data, generateId, config]);
+    // Only call onDataChange if the items actually changed
+    const itemsChanged = !data?.items || 
+      JSON.stringify(data.items) !== JSON.stringify(canvasState.items);
+    
+    if (itemsChanged) {
+      onDataChange(newData);
+    }
+  }, [canvasState.items]); // Only depend on items to avoid infinite loops
 
   // Delete selected items
   const deleteSelectedItems = useCallback(() => {
