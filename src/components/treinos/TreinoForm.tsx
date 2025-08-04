@@ -33,14 +33,16 @@ interface TreinoFormProps {
   treino?: Partial<TreinoFormData> & { id?: number; pranchetaData?: PranchetaData };
   onSave: (data: TreinoFormData & { pranchetaData?: PranchetaData }) => void;
   onCancel: () => void;
-  pranchetaData?: PranchetaData;
+  pranchetaData?: PranchetaData | undefined; // Allow undefined explicitly
+  isEmbedded?: boolean; // New prop for embedded mode in split-screen
 }
 
 export const TreinoForm: React.FC<TreinoFormProps> = memo(({
   treino,
   onSave,
   onCancel,
-  pranchetaData
+  pranchetaData,
+  isEmbedded = false
 }) => {
   const { dadosMockados, userLogado, unidadeSelecionada } = useAppState();
   const { addNotification } = useNotifications();
@@ -191,32 +193,34 @@ export const TreinoForm: React.FC<TreinoFormProps> = memo(({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-            <BookOpen size={20} />
-            {treino ? 'Editar Treino' : 'Novo Treino'}
-          </h2>
-          
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onCancel}
-              disabled={isSaving}
-            >
-              <X size={16} />
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSaving}
-              loading={isSaving}
-            >
-              <Save size={16} />
-              {treino ? 'Atualizar' : 'Salvar'}
-            </Button>
+        {!isEmbedded && (
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <BookOpen size={20} />
+              {treino ? 'Editar Treino' : 'Novo Treino'}
+            </h2>
+            
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={onCancel}
+                disabled={isSaving}
+              >
+                <X size={16} />
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSaving}
+                loading={isSaving}
+              >
+                <Save size={16} />
+                {treino ? 'Atualizar' : 'Salvar'}
+              </Button>
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Nome */}

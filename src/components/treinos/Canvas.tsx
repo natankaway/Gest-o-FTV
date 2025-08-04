@@ -15,7 +15,7 @@ import type {
 import { DEFAULT_CANVAS_CONFIG } from '@/types/canvas';
 
 interface CanvasProps {
-  data?: PranchetaData;
+  data?: PranchetaData | undefined;
   selectedTool: ToolType;
   selectedColor: string;
   onDataChange?: (data: PranchetaData) => void;

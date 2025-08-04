@@ -1,6 +1,6 @@
 // Canvas and Prancheta Types for Tactical Training Board
 
-export type ToolType = 'select' | 'player' | 'ball' | 'arrow' | 'text' | 'block' | 'curved-arrow' | 'circle' | 'triangle';
+export type ToolType = 'select' | 'free-draw' | 'arrow' | 'player-blue' | 'player-red' | 'ball' | 'text' | 'block' | 'player' | 'curved-arrow' | 'circle' | 'triangle';
 
 export interface Point {
   x: number;
@@ -46,7 +46,7 @@ export interface BlockItem extends CanvasItem {
   shape?: 'rectangle' | 'circle' | 'triangle';
 }
 
-export type CanvasItemUnion = PlayerItem | BallItem | ArrowItem | TextItem | BlockItem;
+export type CanvasItemUnion = PlayerItem | BallItem | ArrowItem | TextItem | BlockItem | FreeDrawItem;
 
 export interface PranchetaData {
   id: string;
@@ -127,6 +127,47 @@ export interface TextEditor {
   fontFamily: string;
   backgroundColor?: string;
   textAlign: 'left' | 'center' | 'right';
+}
+
+export interface DrawingPath {
+  id: string;
+  points: Point[];
+  color: string;
+  thickness: number;
+  timestamp: number;
+}
+
+export interface FreeDrawItem extends CanvasItem {
+  type: 'free-draw';
+  paths: DrawingPath[];
+  thickness: number;
+}
+
+export interface DrawingSettings {
+  thickness: number;
+  opacity: number;
+  smoothing: boolean;
+}
+
+export interface TextEditorState {
+  text: string;
+  fontSize: number;
+  fontFamily: string;
+  bold: boolean;
+  italic: boolean;
+  underline: boolean;
+  alignment: 'left' | 'center' | 'right';
+  color: string;
+  backgroundColor?: string | undefined;
+  transparency: number;
+}
+
+export interface CanvasSettings {
+  zoom: number;
+  pan: { x: number; y: number };
+  gridEnabled: boolean;
+  gridSize: number;
+  snapToGrid: boolean;
 }
 
 export interface AdvancedTools {
