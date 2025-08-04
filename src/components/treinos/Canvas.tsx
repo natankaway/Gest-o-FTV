@@ -11,6 +11,8 @@ import type {
   ArrowItem,
   TextItem,
   BlockItem,
+  FreeDrawItem,
+  DrawingPath,
 } from '@/types/canvas';
 import { DEFAULT_CANVAS_CONFIG } from '@/types/canvas';
 
@@ -52,6 +54,13 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     selectedTextId: null as string | null,
     inputPosition: { x: 0, y: 0 },
     inputValue: '',
+  });
+
+  // State for free drawing
+  const [freeDrawState, setFreeDrawState] = useState({
+    isDrawing: false,
+    currentPath: [] as Point[],
+    currentPathId: null as string | null,
   });
 
   const config: CanvasConfig = { ...DEFAULT_CANVAS_CONFIG, ...configOverride };
@@ -98,6 +107,13 @@ export const Canvas: React.FC<CanvasProps> = memo(({
 
     // Draw net in the center
     ctx.strokeStyle = netColor;
+    ctx.lineWidth = netWidth;
+    ctx.beginPath();
+    ctx.moveTo(width / 2 - netWidth / 2, height / 2 - netHeight / 2);
+    ctx.lineTo(width / 2 - netWidth / 2, height / 2 + netHeight / 2);
+    ctx.lineTo(width / 2 + netWidth / 2, height / 2 + netHeight / 2);
+    ctx.lineTo(width / 2 + netWidth / 2, height / 2 - netHeight / 2);
+    ctx.stroke();
     ctx.lineWidth = netWidth;
     
     // Vertical net post on the left
@@ -346,6 +362,32 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         }
         break;
       }
+
+      case 'free-draw': {
+        const freeDrawItem = item as FreeDrawItem;
+        ctx.strokeStyle = freeDrawItem.color;
+        ctx.lineWidth = freeDrawItem.thickness || 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        freeDrawItem.paths.forEach((path: DrawingPath) => {
+          if (path.points.length > 1) {
+            const firstPoint = path.points[0];
+            if (firstPoint) {
+              ctx.beginPath();
+              ctx.moveTo(firstPoint.x, firstPoint.y);
+              for (let i = 1; i < path.points.length; i++) {
+                const point = path.points[i];
+                if (point) {
+                  ctx.lineTo(point.x, point.y);
+                }
+              }
+              ctx.stroke();
+            }
+          }
+        });
+        break;
+      }
     }
 
     ctx.restore();
@@ -366,7 +408,28 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     canvasState.items.forEach(item => {
       drawItem(ctx, item);
     });
-  }, [canvasState.items, drawField, drawItem]);
+
+    // Draw current free drawing path
+    if (freeDrawState.isDrawing && freeDrawState.currentPath.length > 1) {
+      ctx.strokeStyle = selectedColor;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      
+      const firstPoint = freeDrawState.currentPath[0];
+      if (firstPoint) {
+        ctx.beginPath();
+        ctx.moveTo(firstPoint.x, firstPoint.y);
+        for (let i = 1; i < freeDrawState.currentPath.length; i++) {
+          const point = freeDrawState.currentPath[i];
+          if (point) {
+            ctx.lineTo(point.x, point.y);
+          }
+        }
+        ctx.stroke();
+      }
+    }
+  }, [canvasState.items, drawField, drawItem, freeDrawState, selectedColor]);
 
   // Render when state changes
   useEffect(() => {
@@ -507,15 +570,19 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     };
 
     switch (selectedTool) {
-      case 'player': {
-        // Find next player number
-        const playerNumbers = canvasState.items
-          .filter(item => item.type === 'player')
-          .map(item => (item as PlayerItem).number || 0);
-        const nextNumber = playerNumbers.length > 0 ? Math.max(...playerNumbers) + 1 : 1;
+      case 'player':
+      case 'player-blue':
+      case 'player-red': {
+        // Find next player number for the specific team
+        const teamColor = selectedTool === 'player-red' ? 'red' : 
+                         selectedTool === 'player-blue' ? 'blue' : 
+                         'red'; // default for generic 'player'
         
-        // Alternate team colors
-        const teamColor = playerNumbers.length % 2 === 0 ? 'red' : 'blue';
+        const sameTeamPlayers = canvasState.items
+          .filter(item => item.type === 'player')
+          .filter(item => (item as PlayerItem).teamColor === teamColor);
+        
+        const nextNumber = sameTeamPlayers.length + 1;
         
         return {
           ...baseItem,
@@ -567,6 +634,14 @@ export const Canvas: React.FC<CanvasProps> = memo(({
           shape: 'triangle',
         } as BlockItem;
 
+      case 'free-draw':
+        return {
+          ...baseItem,
+          type: 'free-draw',
+          paths: [],
+          thickness: 3,
+        } as FreeDrawItem;
+
       default:
         return null;
     }
@@ -613,6 +688,13 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         ...prev,
         isDrawing: true,
       }));
+    } else if (selectedTool === 'free-draw') {
+      // Start free drawing
+      setFreeDrawState({
+        isDrawing: true,
+        currentPath: [position],
+        currentPathId: generateId(),
+      });
     } else {
       // Create new item
       const newItem = createItem(position);
@@ -651,8 +733,14 @@ export const Canvas: React.FC<CanvasProps> = memo(({
           return item;
         }),
       }));
+    } else if (freeDrawState.isDrawing && selectedTool === 'free-draw') {
+      // Continue free drawing
+      setFreeDrawState(prev => ({
+        ...prev,
+        currentPath: [...prev.currentPath, position],
+      }));
     }
-  }, [readonly, getMousePosition, canvasState.dragState]);
+  }, [readonly, getMousePosition, canvasState.dragState, freeDrawState.isDrawing, selectedTool]);
 
   // Handle mouse up
   const handleMouseUp = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -695,6 +783,39 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         items: [...prev.items, newArrow],
         isDrawing: false,
       }));
+    } else if (freeDrawState.isDrawing && selectedTool === 'free-draw' && freeDrawState.currentPathId) {
+      // Finish free drawing
+      if (freeDrawState.currentPath.length > 1) {
+        const firstPoint = freeDrawState.currentPath[0];
+        if (firstPoint) {
+          const newDrawingPath: FreeDrawItem = {
+            id: freeDrawState.currentPathId,
+            type: 'free-draw',
+            position: firstPoint, // First point as position
+            color: selectedColor,
+            paths: [{
+              id: generateId(),
+              points: freeDrawState.currentPath,
+              color: selectedColor,
+              thickness: 3,
+              timestamp: Date.now(),
+            }],
+            thickness: 3,
+            selected: false,
+          };
+
+          setCanvasState(prev => ({
+            ...prev,
+            items: [...prev.items, newDrawingPath],
+          }));
+        }
+      }
+
+      setFreeDrawState({
+        isDrawing: false,
+        currentPath: [],
+        currentPathId: null,
+      });
     }
 
     // Stop dragging
