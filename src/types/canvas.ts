@@ -108,6 +108,8 @@ export interface CanvasState {
     startPosition: Point | null;
     offset: Point | null;
   };
+  currentDrawingPath: DrawingPath | null;
+  arrowStartPosition: Point | null;
 }
 
 export interface FutevoleiField {
