@@ -220,18 +220,12 @@ export const TreinosManager: React.FC = memo(() => {
 
   // Handle tool change
   const handleToolChange = useCallback((tool: ToolType) => {
-    setState(prev => ({ ...prev, selectedTool: tool }));
-
-    // Auto-open text editor when text tool is selected
-    if (tool === 'text') {
-      setState(prev => ({
-        ...prev,
-        textEditor: {
-          isOpen: true,
-          initialState: {}
-        }
-      }));
-    }
+    setState(prev => ({ 
+      ...prev, 
+      selectedTool: tool,
+      // Reset text editor when switching away from text tool
+      textEditor: tool === 'text' ? prev.textEditor : { isOpen: false }
+    }));
   }, []);
 
   // Handle color change
@@ -487,91 +481,118 @@ export const TreinosManager: React.FC = memo(() => {
     );
   }
 
-  // EDIT VIEW - Split Screen Layout
+  // EDIT VIEW - Responsive Layout Implementation
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+    <div className="treino-editor-container">
+      {/* Mobile Header (visible only on mobile) */}
+      <div className="lg:hidden bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button variant="secondary" onClick={handleBackToList}>
               <ArrowLeft size={16} />
               Voltar
             </Button>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+            <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">
               {state.editingTreino?.id ? `Editar: ${state.editingTreino.nome}` : 'Novo Treino'}
             </h1>
           </div>
           
-          <div className="flex items-center gap-2">
-            {/* Zoom Controls */}
-            <ZoomPanControls
-              zoom={zoom}
-              onZoomChange={handleZoomChange}
-              onPanReset={handlePanReset}
-              onFitToScreen={handleFitToScreen}
-            />
-            
-            <Button variant="secondary" onClick={handleToggleFullscreen}>
-              <Maximize2 size={16} />
-              {state.isFullscreenCanvas ? 'Minimizar' : 'Tela Cheia'}
-            </Button>
-            
-            <Button onClick={() => state.editingTreino && handleSaveTreino(state.editingTreino)}>
-              <Save size={16} />
-              Salvar Treino
-            </Button>
-          </div>
+          <Button onClick={() => state.editingTreino && handleSaveTreino(state.editingTreino)} size="sm">
+            <Save size={16} />
+            Salvar
+          </Button>
         </div>
       </div>
 
-      {/* Main Content - Split Screen */}
-      <div className={`grid gap-4 ${state.isFullscreenCanvas ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`}>
-        {/* Left Side - Form (Hidden in fullscreen) */}
-        {!state.isFullscreenCanvas && state.editingTreino && (
-          <div className="space-y-4">
-            <TreinoForm
-              treino={state.editingTreino}
-              onSave={handleSaveTreino}
-              onCancel={handleBackToList}
-              pranchetaData={state.pranchetaData || undefined}
-              isEmbedded={true}
-            />
-          </div>
-        )}
-
-        {/* Right Side - Tactical Board */}
-        <div className="space-y-4">
-          {/* Toolbar */}
-          <CanvasToolbar
-            selectedTool={state.selectedTool}
-            selectedColor={state.selectedColor}
-            onToolChange={handleToolChange}
-            onColorChange={handleColorChange}
-            onClearDrawing={handleClearDrawing}
-            isMobile={window.innerWidth < 768}
-          />
-
-          {/* Canvas */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <div 
-              className="relative overflow-hidden rounded-lg"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onWheel={handleWheel}
-              style={{ 
-                height: state.isFullscreenCanvas ? '80vh' : '60vh',
-                cursor: state.selectedTool === 'select' ? 'default' : 'crosshair'
-              }}
-            >
-              <div style={getTransformStyle()}>
-                <Canvas
-                  data={state.pranchetaData || undefined}
-                  selectedTool={state.selectedTool}
-                  selectedColor={state.selectedColor}
-                  onDataChange={handlePranchetaDataChange}
+      {/* Main Container - Desktop: Flex | Mobile: Block */}
+      <div className="treino-editor-main">
+        {/* Left Sidebar - Form Section */}
+        <div className="formulario-sidebar">
+          {/* Desktop Header (hidden on mobile) */}
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Button variant="secondary" onClick={handleBackToList}>
+                  <ArrowLeft size={16} />
+                  Voltar
+                </Button>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                  {state.editingTreino?.id ? `Editar: ${state.editingTreino.nome}` : 'Novo Treino'}
+                </h1>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                {/* Zoom Controls */}
+                <ZoomPanControls
+                  zoom={zoom}
+                  onZoomChange={handleZoomChange}
+                  onPanReset={handlePanReset}
+                  onFitToScreen={handleFitToScreen}
                 />
+                
+                <Button variant="secondary" onClick={handleToggleFullscreen}>
+                  <Maximize2 size={16} />
+                  {state.isFullscreenCanvas ? 'Minimizar' : 'Tela Cheia'}
+                </Button>
+                
+                <Button onClick={() => state.editingTreino && handleSaveTreino(state.editingTreino)}>
+                  <Save size={16} />
+                  Salvar Treino
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Form Content */}
+          {state.editingTreino && (
+            <div className="formulario-content">
+              <TreinoForm
+                treino={state.editingTreino}
+                onSave={handleSaveTreino}
+                onCancel={handleBackToList}
+                pranchetaData={state.pranchetaData || undefined}
+                isEmbedded={true}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Right Side - Tactical Board Container */}
+        <div className="prancheta-container">
+          <div className="prancheta-content">
+            {/* Toolbar */}
+            <div className="prancheta-toolbar">
+              <CanvasToolbar
+                selectedTool={state.selectedTool}
+                selectedColor={state.selectedColor}
+                onToolChange={handleToolChange}
+                onColorChange={handleColorChange}
+                onClearDrawing={handleClearDrawing}
+                isMobile={window.innerWidth < 768}
+              />
+            </div>
+
+            {/* Canvas Container with proper aspect ratio */}
+            <div className="prancheta-canvas-container">
+              <div 
+                className="prancheta-canvas-wrapper"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onWheel={handleWheel}
+                style={{ 
+                  cursor: state.selectedTool === 'select' ? 'default' : 
+                         state.selectedTool === 'text' ? 'text' : 'crosshair'
+                }}
+              >
+                <div style={getTransformStyle()}>
+                  <Canvas
+                    data={state.pranchetaData || undefined}
+                    selectedTool={state.selectedTool}
+                    selectedColor={state.selectedColor}
+                    onDataChange={handlePranchetaDataChange}
+                  />
+                </div>
               </div>
             </div>
           </div>

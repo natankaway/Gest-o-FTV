@@ -11,6 +11,8 @@ import type {
   ArrowItem,
   TextItem,
   BlockItem,
+  FreeDrawItem,
+  DrawingPath,
 } from '@/types/canvas';
 import { DEFAULT_CANVAS_CONFIG } from '@/types/canvas';
 
@@ -44,6 +46,8 @@ export const Canvas: React.FC<CanvasProps> = memo(({
       startPosition: null,
       offset: null,
     },
+    currentDrawingPath: null,
+    arrowStartPosition: null,
   });
 
   // State for text editing
@@ -153,199 +157,288 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     ctx.stroke();
   }, [config]);
 
-  // Draw a single canvas item
+  // Draw a single canvas item with comprehensive validation
   const drawItem = useCallback((ctx: CanvasRenderingContext2D, item: CanvasItemUnion) => {
-    ctx.save();
-
-    // Apply selection highlight
-    if (item.selected) {
-      ctx.shadowColor = '#3B82F6';
-      ctx.shadowBlur = 8;
+    // Comprehensive validation to prevent rendering bugs
+    if (!item || typeof item !== 'object') {
+      console.warn('Invalid item passed to drawItem:', item);
+      return;
     }
 
-    switch (item.type) {
-      case 'player': {
-        const playerItem = item as PlayerItem;
-        
-        // Set colors based on team
-        const teamColors = {
-          red: { bg: '#EF4444', border: '#DC2626', text: '#FFFFFF' },
-          blue: { bg: '#3B82F6', border: '#2563EB', text: '#FFFFFF' },
-        };
-        
-        const colors = teamColors[playerItem.teamColor || 'red'];
-        
-        ctx.fillStyle = colors.bg;
-        ctx.strokeStyle = colors.border;
-        ctx.lineWidth = 3;
+    // Validate required properties
+    if (!item.id || !item.type || !item.position) {
+      console.warn('Item missing required properties:', item);
+      return;
+    }
 
-        // Draw player circle
-        ctx.beginPath();
-        ctx.arc(playerItem.position.x, playerItem.position.y, 18, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
+    // Validate position coordinates
+    if (typeof item.position.x !== 'number' || typeof item.position.y !== 'number') {
+      console.warn('Invalid position coordinates:', item.position);
+      return;
+    }
 
-        // Draw player number
-        if (playerItem.number) {
-          ctx.fillStyle = colors.text;
-          ctx.font = 'bold 14px Arial';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(
-            playerItem.number.toString(),
-            playerItem.position.x,
-            playerItem.position.y
-          );
-        }
-        break;
+    // Validate color
+    const itemColor = item.color || '#000000';
+
+    ctx.save();
+
+    try {
+      // Apply selection highlight
+      if (item.selected) {
+        ctx.shadowColor = '#3B82F6';
+        ctx.shadowBlur = 8;
       }
 
-      case 'ball': {
-        const ballItem = item as BallItem;
-        ctx.fillStyle = ballItem.color;
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2;
-
-        // Draw ball
-        ctx.beginPath();
-        ctx.arc(ballItem.position.x, ballItem.position.y, 10, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
-
-        // Draw ball pattern (volleyball stripes)
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        // Vertical line
-        ctx.moveTo(ballItem.position.x, ballItem.position.y - 8);
-        ctx.lineTo(ballItem.position.x, ballItem.position.y + 8);
-        // Horizontal line
-        ctx.moveTo(ballItem.position.x - 8, ballItem.position.y);
-        ctx.lineTo(ballItem.position.x + 8, ballItem.position.y);
-        ctx.stroke();
-        break;
-      }
-
-      case 'arrow':
-      case 'curved-arrow': {
-        const arrowItem = item as ArrowItem;
-        ctx.strokeStyle = arrowItem.color;
-        ctx.fillStyle = arrowItem.color;
-        ctx.lineWidth = arrowItem.thickness || 3;
-
-        const start = arrowItem.position;
-        const end = arrowItem.endPosition;
-
-        if (item.type === 'curved-arrow') {
-          // Draw curved arrow
-          const midX = (start.x + end.x) / 2;
-          const midY = (start.y + end.y) / 2;
-          const curveAmount = arrowItem.curveAmount || 50;
+      switch (item.type) {
+        case 'player': {
+          const playerItem = item as PlayerItem;
           
-          // Calculate perpendicular offset for curve
-          const dx = end.x - start.x;
-          const dy = end.y - start.y;
-          const length = Math.sqrt(dx * dx + dy * dy);
-          const unitX = dx / length;
-          const unitY = dy / length;
-          const perpX = -unitY * curveAmount;
-          const perpY = unitX * curveAmount;
+          // Set colors based on team with fallback
+          const teamColors = {
+            red: { bg: '#EF4444', border: '#DC2626', text: '#FFFFFF' },
+            blue: { bg: '#3B82F6', border: '#2563EB', text: '#FFFFFF' },
+          };
           
-          const controlX = midX + perpX;
-          const controlY = midY + perpY;
+          const teamColor = playerItem.teamColor || 'red';
+          const colors = teamColors[teamColor] || teamColors.red;
+          
+          ctx.fillStyle = colors.bg;
+          ctx.strokeStyle = colors.border;
+          ctx.lineWidth = 3;
 
+          // Draw player circle
           ctx.beginPath();
-          ctx.moveTo(start.x, start.y);
-          ctx.quadraticCurveTo(controlX, controlY, end.x, end.y);
-          ctx.stroke();
-        } else {
-          // Draw straight arrow line
-          ctx.beginPath();
-          ctx.moveTo(start.x, start.y);
-          ctx.lineTo(end.x, end.y);
-          ctx.stroke();
-        }
-
-        // Draw arrowhead
-        const angle = Math.atan2(end.y - start.y, end.x - start.x);
-        const headLength = 15;
-
-        ctx.beginPath();
-        ctx.moveTo(end.x, end.y);
-        ctx.lineTo(
-          end.x - headLength * Math.cos(angle - Math.PI / 6),
-          end.y - headLength * Math.sin(angle - Math.PI / 6)
-        );
-        ctx.lineTo(
-          end.x - headLength * Math.cos(angle + Math.PI / 6),
-          end.y - headLength * Math.sin(angle + Math.PI / 6)
-        );
-        ctx.closePath();
-        ctx.fill();
-        break;
-      }
-
-      case 'text': {
-        const textItem = item as TextItem;
-        ctx.fillStyle = textItem.color;
-        ctx.font = `${textItem.fontSize || 16}px ${textItem.fontFamily || 'Arial'}`;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText(textItem.text, textItem.position.x, textItem.position.y);
-        break;
-      }
-
-      case 'block':
-      case 'circle':
-      case 'triangle': {
-        const blockItem = item as BlockItem;
-        ctx.fillStyle = blockItem.color;
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2;
-
-        if (item.type === 'circle' || blockItem.shape === 'circle') {
-          const radius = Math.min(blockItem.width, blockItem.height) / 2;
-          ctx.beginPath();
-          ctx.arc(
-            blockItem.position.x + radius,
-            blockItem.position.y + radius,
-            radius,
-            0,
-            2 * Math.PI
-          );
+          ctx.arc(playerItem.position.x, playerItem.position.y, 18, 0, 2 * Math.PI);
           ctx.fill();
           ctx.stroke();
-        } else if (item.type === 'triangle' || blockItem.shape === 'triangle') {
-          const centerX = blockItem.position.x + blockItem.width / 2;
-          const topY = blockItem.position.y;
-          const bottomY = blockItem.position.y + blockItem.height;
-          const leftX = blockItem.position.x;
-          const rightX = blockItem.position.x + blockItem.width;
-          
+
+          // Draw player number if available
+          if (playerItem.number && typeof playerItem.number === 'number') {
+            ctx.fillStyle = colors.text;
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(
+              playerItem.number.toString(),
+              playerItem.position.x,
+              playerItem.position.y
+            );
+          }
+          break;
+        }
+
+        case 'ball': {
+          const ballItem = item as BallItem;
+          ctx.fillStyle = itemColor;
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 2;
+
+          // Draw ball
           ctx.beginPath();
-          ctx.moveTo(centerX, topY);
-          ctx.lineTo(leftX, bottomY);
-          ctx.lineTo(rightX, bottomY);
+          ctx.arc(ballItem.position.x, ballItem.position.y, 10, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
+
+          // Draw ball pattern (volleyball stripes)
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          // Vertical line
+          ctx.moveTo(ballItem.position.x, ballItem.position.y - 8);
+          ctx.lineTo(ballItem.position.x, ballItem.position.y + 8);
+          // Horizontal line
+          ctx.moveTo(ballItem.position.x - 8, ballItem.position.y);
+          ctx.lineTo(ballItem.position.x + 8, ballItem.position.y);
+          ctx.stroke();
+          break;
+        }
+
+        case 'arrow':
+        case 'curved-arrow': {
+          const arrowItem = item as ArrowItem;
+          
+          // Validate arrow has end position
+          if (!arrowItem.endPosition || 
+              typeof arrowItem.endPosition.x !== 'number' || 
+              typeof arrowItem.endPosition.y !== 'number') {
+            console.warn('Arrow item missing valid endPosition:', arrowItem);
+            break;
+          }
+
+          ctx.strokeStyle = itemColor;
+          ctx.fillStyle = itemColor;
+          ctx.lineWidth = arrowItem.thickness || 3;
+
+          const start = arrowItem.position;
+          const end = arrowItem.endPosition;
+
+          if (item.type === 'curved-arrow') {
+            // Draw curved arrow
+            const midX = (start.x + end.x) / 2;
+            const midY = (start.y + end.y) / 2;
+            const curveAmount = arrowItem.curveAmount || 50;
+            
+            // Calculate perpendicular offset for curve
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            
+            if (length > 0) {
+              const unitX = dx / length;
+              const unitY = dy / length;
+              const perpX = -unitY * curveAmount;
+              const perpY = unitX * curveAmount;
+              
+              const controlX = midX + perpX;
+              const controlY = midY + perpY;
+
+              ctx.beginPath();
+              ctx.moveTo(start.x, start.y);
+              ctx.quadraticCurveTo(controlX, controlY, end.x, end.y);
+              ctx.stroke();
+            }
+          } else {
+            // Draw straight arrow line
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.stroke();
+          }
+
+          // Draw arrowhead
+          const angle = Math.atan2(end.y - start.y, end.x - start.x);
+          const headLength = 15;
+
+          ctx.beginPath();
+          ctx.moveTo(end.x, end.y);
+          ctx.lineTo(
+            end.x - headLength * Math.cos(angle - Math.PI / 6),
+            end.y - headLength * Math.sin(angle - Math.PI / 6)
+          );
+          ctx.lineTo(
+            end.x - headLength * Math.cos(angle + Math.PI / 6),
+            end.y - headLength * Math.sin(angle + Math.PI / 6)
+          );
           ctx.closePath();
           ctx.fill();
-          ctx.stroke();
-        } else {
-          // Rectangle
-          ctx.fillRect(
-            blockItem.position.x,
-            blockItem.position.y,
-            blockItem.width,
-            blockItem.height
-          );
-          ctx.strokeRect(
-            blockItem.position.x,
-            blockItem.position.y,
-            blockItem.width,
-            blockItem.height
-          );
+          break;
         }
-        break;
+
+        case 'text': {
+          const textItem = item as TextItem;
+          
+          // Validate text properties
+          const text = textItem.text || 'Texto';
+          const fontSize = textItem.fontSize || 16;
+          const fontFamily = textItem.fontFamily || 'Arial';
+          
+          ctx.fillStyle = itemColor;
+          ctx.font = `${fontSize}px ${fontFamily}`;
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
+          ctx.fillText(text, textItem.position.x, textItem.position.y);
+          break;
+        }
+
+        case 'block':
+        case 'circle':
+        case 'triangle': {
+          const blockItem = item as BlockItem;
+          
+          // Validate block dimensions
+          const width = blockItem.width || 40;
+          const height = blockItem.height || 40;
+          
+          ctx.fillStyle = itemColor;
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 2;
+
+          if (item.type === 'circle' || blockItem.shape === 'circle') {
+            const radius = Math.min(width, height) / 2;
+            ctx.beginPath();
+            ctx.arc(
+              blockItem.position.x + radius,
+              blockItem.position.y + radius,
+              radius,
+              0,
+              2 * Math.PI
+            );
+            ctx.fill();
+            ctx.stroke();
+          } else if (item.type === 'triangle' || blockItem.shape === 'triangle') {
+            const centerX = blockItem.position.x + width / 2;
+            const topY = blockItem.position.y;
+            const bottomY = blockItem.position.y + height;
+            const leftX = blockItem.position.x;
+            const rightX = blockItem.position.x + width;
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, topY);
+            ctx.lineTo(leftX, bottomY);
+            ctx.lineTo(rightX, bottomY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+          } else {
+            // Rectangle
+            ctx.fillRect(
+              blockItem.position.x,
+              blockItem.position.y,
+              width,
+              height
+            );
+            ctx.strokeRect(
+              blockItem.position.x,
+              blockItem.position.y,
+              width,
+              height
+            );
+          }
+          break;
+        }
+
+        case 'free-draw': {
+          const freeDrawItem = item as FreeDrawItem;
+          
+          // Validate free draw paths
+          if (!freeDrawItem.paths || !Array.isArray(freeDrawItem.paths)) {
+            console.warn('Free draw item missing valid paths:', freeDrawItem);
+            break;
+          }
+
+          freeDrawItem.paths.forEach((path: DrawingPath) => {
+            if (!path || !Array.isArray(path.points) || path.points.length < 2) {
+              return;
+            }
+
+            ctx.strokeStyle = path.color || itemColor;
+            ctx.lineWidth = path.thickness || 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.beginPath();
+            const firstPoint = path.points[0];
+            if (firstPoint) {
+              ctx.moveTo(firstPoint.x, firstPoint.y);
+              
+              for (let i = 1; i < path.points.length; i++) {
+                const point = path.points[i];
+                if (point && typeof point.x === 'number' && typeof point.y === 'number') {
+                  ctx.lineTo(point.x, point.y);
+                }
+              }
+              
+              ctx.stroke();
+            }
+          });
+          break;
+        }
+
+        default:
+          console.warn('Unknown item type:', (item as any).type);
       }
+    } catch (error) {
+      console.error('Error rendering canvas item:', error, item);
     }
 
     ctx.restore();
@@ -373,15 +466,37 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     render();
   }, [render]);
 
-  // Get mouse position relative to canvas
-  const getMousePosition = useCallback((event: React.MouseEvent<HTMLCanvasElement>): Point => {
+  // Get position from mouse or touch event with precise calculation
+  const getMousePosition = useCallback((event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>): Point => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
 
     const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    let clientX: number, clientY: number;
+    
+    if ('touches' in event) {
+      // Touch event
+      if (event.touches && event.touches.length > 0) {
+        clientX = event.touches[0]?.clientX || 0;
+        clientY = event.touches[0]?.clientY || 0;
+      } else if (event.changedTouches && event.changedTouches.length > 0) {
+        clientX = event.changedTouches[0]?.clientX || 0;
+        clientY = event.changedTouches[0]?.clientY || 0;
+      } else {
+        return { x: 0, y: 0 };
+      }
+    } else {
+      // Mouse event
+      clientX = event.clientX;
+      clientY = event.clientY;
+    }
+    
     return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
     };
   }, []);
 
@@ -572,10 +687,11 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     }
   }, [readonly, generateId, selectedColor, selectedTool, canvasState.items]);
 
-  // Handle mouse down
-  const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+  // Handle mouse/touch down with improved tool flow
+  const handleMouseDown = useCallback((event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (readonly) return;
 
+    event.preventDefault(); // Prevent default touch behaviors
     const position = getMousePosition(event);
     const clickedItem = findItemAtPosition(position);
 
@@ -607,14 +723,63 @@ export const Canvas: React.FC<CanvasProps> = memo(({
           items: prev.items.map(item => ({ ...item, selected: false })),
         }));
       }
+    } else if (selectedTool === 'free-draw') {
+      // Start free drawing
+      const newPath: DrawingPath = {
+        id: generateId(),
+        points: [position],
+        color: selectedColor,
+        thickness: 3,
+        timestamp: Date.now(),
+      };
+
+      setCanvasState(prev => ({
+        ...prev,
+        isDrawing: true,
+        currentDrawingPath: newPath,
+      }));
     } else if (selectedTool === 'arrow' || selectedTool === 'curved-arrow') {
       // Start drawing arrow
       setCanvasState(prev => ({
         ...prev,
         isDrawing: true,
+        arrowStartPosition: position,
       }));
+    } else if (selectedTool === 'text') {
+      // For text tool, create text item immediately at click position
+      const newTextItem: TextItem = {
+        id: generateId(),
+        type: 'text',
+        position,
+        color: selectedColor,
+        text: 'Texto',
+        fontSize: 16,
+        fontFamily: 'Arial',
+        selected: false,
+      };
+
+      setCanvasState(prev => ({
+        ...prev,
+        items: [...prev.items, newTextItem],
+      }));
+
+      // Immediately enable text editing
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        
+        setTextEditor({
+          isEditing: true,
+          selectedTextId: newTextItem.id,
+          inputPosition: {
+            x: rect.left + (position.x * rect.width) / config.width,
+            y: rect.top + (position.y * rect.height) / config.height,
+          },
+          inputValue: 'Texto',
+        });
+      }
     } else {
-      // Create new item
+      // Create other types of items
       const newItem = createItem(position);
       if (newItem) {
         setCanvasState(prev => ({
@@ -623,12 +788,13 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         }));
       }
     }
-  }, [readonly, selectedTool, getMousePosition, findItemAtPosition, createItem]);
+  }, [readonly, selectedTool, getMousePosition, findItemAtPosition, generateId, selectedColor, config.width, config.height, createItem]);
 
-  // Handle mouse move
-  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+  // Handle mouse/touch move with free drawing support
+  const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (readonly) return;
 
+    event.preventDefault(); // Prevent default touch behaviors
     const position = getMousePosition(event);
 
     if (canvasState.dragState.isDragging && canvasState.dragState.draggedItemId) {
@@ -651,21 +817,92 @@ export const Canvas: React.FC<CanvasProps> = memo(({
           return item;
         }),
       }));
-    }
-  }, [readonly, getMousePosition, canvasState.dragState]);
+    } else if (selectedTool === 'free-draw' && canvasState.isDrawing && canvasState.currentDrawingPath) {
+      // Add point to current drawing path
+      const updatedPath = {
+        ...canvasState.currentDrawingPath,
+        points: [...canvasState.currentDrawingPath.points, position],
+      };
 
-  // Handle mouse up
-  const handleMouseUp = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
+      setCanvasState(prev => ({
+        ...prev,
+        currentDrawingPath: updatedPath,
+      }));
+
+      // Real-time drawing update
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (ctx && canvasState.currentDrawingPath.points.length > 1) {
+          const path = updatedPath;
+          const prevPoint = path.points[path.points.length - 2];
+          
+          if (prevPoint) {
+            ctx.strokeStyle = path.color;
+            ctx.lineWidth = path.thickness;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            ctx.beginPath();
+            ctx.moveTo(prevPoint.x, prevPoint.y);
+            ctx.lineTo(position.x, position.y);
+            ctx.stroke();
+          }
+        }
+      }
+    }
+  }, [readonly, getMousePosition, canvasState.dragState, canvasState.isDrawing, canvasState.currentDrawingPath, selectedTool]);
+
+  // Handle mouse/touch up with complete tool support
+  const handleMouseUp = useCallback((event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (readonly) return;
 
+    event.preventDefault(); // Prevent default touch behaviors
     const position = getMousePosition(event);
 
-    if (selectedTool === 'arrow' && canvasState.isDrawing) {
+    if (selectedTool === 'free-draw' && canvasState.isDrawing && canvasState.currentDrawingPath) {
+      // Finish free drawing - create free draw item
+      if (canvasState.currentDrawingPath.points.length > 1) {
+        const firstPoint = canvasState.currentDrawingPath.points[0];
+        if (firstPoint) {
+          const newFreeDrawItem: FreeDrawItem = {
+            id: generateId(),
+            type: 'free-draw',
+            position: firstPoint, // First point as position
+            color: canvasState.currentDrawingPath.color,
+            thickness: canvasState.currentDrawingPath.thickness,
+            paths: [canvasState.currentDrawingPath],
+            selected: false,
+          };
+
+          setCanvasState(prev => ({
+            ...prev,
+            items: [...prev.items, newFreeDrawItem],
+            isDrawing: false,
+            currentDrawingPath: null,
+          }));
+        } else {
+          // Not enough valid points, just stop drawing
+          setCanvasState(prev => ({
+            ...prev,
+            isDrawing: false,
+            currentDrawingPath: null,
+          }));
+        }
+      } else {
+        // Not enough points, just stop drawing
+        setCanvasState(prev => ({
+          ...prev,
+          isDrawing: false,
+          currentDrawingPath: null,
+        }));
+      }
+    } else if (selectedTool === 'arrow' && canvasState.isDrawing && canvasState.arrowStartPosition) {
       // Finish drawing straight arrow
       const newArrow: ArrowItem = {
         id: generateId(),
         type: 'arrow',
-        position: { x: position.x - 50, y: position.y },
+        position: canvasState.arrowStartPosition,
         endPosition: position,
         color: selectedColor,
         thickness: 3,
@@ -676,13 +913,14 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         ...prev,
         items: [...prev.items, newArrow],
         isDrawing: false,
+        arrowStartPosition: null,
       }));
-    } else if (selectedTool === 'curved-arrow' && canvasState.isDrawing) {
+    } else if (selectedTool === 'curved-arrow' && canvasState.isDrawing && canvasState.arrowStartPosition) {
       // Finish drawing curved arrow
       const newArrow: ArrowItem = {
         id: generateId(),
         type: 'curved-arrow',
-        position: { x: position.x - 50, y: position.y },
+        position: canvasState.arrowStartPosition,
         endPosition: position,
         color: selectedColor,
         thickness: 3,
@@ -694,6 +932,7 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         ...prev,
         items: [...prev.items, newArrow],
         isDrawing: false,
+        arrowStartPosition: null,
       }));
     }
 
@@ -707,7 +946,7 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         offset: null,
       },
     }));
-  }, [readonly, selectedTool, canvasState.isDrawing, getMousePosition, generateId, selectedColor]);
+  }, [readonly, selectedTool, canvasState.isDrawing, canvasState.currentDrawingPath, canvasState.arrowStartPosition, getMousePosition, generateId, selectedColor]);
 
   // Handle double click for text editing
   const handleDoubleClick = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -849,17 +1088,23 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         ref={canvasRef}
         width={config.width}
         height={config.height}
-        className="block cursor-crosshair"
+        className="block"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onDoubleClick={handleDoubleClick}
+        onTouchStart={handleMouseDown}
+        onTouchMove={handleMouseMove}
+        onTouchEnd={handleMouseUp}
         style={{
-          width: 'auto',
-          height: '60vh', // Limit height to 60% of viewport for better display
+          width: '100%',
+          height: '100%',
           maxWidth: '100%',
-          maxHeight: '70vh',
           aspectRatio: `${config.width}/${config.height}`, // Maintain correct aspect ratio
+          cursor: selectedTool === 'select' ? 'default' : 
+                  selectedTool === 'text' ? 'text' : 
+                  selectedTool === 'free-draw' ? 'crosshair' : 'crosshair',
+          touchAction: 'none', // Prevent scrolling during touch drawing
         }}
       />
       
