@@ -21,7 +21,7 @@ import {
   Maximize2
 } from 'lucide-react';
 import type { Treino, TreinoFormData } from '@/types';
-import type { PranchetaData, ToolType, TextEditorState } from '@/types/canvas';
+import type { PranchetaData, ToolType, TextEditorState, TextItem } from '@/types/canvas';
 
 type ViewMode = 'list' | 'edit';
 
@@ -220,18 +220,18 @@ export const TreinosManager: React.FC = memo(() => {
 
   // Handle tool change
   const handleToolChange = useCallback((tool: ToolType) => {
-    setState(prev => ({ ...prev, selectedTool: tool }));
+    setState(prev => ({ 
+      ...prev, 
+      selectedTool: tool,
+      // Clear text editor when switching tools
+      textEditor: {
+        isOpen: false,
+        initialState: {}
+      }
+    }));
 
-    // Auto-open text editor when text tool is selected
-    if (tool === 'text') {
-      setState(prev => ({
-        ...prev,
-        textEditor: {
-          isOpen: true,
-          initialState: {}
-        }
-      }));
-    }
+    // Do NOT auto-open text editor when text tool is selected
+    // Text editor will open when user clicks on canvas with text tool active
   }, []);
 
   // Handle color change
@@ -241,12 +241,41 @@ export const TreinosManager: React.FC = memo(() => {
 
   // Handle text editor
   const handleTextEditorSave = useCallback((textState: TextEditorState) => {
-    // This would be handled by the Canvas component to add text
-    console.log('Text to add:', textState);
-    setState(prev => ({
-      ...prev,
-      textEditor: { isOpen: false }
-    }));
+    // Create a new text item and add it to the canvas
+    if (textState.position) {
+      const newTextItem: TextItem = {
+        id: `text_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        type: 'text',
+        position: textState.position,
+        color: textState.color,
+        text: textState.text,
+        fontSize: textState.fontSize,
+        fontFamily: textState.fontFamily,
+        selected: false,
+      };
+
+      setState(prev => ({
+        ...prev,
+        pranchetaData: prev.pranchetaData ? {
+          ...prev.pranchetaData,
+          items: [...prev.pranchetaData.items, newTextItem],
+          updatedAt: new Date().toISOString(),
+        } : {
+          id: `prancheta_${Date.now()}`,
+          items: [newTextItem],
+          fieldDimensions: { width: 500, height: 1000 },
+          backgroundColor: '#F4A460',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        textEditor: { isOpen: false }
+      }));
+    } else {
+      setState(prev => ({
+        ...prev,
+        textEditor: { isOpen: false }
+      }));
+    }
   }, []);
 
   const handleTextEditorCancel = useCallback(() => {
@@ -255,6 +284,22 @@ export const TreinosManager: React.FC = memo(() => {
       textEditor: { isOpen: false }
     }));
   }, []);
+
+  // Handle canvas click for text tool
+  const handleCanvasClickForText = useCallback((position: { x: number; y: number }) => {
+    if (state.selectedTool === 'text') {
+      setState(prev => ({
+        ...prev,
+        textEditor: {
+          isOpen: true,
+          initialState: {
+            // Initialize with position data for later use in canvas
+            position: position
+          }
+        }
+      }));
+    }
+  }, [state.selectedTool]);
 
   // Handle fullscreen canvas
   const handleToggleFullscreen = useCallback(() => {
@@ -487,11 +532,11 @@ export const TreinosManager: React.FC = memo(() => {
     );
   }
 
-  // EDIT VIEW - Split Screen Layout
+  // EDIT VIEW - Proper Responsive Layout
   return (
-    <div className="space-y-4">
+    <div className="h-screen flex flex-col">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button variant="secondary" onClick={handleBackToList}>
@@ -525,53 +570,60 @@ export const TreinosManager: React.FC = memo(() => {
         </div>
       </div>
 
-      {/* Main Content - Split Screen */}
-      <div className={`grid gap-4 ${state.isFullscreenCanvas ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`}>
-        {/* Left Side - Form (Hidden in fullscreen) */}
+      {/* Main Content - Responsive Layout */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+        {/* Left Side - Form (Desktop: Fixed sidebar, Mobile: Stacked above) */}
         {!state.isFullscreenCanvas && state.editingTreino && (
-          <div className="space-y-4">
-            <TreinoForm
-              treino={state.editingTreino}
-              onSave={handleSaveTreino}
-              onCancel={handleBackToList}
-              pranchetaData={state.pranchetaData || undefined}
-              isEmbedded={true}
-            />
+          <div className="w-full lg:w-[400px] lg:flex-shrink-0 bg-white dark:bg-gray-800 border-b lg:border-r lg:border-b-0 border-gray-200 dark:border-gray-700 overflow-y-auto">
+            <div className="p-4">
+              <TreinoForm
+                treino={state.editingTreino}
+                onSave={handleSaveTreino}
+                onCancel={handleBackToList}
+                pranchetaData={state.pranchetaData || undefined}
+                isEmbedded={true}
+              />
+            </div>
           </div>
         )}
 
-        {/* Right Side - Tactical Board */}
-        <div className="space-y-4">
+        {/* Right Side - Tactical Board (Desktop: Expandable, Mobile: Full width) */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-gray-50 dark:bg-gray-900">
           {/* Toolbar */}
-          <CanvasToolbar
-            selectedTool={state.selectedTool}
-            selectedColor={state.selectedColor}
-            onToolChange={handleToolChange}
-            onColorChange={handleColorChange}
-            onClearDrawing={handleClearDrawing}
-            isMobile={window.innerWidth < 768}
-          />
+          <div className="flex-shrink-0 p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <CanvasToolbar
+              selectedTool={state.selectedTool}
+              selectedColor={state.selectedColor}
+              onToolChange={handleToolChange}
+              onColorChange={handleColorChange}
+              onClearDrawing={handleClearDrawing}
+              isMobile={window.innerWidth < 768}
+            />
+          </div>
 
-          {/* Canvas */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <div 
-              className="relative overflow-hidden rounded-lg"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onWheel={handleWheel}
-              style={{ 
-                height: state.isFullscreenCanvas ? '80vh' : '60vh',
-                cursor: state.selectedTool === 'select' ? 'default' : 'crosshair'
-              }}
-            >
-              <div style={getTransformStyle()}>
-                <Canvas
-                  data={state.pranchetaData || undefined}
-                  selectedTool={state.selectedTool}
-                  selectedColor={state.selectedColor}
-                  onDataChange={handlePranchetaDataChange}
-                />
+          {/* Canvas Container with Scroll */}
+          <div className="flex-1 overflow-auto p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+              <div 
+                className="relative overflow-hidden rounded-lg"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onWheel={handleWheel}
+                style={{ 
+                  minHeight: state.isFullscreenCanvas ? '100vh' : '120vh', // Force vertical scroll
+                  cursor: state.selectedTool === 'select' ? 'default' : 'crosshair'
+                }}
+              >
+                <div style={getTransformStyle()}>
+                  <Canvas
+                    data={state.pranchetaData || undefined}
+                    selectedTool={state.selectedTool}
+                    selectedColor={state.selectedColor}
+                    onDataChange={handlePranchetaDataChange}
+                    onCanvasClickForText={handleCanvasClickForText}
+                  />
+                </div>
               </div>
             </div>
           </div>
