@@ -160,6 +160,7 @@ export interface TextEditorState {
   color: string;
   backgroundColor?: string | undefined;
   transparency: number;
+  position?: { x: number; y: number }; // Canvas position where text should be placed
 }
 
 export interface CanvasSettings {

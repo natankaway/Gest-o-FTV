@@ -11,6 +11,8 @@ import type {
   ArrowItem,
   TextItem,
   BlockItem,
+  FreeDrawItem,
+  DrawingPath,
 } from '@/types/canvas';
 import { DEFAULT_CANVAS_CONFIG } from '@/types/canvas';
 
@@ -19,6 +21,7 @@ interface CanvasProps {
   selectedTool: ToolType;
   selectedColor: string;
   onDataChange?: (data: PranchetaData) => void;
+  onCanvasClickForText?: (position: { x: number; y: number }) => void;
   readonly?: boolean;
   config?: Partial<CanvasConfig>;
 }
@@ -28,6 +31,7 @@ export const Canvas: React.FC<CanvasProps> = memo(({
   selectedTool,
   selectedColor,
   onDataChange,
+  onCanvasClickForText,
   readonly = false,
   config: configOverride = {}
 }) => {
@@ -44,6 +48,13 @@ export const Canvas: React.FC<CanvasProps> = memo(({
       startPosition: null,
       offset: null,
     },
+  });
+
+  // State for free drawing
+  const [freeDrawState, setFreeDrawState] = useState({
+    isDrawing: false,
+    currentPath: [] as Point[],
+    allPaths: [] as DrawingPath[],
   });
 
   // State for text editing
@@ -346,6 +357,35 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         }
         break;
       }
+
+      case 'free-draw': {
+        const freeDrawItem = item as FreeDrawItem;
+        ctx.strokeStyle = freeDrawItem.color;
+        ctx.lineWidth = freeDrawItem.thickness || 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        // Draw all paths for this free draw item
+        freeDrawItem.paths.forEach((path: DrawingPath) => {
+          if (path.points.length < 2) return;
+          
+          const firstPoint = path.points[0];
+          if (!firstPoint) return;
+          
+          ctx.beginPath();
+          ctx.moveTo(firstPoint.x, firstPoint.y);
+          
+          for (let i = 1; i < path.points.length; i++) {
+            const point = path.points[i];
+            if (point) {
+              ctx.lineTo(point.x, point.y);
+            }
+          }
+          
+          ctx.stroke();
+        });
+        break;
+      }
     }
 
     ctx.restore();
@@ -366,22 +406,48 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     canvasState.items.forEach(item => {
       drawItem(ctx, item);
     });
-  }, [canvasState.items, drawField, drawItem]);
+
+    // Draw current free draw path
+    if (freeDrawState.isDrawing && freeDrawState.currentPath.length > 1) {
+      ctx.strokeStyle = selectedColor;
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      
+      const path = freeDrawState.currentPath;
+      if (path[0]) {
+        ctx.beginPath();
+        ctx.moveTo(path[0].x, path[0].y);
+        
+        for (let i = 1; i < path.length; i++) {
+          const point = path[i];
+          if (point) {
+            ctx.lineTo(point.x, point.y);
+          }
+        }
+        
+        ctx.stroke();
+      }
+    }
+  }, [canvasState.items, drawField, drawItem, freeDrawState, selectedColor]);
 
   // Render when state changes
   useEffect(() => {
     render();
   }, [render]);
 
-  // Get mouse position relative to canvas
+  // Get mouse position relative to canvas with proper scaling
   const getMousePosition = useCallback((event: React.MouseEvent<HTMLCanvasElement>): Point => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
 
     const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
     return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
+      x: (event.clientX - rect.left) * scaleX,
+      y: (event.clientY - rect.top) * scaleY,
     };
   }, []);
 
@@ -579,6 +645,24 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     const position = getMousePosition(event);
     const clickedItem = findItemAtPosition(position);
 
+    if (selectedTool === 'text') {
+      // Text tool: Call parent callback to open modal with position
+      if (onCanvasClickForText) {
+        onCanvasClickForText(position);
+      }
+      return;
+    }
+
+    if (selectedTool === 'free-draw') {
+      // Start free drawing
+      setFreeDrawState({
+        isDrawing: true,
+        currentPath: [position],
+        allPaths: [...freeDrawState.allPaths],
+      });
+      return;
+    }
+
     if (selectedTool === 'select') {
       if (clickedItem) {
         // Start dragging
@@ -623,7 +707,7 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         }));
       }
     }
-  }, [readonly, selectedTool, getMousePosition, findItemAtPosition, createItem]);
+  }, [readonly, selectedTool, getMousePosition, findItemAtPosition, createItem, onCanvasClickForText, freeDrawState.allPaths]);
 
   // Handle mouse move
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -631,8 +715,17 @@ export const Canvas: React.FC<CanvasProps> = memo(({
 
     const position = getMousePosition(event);
 
+    // Handle free drawing
+    if (selectedTool === 'free-draw' && freeDrawState.isDrawing) {
+      setFreeDrawState(prev => ({
+        ...prev,
+        currentPath: [...prev.currentPath, position],
+      }));
+      return;
+    }
+
+    // Handle dragging
     if (canvasState.dragState.isDragging && canvasState.dragState.draggedItemId) {
-      // Update dragged item position
       const { draggedItemId, offset } = canvasState.dragState;
       if (!offset) return;
 
@@ -652,13 +745,50 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         }),
       }));
     }
-  }, [readonly, getMousePosition, canvasState.dragState]);
+  }, [readonly, getMousePosition, canvasState.dragState, selectedTool, freeDrawState.isDrawing]);
 
   // Handle mouse up
   const handleMouseUp = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
     if (readonly) return;
 
     const position = getMousePosition(event);
+
+    // Finish free drawing
+    if (selectedTool === 'free-draw' && freeDrawState.isDrawing) {
+      if (freeDrawState.currentPath.length > 1) {
+        const firstPoint = freeDrawState.currentPath[0];
+        if (firstPoint) {
+          // Create a new free draw item with the completed path
+          const newFreeDrawItem: FreeDrawItem = {
+            id: generateId(),
+            type: 'free-draw',
+            position: firstPoint, // First point as position
+            color: selectedColor,
+            selected: false,
+            paths: [{
+              id: generateId(),
+              points: freeDrawState.currentPath,
+              color: selectedColor,
+              thickness: 3,
+              timestamp: Date.now(),
+            }],
+            thickness: 3,
+          };
+
+          setCanvasState(prev => ({
+            ...prev,
+            items: [...prev.items, newFreeDrawItem],
+          }));
+        }
+      }
+
+      setFreeDrawState({
+        isDrawing: false,
+        currentPath: [],
+        allPaths: [...freeDrawState.allPaths],
+      });
+      return;
+    }
 
     if (selectedTool === 'arrow' && canvasState.isDrawing) {
       // Finish drawing straight arrow
@@ -707,7 +837,7 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         offset: null,
       },
     }));
-  }, [readonly, selectedTool, canvasState.isDrawing, getMousePosition, generateId, selectedColor]);
+  }, [readonly, selectedTool, canvasState.isDrawing, getMousePosition, generateId, selectedColor, freeDrawState]);
 
   // Handle double click for text editing
   const handleDoubleClick = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -855,11 +985,10 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         onMouseUp={handleMouseUp}
         onDoubleClick={handleDoubleClick}
         style={{
-          width: 'auto',
-          height: '60vh', // Limit height to 60% of viewport for better display
+          width: '100%',
+          height: 'auto',
           maxWidth: '100%',
-          maxHeight: '70vh',
-          aspectRatio: `${config.width}/${config.height}`, // Maintain correct aspect ratio
+          aspectRatio: `${config.width}/${config.height}`, // Maintain correct aspect ratio (1:2 for futevolei)
         }}
       />
       
