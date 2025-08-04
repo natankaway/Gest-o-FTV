@@ -1,0 +1,2 @@
+// Request to coding agent
+// Please fix the specific error on line 125 of Canvas.tsx where theme.bg is still being accessed without proper null checking, causing TypeError: Cannot read properties of undefined (reading 'bg')
