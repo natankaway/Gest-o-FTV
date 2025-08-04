@@ -155,6 +155,12 @@ export const Canvas: React.FC<CanvasProps> = memo(({
 
   // Draw a single canvas item
   const drawItem = useCallback((ctx: CanvasRenderingContext2D, item: CanvasItemUnion) => {
+    // Validate input parameters
+    if (!ctx || !item || !item.type) {
+      console.warn('Parâmetros inválidos para drawItem:', { ctx: !!ctx, item });
+      return;
+    }
+
     ctx.save();
 
     // Apply selection highlight
@@ -173,7 +179,11 @@ export const Canvas: React.FC<CanvasProps> = memo(({
           blue: { bg: '#3B82F6', border: '#2563EB', text: '#FFFFFF' },
         };
         
-        const colors = teamColors[playerItem.teamColor || 'red'];
+        // Safe team color access with proper fallback
+        const teamColor = playerItem.teamColor && (playerItem.teamColor === 'red' || playerItem.teamColor === 'blue') 
+          ? playerItem.teamColor 
+          : 'red';
+        const colors = teamColors[teamColor];
         
         ctx.fillStyle = colors.bg;
         ctx.strokeStyle = colors.border;
@@ -364,6 +374,12 @@ export const Canvas: React.FC<CanvasProps> = memo(({
 
     // Draw all items
     canvasState.items.forEach(item => {
+      // Validate item before processing
+      if (!item || typeof item !== 'object' || !item.type) {
+        console.warn('Elemento inválido ignorado:', item);
+        return;
+      }
+      
       drawItem(ctx, item);
     });
   }, [canvasState.items, drawField, drawItem]);
