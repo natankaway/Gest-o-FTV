@@ -21,7 +21,7 @@ import {
   Maximize2
 } from 'lucide-react';
 import type { Treino, TreinoFormData } from '@/types';
-import type { PranchetaData, ToolType, TextEditorState } from '@/types/canvas';
+import type { PranchetaData, ToolType, TextEditorState, CourtTheme } from '@/types/canvas';
 
 type ViewMode = 'list' | 'edit';
 
@@ -32,6 +32,7 @@ interface TreinosManagerState {
   pranchetaData: PranchetaData | null;
   selectedTool: ToolType;
   selectedColor: string;
+  courtTheme: CourtTheme;
   searchTerm: string;
   filterType: string;
   filterNivel: string;
@@ -53,6 +54,7 @@ export const TreinosManager: React.FC = memo(() => {
     pranchetaData: null,
     selectedTool: 'select',
     selectedColor: '#EF4444',
+    courtTheme: 'beach',
     searchTerm: '',
     filterType: '',
     filterNivel: '',
@@ -237,6 +239,11 @@ export const TreinosManager: React.FC = memo(() => {
   // Handle color change
   const handleColorChange = useCallback((color: string) => {
     setState(prev => ({ ...prev, selectedColor: color }));
+  }, []);
+
+  // Handle theme change
+  const handleThemeChange = useCallback((theme: CourtTheme) => {
+    setState(prev => ({ ...prev, courtTheme: theme }));
   }, []);
 
   // Handle text editor
@@ -550,6 +557,8 @@ export const TreinosManager: React.FC = memo(() => {
             onColorChange={handleColorChange}
             onClearDrawing={handleClearDrawing}
             isMobile={window.innerWidth < 768}
+            theme={state.courtTheme}
+            onThemeChange={handleThemeChange}
           />
 
           {/* Canvas */}
@@ -571,6 +580,8 @@ export const TreinosManager: React.FC = memo(() => {
                   selectedTool={state.selectedTool}
                   selectedColor={state.selectedColor}
                   onDataChange={handlePranchetaDataChange}
+                  theme={state.courtTheme}
+                  onThemeChange={handleThemeChange}
                 />
               </div>
             </div>

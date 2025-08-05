@@ -12,7 +12,8 @@ import type {
   TextItem,
   BlockItem,
 } from '@/types/canvas';
-import { DEFAULT_CANVAS_CONFIG } from '@/types/canvas';
+import { COURT_THEMES } from '@/types/canvas';
+import type { CourtTheme } from '@/types/canvas';
 
 interface CanvasProps {
   data?: PranchetaData | undefined;
@@ -21,6 +22,8 @@ interface CanvasProps {
   onDataChange?: (data: PranchetaData) => void;
   readonly?: boolean;
   config?: Partial<CanvasConfig>;
+  theme?: CourtTheme;
+  onThemeChange?: (theme: CourtTheme) => void;
 }
 
 export const Canvas: React.FC<CanvasProps> = memo(({
@@ -29,7 +32,9 @@ export const Canvas: React.FC<CanvasProps> = memo(({
   selectedColor,
   onDataChange,
   readonly = false,
-  config: configOverride = {}
+  config: configOverride = {},
+  theme = 'beach',
+  onThemeChange: _ // eslint-disable-line @typescript-eslint/no-unused-vars
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [canvasState, setCanvasState] = useState<CanvasState>({
@@ -54,7 +59,10 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     inputValue: '',
   });
 
-  const config: CanvasConfig = { ...DEFAULT_CANVAS_CONFIG, ...configOverride };
+  const config: CanvasConfig = { 
+    ...COURT_THEMES[theme], 
+    ...configOverride 
+  };
 
   // Update canvas state when props change
   useEffect(() => {
