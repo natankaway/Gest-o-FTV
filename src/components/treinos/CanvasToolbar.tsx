@@ -8,9 +8,10 @@ import {
   Square,
   Palette,
   Brush,
-  Trash2
+  Trash2,
+  Image
 } from 'lucide-react';
-import type { ToolType } from '@/types/canvas';
+import type { ToolType, CourtTheme } from '@/types/canvas';
 import { DEFAULT_COLORS } from '@/types/canvas';
 
 interface CanvasToolbarProps {
@@ -21,6 +22,8 @@ interface CanvasToolbarProps {
   onClearDrawing?: () => void;
   disabled?: boolean;
   isMobile?: boolean;
+  theme?: CourtTheme;
+  onThemeChange?: (theme: CourtTheme) => void;
 }
 
 export const CanvasToolbar: React.FC<CanvasToolbarProps> = memo(({
@@ -30,7 +33,9 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = memo(({
   onColorChange,
   onClearDrawing,
   disabled = false,
-  isMobile = false
+  isMobile = false,
+  theme = 'beach',
+  onThemeChange
 }) => {
   const tools = [
     {
@@ -187,6 +192,42 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = memo(({
             ))}
           </div>
         </div>
+
+        {/* Theme Section */}
+        {onThemeChange && (
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+              <Image size={16} />
+              Tema da Quadra
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { value: 'beach', label: 'Praia', color: '#F4A460', description: 'Areia tradicional' },
+                { value: 'professional', label: 'Profissional', color: '#10B981', description: 'Verde profissional' },
+                { value: 'night', label: 'Noturno', color: '#1F2937', description: 'Modo noturno' },
+                { value: 'sunset', label: 'Pôr do Sol', color: '#F97316', description: 'Tons de pôr do sol' }
+              ].map((themeOption) => (
+                <button
+                  key={themeOption.value}
+                  onClick={() => !disabled && onThemeChange(themeOption.value as CourtTheme)}
+                  disabled={disabled}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 transition-all duration-200 text-sm font-medium ${
+                    theme === themeOption.value
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 shadow-md'
+                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                  title={themeOption.description}
+                >
+                  <div 
+                    className="w-4 h-4 rounded border border-gray-300 dark:border-gray-600"
+                    style={{ backgroundColor: themeOption.color }}
+                  />
+                  <span>{themeOption.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Mobile Clear Button */}
         {isMobile && onClearDrawing && (

@@ -177,6 +177,8 @@ export interface AdvancedTools {
   thickness: number;
 }
 
+export type CourtTheme = 'beach' | 'night' | 'sunset' | 'professional';
+
 export interface CanvasConfig {
   width: number;
   height: number;
@@ -189,6 +191,7 @@ export interface CanvasConfig {
   netColor: string;
   netHeight: number;
   netWidth: number;
+  theme: CourtTheme;
 }
 
 export const DEFAULT_CANVAS_CONFIG: CanvasConfig = {
@@ -202,6 +205,46 @@ export const DEFAULT_CANVAS_CONFIG: CanvasConfig = {
   lineWidth: 3,
   netHeight: 100,  // Net height in the middle
   netWidth: 4,     // Net thickness
+  theme: 'beach',
+};
+
+export const COURT_THEMES: Record<CourtTheme, CanvasConfig> = {
+  beach: {
+    ...DEFAULT_CANVAS_CONFIG,
+    theme: 'beach',
+    fieldColor: '#F4A460',  // Sand
+    sandColor: '#F4A460',
+    lineColor: '#FFFFFF',   // White lines
+    courtLineColor: '#1E40AF', // Blue boundaries
+    netColor: '#374151',    // Dark gray net
+  },
+  professional: {
+    ...DEFAULT_CANVAS_CONFIG,
+    theme: 'professional',
+    fieldColor: '#10B981',  // Professional green
+    sandColor: '#10B981',
+    lineColor: '#FFFFFF',   // White lines
+    courtLineColor: '#FFFFFF', // White boundaries
+    netColor: '#1F2937',    // Darker net
+  },
+  night: {
+    ...DEFAULT_CANVAS_CONFIG,
+    theme: 'night',
+    fieldColor: '#1F2937',  // Dark background
+    sandColor: '#1F2937',
+    lineColor: '#F59E0B',   // Yellow lines for visibility
+    courtLineColor: '#F59E0B', // Yellow boundaries
+    netColor: '#6B7280',    // Light gray net
+  },
+  sunset: {
+    ...DEFAULT_CANVAS_CONFIG,
+    theme: 'sunset',
+    fieldColor: '#F97316',  // Orange sunset
+    sandColor: '#F97316',
+    lineColor: '#FEF3C7',   // Light yellow lines
+    courtLineColor: '#FEF3C7', // Light yellow boundaries
+    netColor: '#92400E',    // Dark orange net
+  },
 };
 
 export const DEFAULT_COLORS = [
