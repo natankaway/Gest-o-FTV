@@ -58,7 +58,13 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     inputValue: '',
   });
 
-  const config: CanvasConfig = { ...DEFAULT_CANVAS_CONFIG, ...configOverride };
+  // Apply theme overrides if available
+  const themeOverrides = data?.theme?.overrides || {};
+  const config: CanvasConfig = { 
+    ...DEFAULT_CANVAS_CONFIG, 
+    ...themeOverrides,
+    ...configOverride 
+  };
 
   // Update canvas state when props change
   useEffect(() => {

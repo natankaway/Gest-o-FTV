@@ -6,9 +6,7 @@ import {
   ArrowRight, 
   Type, 
   Square,
-  Palette,
-  Brush,
-  Trash2
+  Brush
 } from 'lucide-react';
 import type { ToolType } from '@/types/canvas';
 import { DEFAULT_COLORS } from '@/types/canvas';
@@ -28,9 +26,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = memo(({
   selectedColor,
   onToolChange,
   onColorChange,
-  onClearDrawing,
-  disabled = false,
-  isMobile = false
+  disabled = false
 }) => {
   const tools = [
     {
@@ -93,7 +89,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = memo(({
   ];
 
   const getToolButtonClass = (tool: any) => {
-    const baseClass = "flex flex-col items-center gap-1 p-3 rounded-lg border transition-all duration-200 hover:scale-105";
+    const baseClass = "flex flex-col items-center gap-1.5 px-3 py-2.5 rounded-lg border transition-all duration-200 hover:scale-105 min-w-[70px]";
     const isSelected = selectedTool === tool.type;
     
     if (disabled) {
@@ -128,7 +124,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = memo(({
   };
 
   const getColorButtonClass = (color: string) => {
-    const baseClass = "w-8 h-8 rounded-full border-2 transition-all duration-200 hover:scale-110";
+    const baseClass = "w-6 h-6 rounded-full border-2 transition-all duration-200 hover:scale-110";
     const isSelected = selectedColor === color;
     
     if (disabled) {
@@ -136,7 +132,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = memo(({
     }
     
     if (isSelected) {
-      return `${baseClass} border-gray-800 dark:border-gray-200 shadow-lg ring-2 ring-blue-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900`;
+      return `${baseClass} border-gray-800 dark:border-gray-200 shadow-lg ring-2 ring-blue-500 ring-offset-1 ring-offset-white dark:ring-offset-gray-900`;
     }
     
     return `${baseClass} border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500`;
@@ -144,92 +140,43 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = memo(({
 
   const getToolIcon = (tool: any) => {
     const Icon = tool.icon;
-    return <Icon size={20} style={tool.color ? { color: tool.color } : {}} />;
+    return <Icon size={18} style={tool.color ? { color: tool.color } : {}} />;
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
-      <div className="space-y-6">
-        {/* Tools Section */}
-        <div>
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-            <Brush size={16} />
-            Ferramentas
-          </h3>
-          <div className={`grid gap-2 ${isMobile ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4 lg:grid-cols-8'}`}>
-            {tools.map((tool) => (
-              <button
-                key={tool.type}
-                onClick={() => !disabled && onToolChange(tool.type)}
-                disabled={disabled}
-                className={getToolButtonClass(tool)}
-                title={tool.description}
-                aria-label={tool.label}
-              >
-                {getToolIcon(tool)}
-                <span className="text-xs font-medium">{tool.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-sm">
+      {/* Tools Section - Horizontal layout with larger buttons */}
+      <div className="flex flex-wrap gap-2 items-center justify-center">
+        {tools.map((tool) => (
+          <button
+            key={tool.type}
+            onClick={() => !disabled && onToolChange(tool.type)}
+            disabled={disabled}
+            className={getToolButtonClass(tool)}
+            title={tool.description}
+            aria-label={tool.label}
+          >
+            {getToolIcon(tool)}
+            <span className="text-xs font-medium whitespace-nowrap">{tool.label}</span>
+          </button>
+        ))}
+      </div>
 
-        {/* Colors Section */}
-        <div>
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-            <Palette size={16} />
-            Cores
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {DEFAULT_COLORS.map((color) => (
-              <button
-                key={color}
-                onClick={() => !disabled && onColorChange(color)}
-                disabled={disabled}
-                className={getColorButtonClass(color)}
-                style={{ backgroundColor: color }}
-                title={`Cor: ${color}`}
-                aria-label={`Selecionar cor ${color}`}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Mobile Clear Button */}
-        {isMobile && onClearDrawing && (
-          <div>
+      {/* Colors Section - Compact horizontal layout */}
+      <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+        <span className="text-xs font-medium text-gray-600 dark:text-gray-400 mr-2">Cores:</span>
+        <div className="flex flex-wrap gap-1.5">
+          {DEFAULT_COLORS.map((color) => (
             <button
-              onClick={onClearDrawing}
+              key={color}
+              onClick={() => !disabled && onColorChange(color)}
               disabled={disabled}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-gray-400 text-white rounded-lg transition-colors"
-              title="Limpar desenho"
-            >
-              <Trash2 size={16} />
-              Limpar Desenho
-            </button>
-          </div>
-        )}
-
-        {/* Selected Tool & Color Indicator */}
-        <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
-          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-            <span>Ferramenta:</span>
-            <span className={`font-medium capitalize ${
-              selectedTool === 'free-draw' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-800 dark:text-gray-200'
-            }`}>
-              {tools.find(t => t.type === selectedTool)?.label || selectedTool}
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-            <span>Cor:</span>
-            <div 
-              className="w-4 h-4 rounded border border-gray-300 dark:border-gray-600"
-              style={{ backgroundColor: selectedColor }}
+              className={getColorButtonClass(color)}
+              style={{ backgroundColor: color }}
+              title={`Cor: ${color}`}
+              aria-label={`Selecionar cor ${color}`}
             />
-            <span className="font-medium text-gray-800 dark:text-gray-200 font-mono text-xs">
-              {selectedColor.toUpperCase()}
-            </span>
-          </div>
+          ))}
         </div>
       </div>
     </div>

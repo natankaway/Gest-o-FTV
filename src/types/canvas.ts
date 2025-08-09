@@ -48,6 +48,12 @@ export interface BlockItem extends CanvasItem {
 
 export type CanvasItemUnion = PlayerItem | BallItem | ArrowItem | TextItem | BlockItem | FreeDrawItem;
 
+export interface CourtTheme {
+  key: 'praia' | 'profissional' | 'noturno' | 'por-do-sol';
+  name: string;
+  overrides?: Partial<CanvasConfig>;
+}
+
 export interface PranchetaData {
   id: string;
   items: CanvasItemUnion[];
@@ -56,6 +62,7 @@ export interface PranchetaData {
     height: number;
   };
   backgroundColor: string;
+  theme?: CourtTheme;
   createdAt: string;
   updatedAt: string;
 }
@@ -203,6 +210,53 @@ export const DEFAULT_CANVAS_CONFIG: CanvasConfig = {
   netHeight: 100,  // Net height in the middle
   netWidth: 4,     // Net thickness
 };
+
+export const COURT_THEMES: CourtTheme[] = [
+  {
+    key: 'praia',
+    name: 'Praia',
+    overrides: {
+      sandColor: '#F4A460',      // Sandy brown
+      courtLineColor: '#1E40AF',  // Blue lines
+      netColor: '#374151',        // Dark gray
+      lineWidth: 3,
+      netWidth: 4,
+    }
+  },
+  {
+    key: 'profissional',
+    name: 'Profissional',
+    overrides: {
+      sandColor: '#E5E7EB',      // Light gray (concrete/court)
+      courtLineColor: '#FFFFFF',  // White lines
+      netColor: '#000000',        // Black net
+      lineWidth: 4,
+      netWidth: 5,
+    }
+  },
+  {
+    key: 'noturno',
+    name: 'Noturno',
+    overrides: {
+      sandColor: '#1F2937',      // Dark gray (night court)
+      courtLineColor: '#FBBF24',  // Yellow lines (stadium lighting)
+      netColor: '#9CA3AF',        // Light gray net
+      lineWidth: 4,
+      netWidth: 4,
+    }
+  },
+  {
+    key: 'por-do-sol',
+    name: 'Pôr do Sol',
+    overrides: {
+      sandColor: '#FED7AA',      // Orange sand (sunset)
+      courtLineColor: '#DC2626',  // Red lines
+      netColor: '#7C2D12',        // Brown net
+      lineWidth: 3,
+      netWidth: 4,
+    }
+  }
+];
 
 export const DEFAULT_COLORS = [
   '#EF4444', // Red
