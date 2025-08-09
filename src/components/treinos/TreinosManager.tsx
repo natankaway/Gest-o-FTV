@@ -3,6 +3,7 @@ import { useAppState, useNotifications } from '@/contexts';
 import { Button } from '@/components/common';
 import { Canvas } from './Canvas';
 import { CanvasToolbar } from './CanvasToolbar';
+import { ThemeSelector } from './ThemeSelector';
 import { TreinoForm } from './TreinoForm';
 import { TextEditor } from './TextEditor';
 import { ZoomPanControls, useZoomPan } from './ZoomPan';
@@ -21,7 +22,8 @@ import {
   Maximize2
 } from 'lucide-react';
 import type { Treino, TreinoFormData } from '@/types';
-import type { PranchetaData, ToolType, TextEditorState } from '@/types/canvas';
+import type { PranchetaData, ToolType, TextEditorState, CourtTheme } from '@/types/canvas';
+import { COURT_THEMES } from '@/types/canvas';
 
 type ViewMode = 'list' | 'edit';
 
@@ -32,6 +34,7 @@ interface TreinosManagerState {
   pranchetaData: PranchetaData | null;
   selectedTool: ToolType;
   selectedColor: string;
+  selectedTheme: CourtTheme;
   searchTerm: string;
   filterType: string;
   filterNivel: string;
@@ -53,6 +56,7 @@ export const TreinosManager: React.FC = memo(() => {
     pranchetaData: null,
     selectedTool: 'select',
     selectedColor: '#EF4444',
+    selectedTheme: COURT_THEMES[0]!, // Default to 'Praia' theme
     searchTerm: '',
     filterType: '',
     filterNivel: '',
@@ -129,12 +133,15 @@ export const TreinosManager: React.FC = memo(() => {
   // Handle edit training
   const handleEditTreino = useCallback((treino: Treino) => {
     const treinoComPrancheta = treino as Treino & { pranchetaData?: PranchetaData };
+    const existingTheme = treinoComPrancheta.pranchetaData?.theme || COURT_THEMES[0];
+    
     setState(prev => ({
       ...prev,
       viewMode: 'edit',
       editingTreino: { ...treino },
       selectedTreino: treinoComPrancheta,
       pranchetaData: treinoComPrancheta.pranchetaData || null,
+      selectedTheme: existingTheme!,
     }));
   }, []);
 
@@ -214,7 +221,22 @@ export const TreinosManager: React.FC = memo(() => {
   const handlePranchetaDataChange = useCallback((data: PranchetaData) => {
     setState(prev => ({
       ...prev,
-      pranchetaData: data,
+      pranchetaData: {
+        ...data,
+        theme: prev.selectedTheme
+      },
+    }));
+  }, []);
+
+  // Handle theme change
+  const handleThemeChange = useCallback((theme: CourtTheme) => {
+    setState(prev => ({
+      ...prev,
+      selectedTheme: theme,
+      pranchetaData: prev.pranchetaData ? {
+        ...prev.pranchetaData,
+        theme: theme
+      } : null
     }));
   }, []);
 
@@ -516,62 +538,87 @@ export const TreinosManager: React.FC = memo(() => {
               <Maximize2 size={16} />
               {state.isFullscreenCanvas ? 'Minimizar' : 'Tela Cheia'}
             </Button>
-            
-            <Button onClick={() => state.editingTreino && handleSaveTreino(state.editingTreino)}>
-              <Save size={16} />
-              Salvar Treino
-            </Button>
           </div>
         </div>
       </div>
 
       {/* Main Content - Split Screen */}
-      <div className={`grid gap-4 ${state.isFullscreenCanvas ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`}>
+      <div className={`grid gap-6 ${state.isFullscreenCanvas ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-2'}`}>
         {/* Left Side - Form (Hidden in fullscreen) */}
         {!state.isFullscreenCanvas && state.editingTreino && (
           <div className="space-y-4">
-            <TreinoForm
-              treino={state.editingTreino}
-              onSave={handleSaveTreino}
-              onCancel={handleBackToList}
-              pranchetaData={state.pranchetaData || undefined}
-              isEmbedded={true}
-            />
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Informações do Treino
+              </h2>
+              <TreinoForm
+                treino={state.editingTreino}
+                onSave={handleSaveTreino}
+                onCancel={handleBackToList}
+                pranchetaData={state.pranchetaData || undefined}
+                isEmbedded={true}
+              />
+            </div>
           </div>
         )}
 
-        {/* Right Side - Tactical Board */}
+        {/* Right Side - Prancheta Tática Card */}
         <div className="space-y-4">
-          {/* Toolbar */}
-          <CanvasToolbar
-            selectedTool={state.selectedTool}
-            selectedColor={state.selectedColor}
-            onToolChange={handleToolChange}
-            onColorChange={handleColorChange}
-            onClearDrawing={handleClearDrawing}
-            isMobile={window.innerWidth < 768}
-          />
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+            {/* Card Header with Title and Save Button */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Prancheta Tática
+              </h2>
+              <Button 
+                onClick={() => state.editingTreino && handleSaveTreino(state.editingTreino)}
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Save size={16} />
+                Salvar Treino
+              </Button>
+            </div>
 
-          {/* Canvas */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-            <div 
-              className="relative overflow-hidden rounded-lg"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onWheel={handleWheel}
-              style={{ 
-                height: state.isFullscreenCanvas ? '80vh' : '60vh',
-                cursor: state.selectedTool === 'select' ? 'default' : 'crosshair'
-              }}
-            >
-              <div style={getTransformStyle()}>
-                <Canvas
-                  data={state.pranchetaData || undefined}
-                  selectedTool={state.selectedTool}
-                  selectedColor={state.selectedColor}
-                  onDataChange={handlePranchetaDataChange}
-                />
+            {/* Card Content */}
+            <div className="p-6 space-y-4">
+              {/* Toolbar */}
+              <CanvasToolbar
+                selectedTool={state.selectedTool}
+                selectedColor={state.selectedColor}
+                onToolChange={handleToolChange}
+                onColorChange={handleColorChange}
+                onClearDrawing={handleClearDrawing}
+                isMobile={window.innerWidth < 768}
+              />
+
+              {/* Theme Selector */}
+              <ThemeSelector
+                selectedTheme={state.selectedTheme}
+                onThemeChange={handleThemeChange}
+              />
+
+              {/* Canvas */}
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+                <div 
+                  className="relative overflow-hidden rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onWheel={handleWheel}
+                  style={{ 
+                    height: state.isFullscreenCanvas ? '70vh' : '50vh',
+                    cursor: state.selectedTool === 'select' ? 'default' : 'crosshair'
+                  }}
+                >
+                  <div style={getTransformStyle()} className="w-full h-full flex items-center justify-center p-4">
+                    <Canvas
+                      data={state.pranchetaData || undefined}
+                      selectedTool={state.selectedTool}
+                      selectedColor={state.selectedColor}
+                      onDataChange={handlePranchetaDataChange}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
