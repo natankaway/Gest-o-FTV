@@ -11,6 +11,8 @@ import type {
   ArrowItem,
   TextItem,
   BlockItem,
+  FreeDrawItem,
+  DrawingPath,
 } from '@/types/canvas';
 import { DEFAULT_CANVAS_CONFIG } from '@/types/canvas';
 
@@ -32,6 +34,8 @@ export const Canvas: React.FC<CanvasProps> = memo(({
   config: configOverride = {}
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const currentFreeDrawRef = useRef<{ item: FreeDrawItem; path: DrawingPath } | null>(null);
+  const arrowStartRef = useRef<Point | null>(null);
   const [canvasState, setCanvasState] = useState<CanvasState>({
     items: data?.items || [],
     selectedTool,
@@ -223,6 +227,33 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         ctx.moveTo(ballItem.position.x - 8, ballItem.position.y);
         ctx.lineTo(ballItem.position.x + 8, ballItem.position.y);
         ctx.stroke();
+        break;
+      }
+
+      case 'free-draw': {
+        const freeDrawItem = item as FreeDrawItem;
+        ctx.strokeStyle = freeDrawItem.color;
+        ctx.lineWidth = freeDrawItem.thickness || 3;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        freeDrawItem.paths.forEach(path => {
+          if (path.points.length < 2) return;
+
+          const firstPoint = path.points[0];
+          if (!firstPoint) return;
+
+          ctx.beginPath();
+          ctx.moveTo(firstPoint.x, firstPoint.y);
+          
+          for (let i = 1; i < path.points.length; i++) {
+            const point = path.points[i];
+            if (!point) continue;
+            ctx.lineTo(point.x, point.y);
+          }
+          
+          ctx.stroke();
+        });
         break;
       }
 
@@ -490,6 +521,56 @@ export const Canvas: React.FC<CanvasProps> = memo(({
           }
           break;
         }
+        case 'free-draw': {
+          const freeDrawItem = item as FreeDrawItem;
+          
+          // Check distance to any path in the free draw item
+          for (const path of freeDrawItem.paths) {
+            for (let i = 0; i < path.points.length - 1; i++) {
+              const start = path.points[i];
+              const end = path.points[i + 1];
+              
+              if (!start || !end) continue;
+              
+              // Use point-to-line distance formula
+              const A = position.x - start.x;
+              const B = position.y - start.y;
+              const C = end.x - start.x;
+              const D = end.y - start.y;
+              
+              const dot = A * C + B * D;
+              const lenSq = C * C + D * D;
+              
+              if (lenSq === 0) {
+                // Start and end are the same point
+                const distance = Math.sqrt(A * A + B * B);
+                if (distance <= 5) return item;
+              } else {
+                const param = dot / lenSq;
+                let nearestX, nearestY;
+                
+                if (param < 0) {
+                  nearestX = start.x;
+                  nearestY = start.y;
+                } else if (param > 1) {
+                  nearestX = end.x;
+                  nearestY = end.y;
+                } else {
+                  nearestX = start.x + param * C;
+                  nearestY = start.y + param * D;
+                }
+                
+                const distance = Math.sqrt(
+                  Math.pow(position.x - nearestX, 2) +
+                  Math.pow(position.y - nearestY, 2)
+                );
+                
+                if (distance <= 5) return item;
+              }
+            }
+          }
+          break;
+        }
       }
     }
     return null;
@@ -507,6 +588,36 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     };
 
     switch (selectedTool) {
+      case 'player-blue': {
+        // Find next player number for blue team
+        const playerNumbers = canvasState.items
+          .filter(item => item.type === 'player')
+          .map(item => (item as PlayerItem).number || 0);
+        const nextNumber = playerNumbers.length > 0 ? Math.max(...playerNumbers) + 1 : 1;
+        
+        return {
+          ...baseItem,
+          type: 'player',
+          number: nextNumber,
+          teamColor: 'blue',
+        } as PlayerItem;
+      }
+
+      case 'player-red': {
+        // Find next player number for red team
+        const playerNumbers = canvasState.items
+          .filter(item => item.type === 'player')
+          .map(item => (item as PlayerItem).number || 0);
+        const nextNumber = playerNumbers.length > 0 ? Math.max(...playerNumbers) + 1 : 1;
+        
+        return {
+          ...baseItem,
+          type: 'player',
+          number: nextNumber,
+          teamColor: 'red',
+        } as PlayerItem;
+      }
+
       case 'player': {
         // Find next player number
         const playerNumbers = canvasState.items
@@ -607,8 +718,36 @@ export const Canvas: React.FC<CanvasProps> = memo(({
           items: prev.items.map(item => ({ ...item, selected: false })),
         }));
       }
+    } else if (selectedTool === 'free-draw') {
+      // Start free drawing
+      const newPath: DrawingPath = {
+        id: generateId(),
+        points: [position],
+        color: selectedColor,
+        thickness: 3,
+        timestamp: Date.now(),
+      };
+
+      const newFreeDrawItem: FreeDrawItem = {
+        id: generateId(),
+        type: 'free-draw',
+        position,
+        color: selectedColor,
+        thickness: 3,
+        paths: [newPath],
+        selected: false,
+      };
+
+      currentFreeDrawRef.current = { item: newFreeDrawItem, path: newPath };
+
+      setCanvasState(prev => ({
+        ...prev,
+        isDrawing: true,
+        items: [...prev.items, newFreeDrawItem],
+      }));
     } else if (selectedTool === 'arrow' || selectedTool === 'curved-arrow') {
-      // Start drawing arrow
+      // Store arrow start position
+      arrowStartRef.current = position;
       setCanvasState(prev => ({
         ...prev,
         isDrawing: true,
@@ -623,7 +762,7 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         }));
       }
     }
-  }, [readonly, selectedTool, getMousePosition, findItemAtPosition, createItem]);
+  }, [readonly, selectedTool, selectedColor, generateId, getMousePosition, findItemAtPosition, createItem]);
 
   // Handle mouse move
   const handleMouseMove = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -631,7 +770,27 @@ export const Canvas: React.FC<CanvasProps> = memo(({
 
     const position = getMousePosition(event);
 
-    if (canvasState.dragState.isDragging && canvasState.dragState.draggedItemId) {
+    if (canvasState.isDrawing && selectedTool === 'free-draw' && currentFreeDrawRef.current) {
+      // Continue free drawing - add point to current path
+      currentFreeDrawRef.current.path.points.push(position);
+
+      setCanvasState(prev => ({
+        ...prev,
+        items: prev.items.map(item => {
+          if (item.id === currentFreeDrawRef.current?.item.id && item.type === 'free-draw') {
+            return {
+              ...item,
+              paths: item.paths.map(path => 
+                path.id === currentFreeDrawRef.current?.path.id 
+                  ? { ...path, points: [...path.points, position] }
+                  : path
+              ),
+            } as FreeDrawItem;
+          }
+          return item;
+        }),
+      }));
+    } else if (canvasState.dragState.isDragging && canvasState.dragState.draggedItemId) {
       // Update dragged item position
       const { draggedItemId, offset } = canvasState.dragState;
       if (!offset) return;
@@ -652,7 +811,7 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         }),
       }));
     }
-  }, [readonly, getMousePosition, canvasState.dragState]);
+  }, [readonly, selectedTool, getMousePosition, canvasState.dragState, canvasState.isDrawing]);
 
   // Handle mouse up
   const handleMouseUp = useCallback((event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -660,12 +819,19 @@ export const Canvas: React.FC<CanvasProps> = memo(({
 
     const position = getMousePosition(event);
 
-    if (selectedTool === 'arrow' && canvasState.isDrawing) {
-      // Finish drawing straight arrow
+    if (selectedTool === 'free-draw' && canvasState.isDrawing) {
+      // Finish free drawing
+      currentFreeDrawRef.current = null;
+      setCanvasState(prev => ({
+        ...prev,
+        isDrawing: false,
+      }));
+    } else if (selectedTool === 'arrow' && canvasState.isDrawing && arrowStartRef.current) {
+      // Finish drawing straight arrow with actual start position
       const newArrow: ArrowItem = {
         id: generateId(),
         type: 'arrow',
-        position: { x: position.x - 50, y: position.y },
+        position: arrowStartRef.current,
         endPosition: position,
         color: selectedColor,
         thickness: 3,
@@ -677,12 +843,14 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         items: [...prev.items, newArrow],
         isDrawing: false,
       }));
-    } else if (selectedTool === 'curved-arrow' && canvasState.isDrawing) {
-      // Finish drawing curved arrow
+
+      arrowStartRef.current = null;
+    } else if (selectedTool === 'curved-arrow' && canvasState.isDrawing && arrowStartRef.current) {
+      // Finish drawing curved arrow with actual start position
       const newArrow: ArrowItem = {
         id: generateId(),
         type: 'curved-arrow',
-        position: { x: position.x - 50, y: position.y },
+        position: arrowStartRef.current,
         endPosition: position,
         color: selectedColor,
         thickness: 3,
@@ -695,6 +863,8 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         items: [...prev.items, newArrow],
         isDrawing: false,
       }));
+
+      arrowStartRef.current = null;
     }
 
     // Stop dragging

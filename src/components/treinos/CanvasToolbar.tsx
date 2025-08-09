@@ -53,6 +53,12 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = memo(({
       description: 'Desenhar seta reta'
     },
     {
+      type: 'curved-arrow' as ToolType,
+      icon: ArrowRight,
+      label: 'Seta Curva',
+      description: 'Desenhar seta curvada'
+    },
+    {
       type: 'player-blue' as ToolType,
       icon: Users,
       label: 'Time Azul',
