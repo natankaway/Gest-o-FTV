@@ -10,196 +10,370 @@ import {
   TrendingUp,
   TrendingDown,
   Calendar,
-  User,
-  CreditCard,
-  ArrowUpRight,
-  ArrowDownLeft
+  Building2,
+  Filter,
+  AlertTriangle
 } from 'lucide-react';
 import type { RegistroFinanceiro } from '@/types';
 
-interface FinanceiroCardProps {
-  registro: RegistroFinanceiro;
+// Access Denied Component
+const AccessDenied: React.FC = () => (
+  <div className="min-h-[400px] flex items-center justify-center">
+    <div className="text-center">
+      <AlertTriangle className="mx-auto h-12 w-12 text-red-500 dark:text-red-400 mb-4" />
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+        Acesso Negado
+      </h3>
+      <p className="text-gray-600 dark:text-gray-400 max-w-md">
+        Você não tem permissão para acessar o módulo financeiro. 
+        Apenas administradores e gestores podem visualizar essas informações.
+      </p>
+    </div>
+  </div>
+);
+
+// Summary Cards Component
+interface SummaryCardsProps {
+  receitas: number;
+  despesas: number;
+  saldo: number;
+  pendentes: number;
+}
+
+const SummaryCards: React.FC<SummaryCardsProps> = ({ receitas, despesas, saldo, pendentes }) => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+      <div className="flex items-center">
+        <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
+        <div className="ml-4">
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Receitas</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">R$ {receitas.toFixed(2)}</p>
+        </div>
+      </div>
+    </div>
+    
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+      <div className="flex items-center">
+        <TrendingDown className="h-8 w-8 text-red-600 dark:text-red-400" />
+        <div className="ml-4">
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Despesas</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">R$ {despesas.toFixed(2)}</p>
+        </div>
+      </div>
+    </div>
+    
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+      <div className="flex items-center">
+        <DollarSign className={`h-8 w-8 ${saldo >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} />
+        <div className="ml-4">
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Saldo</p>
+          <p className={`text-2xl font-bold ${saldo >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+            R$ {saldo.toFixed(2)}
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+      <div className="flex items-center">
+        <Calendar className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
+        <div className="ml-4">
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pendentes</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">R$ {pendentes.toFixed(2)}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+// Financial Record Table Component
+interface FinancialTableProps {
+  registros: RegistroFinanceiro[];
   onEdit: (registro: RegistroFinanceiro) => void;
 }
 
-const FinanceiroCard: React.FC<FinanceiroCardProps> = ({ registro, onEdit }) => {
-  const getTipoInfo = () => {
-    if (registro.tipo === 'receita') {
-      return {
-        icon: <ArrowUpRight className="h-5 w-5 text-green-600 dark:text-green-400" />,
-        text: 'Receita',
-        color: 'text-green-600 dark:text-green-400',
-        badge: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-      };
-    } else {
-      return {
-        icon: <ArrowDownLeft className="h-5 w-5 text-red-600 dark:text-red-400" />,
-        text: 'Despesa',
-        color: 'text-red-600 dark:text-red-400',
-        badge: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-      };
-    }
-  };
-
-  const getStatusInfo = () => {
-    if (registro.status === 'pago') {
-      return {
-        text: 'Pago',
-        color: 'text-green-600 dark:text-green-400',
-        badge: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-      };
-    } else if (registro.status === 'pendente') {
-      return {
-        text: 'Pendente',
-        color: 'text-yellow-600 dark:text-yellow-400',
-        badge: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-      };
-    } else {
-      return {
-        text: 'Vencido',
-        color: 'text-red-600 dark:text-red-400',
-        badge: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-      };
-    }
-  };
-
-  const tipoInfo = getTipoInfo();
-  const statusInfo = getStatusInfo();
-  const dataFormatada = new Date(registro.data).toLocaleDateString('pt-BR');
+const FinancialTable: React.FC<FinancialTableProps> = ({ registros, onEdit }) => {
+  if (registros.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
+        <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Nenhum registro encontrado</h3>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          Nenhum lançamento corresponde aos filtros aplicados.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow">
-      {/* Header */}
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <thead className="bg-gray-50 dark:bg-gray-700">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              Data
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              Descrição
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              Categoria
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              Tipo
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              Unidade
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              Valor
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              Ações
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+          {registros.map((registro) => (
+            <tr key={registro.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                {new Date(registro.data).toLocaleDateString('pt-BR')}
+              </td>
+              <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                {registro.descricao}
+                {registro.aluno && (
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {registro.aluno}
+                  </div>
+                )}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                {registro.categoria}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                  registro.tipo === 'receita' 
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+                    : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+                }`}>
+                  {registro.tipo === 'receita' ? 'Receita' : 'Despesa'}
+                </span>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                {registro.unidade}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <span className={registro.tipo === 'receita' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                  {registro.tipo === 'receita' ? '+' : '-'} R$ {registro.valor.toFixed(2)}
+                </span>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => onEdit(registro)}
+                >
+                  Detalhes
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+// Per Unit Summary Component  
+interface UnitSummaryProps {
+  unidade: string;
+  registros: RegistroFinanceiro[];
+  onEdit: (registro: RegistroFinanceiro) => void;
+}
+
+const UnitSummary: React.FC<UnitSummaryProps> = ({ unidade, registros, onEdit }) => {
+  const stats = useMemo(() => {
+    const receitas = registros.filter(r => r.tipo === 'receita').reduce((acc, r) => acc + r.valor, 0);
+    const despesas = registros.filter(r => r.tipo === 'despesa').reduce((acc, r) => acc + r.valor, 0);
+    const saldo = receitas - despesas;
+    
+    return { receitas, despesas, saldo };
+  }, [registros]);
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
-            {tipoInfo.icon}
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {registro.descricao}
-            </h3>
-            <div className="flex items-center space-x-2">
-              <Calendar className="h-3 w-3 text-gray-400" />
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                {dataFormatada}
-              </span>
+          <Building2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{unidade}</h3>
+        </div>
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+          {registros.length} lançamentos
+        </div>
+      </div>
+      
+      {/* Unit Stats */}
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="text-center">
+          <p className="text-sm text-gray-600 dark:text-gray-400">Receitas</p>
+          <p className="text-lg font-bold text-green-600 dark:text-green-400">
+            R$ {stats.receitas.toFixed(2)}
+          </p>
+        </div>
+        <div className="text-center">
+          <p className="text-sm text-gray-600 dark:text-gray-400">Despesas</p>
+          <p className="text-lg font-bold text-red-600 dark:text-red-400">
+            R$ {stats.despesas.toFixed(2)}
+          </p>
+        </div>
+        <div className="text-center">
+          <p className="text-sm text-gray-600 dark:text-gray-400">Saldo</p>
+          <p className={`text-lg font-bold ${stats.saldo >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+            R$ {stats.saldo.toFixed(2)}
+          </p>
+        </div>
+      </div>
+
+      {/* Recent Transactions */}
+      <div>
+        <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Lançamentos Recentes</h4>
+        <div className="space-y-2 max-h-40 overflow-y-auto">
+          {registros.slice(0, 5).map((registro) => (
+            <div key={registro.id} className="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                  {registro.descricao}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {new Date(registro.data).toLocaleDateString('pt-BR')} • {registro.categoria}
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className={`text-sm font-medium ${registro.tipo === 'receita' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                  {registro.tipo === 'receita' ? '+' : '-'} R$ {registro.valor.toFixed(2)}
+                </span>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => onEdit(registro)}
+                  className="text-xs px-2 py-1"
+                >
+                  Ver
+                </Button>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
-        <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${tipoInfo.badge}`}>
-          {tipoInfo.text}
-        </span>
-      </div>
-
-      {/* Value */}
-      <div className="mb-4">
-        <div className="flex items-center space-x-2 mb-1">
-          <DollarSign className="h-4 w-4 text-gray-400" />
-          <span className="text-sm font-medium text-gray-900 dark:text-white">Valor</span>
-        </div>
-        <div className={`text-2xl font-bold ${tipoInfo.color}`}>
-          {registro.tipo === 'receita' ? '+' : '-'} R$ {registro.valor.toFixed(2)}
-        </div>
-      </div>
-
-      {/* Student Info (if applicable) */}
-      {registro.aluno && (
-        <div className="mb-4">
-          <div className="flex items-center space-x-2 mb-1">
-            <User className="h-4 w-4 text-gray-400" />
-            <span className="text-sm font-medium text-gray-900 dark:text-white">Cliente</span>
-          </div>
-          <div className="text-sm text-gray-600 dark:text-gray-300">
-            {registro.aluno}
-          </div>
-        </div>
-      )}
-
-      {/* Payment Method & Status */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-2">
-            <CreditCard className="h-4 w-4 text-gray-400" />
-            <span className="text-sm font-medium text-gray-900 dark:text-white">Método</span>
-          </div>
-          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusInfo.badge}`}>
-            {statusInfo.text}
-          </span>
-        </div>
-        <div className="text-sm text-gray-600 dark:text-gray-300 capitalize">
-          {registro.metodo.replace('-', ' ')}
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="flex space-x-2">
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => onEdit(registro)}
-          className="flex-1"
-        >
-          Ver Detalhes
-        </Button>
       </div>
     </div>
   );
 };
 
 export const FinanceiroPage: React.FC = memo(() => {
-  const { dadosMockados } = useAppState();
-  const { financeiro } = dadosMockados;
+  const { dadosMockados, userLogado } = useAppState();
+  const { financeiro, unidades } = dadosMockados;
   const { addNotification } = useNotifications();
   
   // Estados para filtros e busca
   const [searchTerm, setSearchTerm] = useState('');
   const [tipoFilter, setTipoFilter] = useState('todos');
   const [statusFilter, setStatusFilter] = useState('todos');
-  const [metodoFilter, setMetodoFilter] = useState('todos');
-  const [dataFilter, setDataFilter] = useState('');
+  const [categoriaFilter, setCategoriaFilter] = useState('todos');
+  const [unidadeFilter, setUnidadeFilter] = useState('todas');
+  const [dataInicial, setDataInicial] = useState('');
+  const [dataFinal, setDataFinal] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingRegistro, setEditingRegistro] = useState<RegistroFinanceiro | null>(null);
 
-  // Dados filtrados
-  const filteredRegistros = useMemo(() => {
+  // Check access control
+  if (!userLogado || (userLogado.perfil !== 'admin' && userLogado.perfil !== 'gestor')) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+              Módulo Financeiro
+            </h1>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+              Controle financeiro completo do centro de treinamento
+            </p>
+          </div>
+        </div>
+        <AccessDenied />
+      </div>
+    );
+  }
+
+  // Get user's allowed units
+  const allowedUnits = useMemo(() => {
+    if (userLogado.perfil === 'admin') {
+      return unidades.map(u => u.nome);
+    } else if (userLogado.perfil === 'gestor' && userLogado.unidades) {
+      return userLogado.unidades;
+    }
+    return [];
+  }, [userLogado, unidades]);
+
+  // Filter financial records based on user access and filters
+  const scopedFinanceiro = useMemo(() => {
     return financeiro.filter(registro => {
+      // Unit access control
+      if (!allowedUnits.includes(registro.unidade || '')) {
+        return false;
+      }
+      
+      return true;
+    });
+  }, [financeiro, allowedUnits]);
+
+  // Apply filters to scoped data
+  const filteredRegistros = useMemo(() => {
+    return scopedFinanceiro.filter(registro => {
       const matchesSearch = registro.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           (registro.aluno && registro.aluno.toLowerCase().includes(searchTerm.toLowerCase()));
+                           (registro.aluno && registro.aluno.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                           (registro.categoria && registro.categoria.toLowerCase().includes(searchTerm.toLowerCase()));
       
       const matchesTipo = tipoFilter === 'todos' || registro.tipo === tipoFilter;
       const matchesStatus = statusFilter === 'todos' || registro.status === statusFilter;
-      const matchesMetodo = metodoFilter === 'todos' || registro.metodo === metodoFilter;
-      const matchesData = !dataFilter || registro.data === dataFilter;
+      const matchesCategoria = categoriaFilter === 'todos' || registro.categoria === categoriaFilter;
+      const matchesUnidade = unidadeFilter === 'todas' || registro.unidade === unidadeFilter;
       
-      return matchesSearch && matchesTipo && matchesStatus && matchesMetodo && matchesData;
+      const dataRegistro = new Date(registro.data);
+      const matchesDataInicial = !dataInicial || dataRegistro >= new Date(dataInicial);
+      const matchesDataFinal = !dataFinal || dataRegistro <= new Date(dataFinal);
+      
+      return matchesSearch && matchesTipo && matchesStatus && matchesCategoria && 
+             matchesUnidade && matchesDataInicial && matchesDataFinal;
     });
-  }, [financeiro, searchTerm, tipoFilter, statusFilter, metodoFilter, dataFilter]);
+  }, [scopedFinanceiro, searchTerm, tipoFilter, statusFilter, categoriaFilter, unidadeFilter, dataInicial, dataFinal]);
 
-  // Opções para filtros
-  const metodosDisponiveis = useMemo(() => {
-    return [...new Set(financeiro.map(r => r.metodo))].filter(Boolean);
-  }, [financeiro]);
-
-  // Estatísticas
+  // Summary statistics for filtered data
   const stats = useMemo(() => {
-    const receitas = financeiro.filter(r => r.tipo === 'receita');
-    const despesas = financeiro.filter(r => r.tipo === 'despesa');
+    const receitas = filteredRegistros.filter(r => r.tipo === 'receita').reduce((acc, r) => acc + r.valor, 0);
+    const despesas = filteredRegistros.filter(r => r.tipo === 'despesa').reduce((acc, r) => acc + r.valor, 0);
+    const saldo = receitas - despesas;
+    const pendentes = filteredRegistros.filter(r => r.status === 'pendente' && r.tipo === 'receita').reduce((acc, r) => acc + r.valor, 0);
     
-    const totalReceitas = receitas.reduce((acc, r) => acc + r.valor, 0);
-    const totalDespesas = despesas.reduce((acc, r) => acc + r.valor, 0);
-    const saldo = totalReceitas - totalDespesas;
-    
-    const receitasPendentes = receitas.filter(r => r.status === 'pendente').reduce((acc, r) => acc + r.valor, 0);
-    
-    return {
-      totalReceitas: totalReceitas.toFixed(2),
-      totalDespesas: totalDespesas.toFixed(2),
-      saldo: saldo.toFixed(2),
-      receitasPendentes: receitasPendentes.toFixed(2),
-      saldoPositivo: saldo >= 0
-    };
-  }, [financeiro]);
+    return { receitas, despesas, saldo, pendentes };
+  }, [filteredRegistros]);
+
+  // Get unique categories for filter
+  const categorias = useMemo(() => {
+    return [...new Set(scopedFinanceiro.map(r => r.categoria))].filter(Boolean);
+  }, [scopedFinanceiro]);
+
+  // Group by unit for per-unit view
+  const registrosPorUnidade = useMemo(() => {
+    const grupos: Record<string, RegistroFinanceiro[]> = {};
+    filteredRegistros.forEach(registro => {
+      const unidade = registro.unidade || 'Sem Unidade';
+      if (!grupos[unidade]) {
+        grupos[unidade] = [];
+      }
+      grupos[unidade].push(registro);
+    });
+    return grupos;
+  }, [filteredRegistros]);
 
   const handleEdit = useCallback((registro: RegistroFinanceiro) => {
     setEditingRegistro(registro);
@@ -209,6 +383,16 @@ export const FinanceiroPage: React.FC = memo(() => {
   const handleAddNew = useCallback(() => {
     setEditingRegistro(null);
     setShowModal(true);
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setSearchTerm('');
+    setTipoFilter('todos');
+    setStatusFilter('todos');
+    setCategoriaFilter('todos');
+    setUnidadeFilter('todas');
+    setDataInicial('');
+    setDataFinal('');
   }, []);
 
   const exportToCSV = useCallback(() => {
@@ -224,12 +408,14 @@ export const FinanceiroPage: React.FC = memo(() => {
 
       const csvData = filteredRegistros.map(registro => ({
         Data: registro.data,
-        Tipo: registro.tipo,
-        Valor: registro.valor,
         Descricao: registro.descricao,
+        Categoria: registro.categoria,
+        Tipo: registro.tipo,
+        Unidade: registro.unidade || '',
         Cliente: registro.aluno || '',
-        Metodo: registro.metodo,
-        Status: registro.status
+        Valor: registro.valor,
+        Status: registro.status,
+        Metodo: registro.metodo
       }));
 
       const headers = Object.keys(csvData[0]!).join(',');
@@ -270,7 +456,10 @@ export const FinanceiroPage: React.FC = memo(() => {
             Módulo Financeiro
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Controle financeiro completo do centro de treinamento
+            {userLogado.perfil === 'admin' 
+              ? 'Controle financeiro completo de todas as unidades'
+              : `Controle financeiro das suas unidades: ${allowedUnits.join(', ')}`
+            }
           </p>
         </div>
         <div className="mt-4 sm:mt-0 flex space-x-3">
@@ -290,61 +479,38 @@ export const FinanceiroPage: React.FC = memo(() => {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <div className="flex items-center">
-            <TrendingUp className="h-8 w-8 text-green-600 dark:text-green-400" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Receitas</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">R$ {stats.totalReceitas}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <div className="flex items-center">
-            <TrendingDown className="h-8 w-8 text-red-600 dark:text-red-400" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Despesas</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">R$ {stats.totalDespesas}</p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <div className="flex items-center">
-            <DollarSign className={`h-8 w-8 ${stats.saldoPositivo ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`} />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Saldo</p>
-              <p className={`text-2xl font-bold ${stats.saldoPositivo ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                R$ {stats.saldo}
-              </p>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-          <div className="flex items-center">
-            <Calendar className="h-8 w-8 text-yellow-600 dark:text-yellow-400" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Pendentes</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">R$ {stats.receitasPendentes}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Summary Cards */}
+      <SummaryCards 
+        receitas={stats.receitas}
+        despesas={stats.despesas}
+        saldo={stats.saldo}
+        pendentes={stats.pendentes}
+      />
 
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <Filter className="h-5 w-5 mr-2" />
+            Filtros
+          </h2>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={clearFilters}
+          >
+            Limpar Filtros
+          </Button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           {/* Search */}
-          <div className="lg:col-span-2">
+          <div className="xl:col-span-2">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Buscar por descrição ou cliente..."
+                placeholder="Buscar por descrição, cliente ou categoria..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -352,12 +518,39 @@ export const FinanceiroPage: React.FC = memo(() => {
             </div>
           </div>
 
-          {/* Date Filter */}
+          {/* Unit Filter (for admin and gestors with multiple units) */}
+          {(userLogado.perfil === 'admin' || allowedUnits.length > 1) && (
+            <div>
+              <select
+                value={unidadeFilter}
+                onChange={(e) => setUnidadeFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              >
+                <option value="todas">Todas as unidades</option>
+                {allowedUnits.map(unidade => (
+                  <option key={unidade} value={unidade}>{unidade}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Date Range */}
           <div>
             <input
               type="date"
-              value={dataFilter}
-              onChange={(e) => setDataFilter(e.target.value)}
+              placeholder="Data inicial"
+              value={dataInicial}
+              onChange={(e) => setDataInicial(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+          </div>
+          
+          <div>
+            <input
+              type="date"
+              placeholder="Data final"
+              value={dataFinal}
+              onChange={(e) => setDataFinal(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
@@ -375,30 +568,16 @@ export const FinanceiroPage: React.FC = memo(() => {
             </select>
           </div>
 
-          {/* Status Filter */}
+          {/* Category Filter */}
           <div>
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              value={categoriaFilter}
+              onChange={(e) => setCategoriaFilter(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
-              <option value="todos">Todos os status</option>
-              <option value="pago">Pago</option>
-              <option value="pendente">Pendente</option>
-              <option value="vencido">Vencido</option>
-            </select>
-          </div>
-
-          {/* Method Filter */}
-          <div>
-            <select
-              value={metodoFilter}
-              onChange={(e) => setMetodoFilter(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="todos">Todos os métodos</option>
-              {metodosDisponiveis.map(metodo => (
-                <option key={metodo} value={metodo}>{metodo.replace('-', ' ')}</option>
+              <option value="todos">Todas as categorias</option>
+              {categorias.map(categoria => (
+                <option key={categoria} value={categoria}>{categoria}</option>
               ))}
             </select>
           </div>
@@ -408,49 +587,54 @@ export const FinanceiroPage: React.FC = memo(() => {
       {/* Results Count */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Mostrando {filteredRegistros.length} de {financeiro.length} registros financeiros
+          Mostrando {filteredRegistros.length} de {scopedFinanceiro.length} registros financeiros
         </p>
-        {(searchTerm || dataFilter) && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              setSearchTerm('');
-              setDataFilter('');
-            }}
-          >
-            Limpar filtros
-          </Button>
-        )}
       </div>
 
-      {/* Financial Records Grid */}
-      {filteredRegistros.length === 0 ? (
-        <div className="text-center py-12">
-          <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Nenhum registro encontrado</h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {searchTerm || dataFilter ? 'Tente ajustar os filtros de busca.' : 'Comece adicionando uma nova transação.'}
-          </p>
-          {!searchTerm && !dataFilter && (
-            <div className="mt-6">
-              <Button onClick={handleAddNew} leftIcon={<Plus className="h-4 w-4" />}>
-                Adicionar Primeira Transação
-              </Button>
-            </div>
-          )}
+      {/* Visão Geral Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Visão Geral - Lançamentos Consolidados
+          </h2>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredRegistros.map((registro) => (
-            <FinanceiroCard
-              key={registro.id}
-              registro={registro}
-              onEdit={handleEdit}
-            />
-          ))}
+        <div className="p-6">
+          <FinancialTable registros={filteredRegistros} onEdit={handleEdit} />
         </div>
-      )}
+      </div>
+
+      {/* Por Unidade Section */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            Por Unidade
+          </h2>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {Object.keys(registrosPorUnidade).length} unidade(s) com atividade
+          </span>
+        </div>
+        
+        {Object.keys(registrosPorUnidade).length === 0 ? (
+          <div className="text-center py-12">
+            <Building2 className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Nenhuma unidade encontrada</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Nenhuma unidade possui registros que correspondam aos filtros aplicados.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {Object.entries(registrosPorUnidade).map(([unidade, registros]) => (
+              <UnitSummary
+                key={unidade}
+                unidade={unidade}
+                registros={registros}
+                onEdit={handleEdit}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Nova Transação Modal */}
       <NovaTransacaoModal
