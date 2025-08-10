@@ -46,9 +46,15 @@ export const CategoriaForm: React.FC<CategoriaFormProps> = ({
   }, []);
 
   const handleAdd = useCallback(() => {
+    setFormData({
+      nome: '',
+      limiteDuplas: '',
+      bestOfSF: 1,
+      bestOfFinal: 1
+    });
+    setEditingId(null);
     setIsAdding(true);
-    resetForm();
-  }, [resetForm]);
+  }, []);
 
   const handleEdit = useCallback((categoria: Categoria) => {
     setFormData({
