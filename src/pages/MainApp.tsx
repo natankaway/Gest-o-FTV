@@ -11,6 +11,7 @@ import { ProdutosPage } from '@/components/produtos';
 import { FinanceiroPage } from '@/components/financeiro';
 import { AgendamentosPage } from '@/components/agendamentos';
 import { TreinosPage } from '@/components/treinos';
+import { ConfiguracoesPage } from '@/components/configuracoes';
 import { ErrorBoundary } from '@/components/common';
 
 export const MainApp: React.FC = () => {
@@ -46,6 +47,8 @@ export const MainApp: React.FC = () => {
         return <ProdutosPage />;
       case 'financeiro':
         return <FinanceiroPage />;
+      case 'configuracoes':
+        return <ConfiguracoesPage />;
       default:
         return <MainDashboard />;
     }

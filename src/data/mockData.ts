@@ -148,7 +148,14 @@ export const mockData: MockData = {
       telefone: '(11) 3000-1000', 
       email: 'centro@futevolei.com', 
       gestorId: 1, 
-      ativa: true 
+      ativa: true,
+      configuracoes: {
+        horarioFuncionamento: {
+          inicio: '06:00',
+          fim: '22:00'
+        },
+        capacidadeMaxima: 50
+      }
     },
     { 
       id: 2, 
@@ -157,7 +164,14 @@ export const mockData: MockData = {
       telefone: '(11) 3000-2000', 
       email: 'zonasul@futevolei.com', 
       gestorId: 2, 
-      ativa: true 
+      ativa: true,
+      configuracoes: {
+        horarioFuncionamento: {
+          inicio: '07:00',
+          fim: '23:00'
+        },
+        capacidadeMaxima: 80
+      }
     },
     { 
       id: 3, 
@@ -166,7 +180,14 @@ export const mockData: MockData = {
       telefone: '(11) 3000-3000', 
       email: 'zonanorte@futevolei.com', 
       gestorId: 3, 
-      ativa: true 
+      ativa: true,
+      configuracoes: {
+        horarioFuncionamento: {
+          inicio: '06:30',
+          fim: '21:30'
+        },
+        capacidadeMaxima: 40
+      }
     },
     { 
       id: 4, 
@@ -175,7 +196,14 @@ export const mockData: MockData = {
       telefone: '(11) 3000-4000', 
       email: 'barra@futevolei.com', 
       gestorId: 4, 
-      ativa: true 
+      ativa: true,
+      configuracoes: {
+        horarioFuncionamento: {
+          inicio: '06:00',
+          fim: '22:30'
+        },
+        capacidadeMaxima: 60
+      }
     }
   ],
 
@@ -308,5 +336,20 @@ export const mockData: MockData = {
       data: '2024-01-15',
       status: 'concluido'
     }
-  ]
+  ],
+
+  configCT: {
+    nomeCT: 'Gestão FTV',
+    contato: {
+      email: 'contato@futevolei.com',
+      telefone: '(11) 3000-0000'
+    },
+    horarioFuncionamentoPadrao: {
+      inicio: '06:00',
+      fim: '22:00'
+    },
+    branding: {
+      logoUrl: ''
+    }
+  }
 };

@@ -20,7 +20,8 @@ import type {
   Treino,
   Exercicio,
   CartItem,
-  TabKeys
+  TabKeys,
+  ConfigCT
 } from '@/types';
 
 interface AppStateContextType extends AppState {
@@ -40,6 +41,7 @@ interface AppStateContextType extends AppState {
   setAgendamentos: React.Dispatch<React.SetStateAction<Agendamento[]>>;
   setTreinos: React.Dispatch<React.SetStateAction<Treino[]>>;
   setExercicios: React.Dispatch<React.SetStateAction<Exercicio[]>>;
+  setConfigCT: React.Dispatch<React.SetStateAction<ConfigCT>>;
   
   // Session state
   setUserLogado: React.Dispatch<React.SetStateAction<User | null>>;
@@ -91,6 +93,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const [agendamentos, setAgendamentos] = useLocalStorage<Agendamento[]>('agendamentos', mockData.agendamentos);
   const [treinos, setTreinos] = useLocalStorage<Treino[]>('treinos', mockData.treinos);
   const [exercicios, setExercicios] = useLocalStorage<Exercicio[]>('exercicios', mockData.exercicios);
+  const [configCT, setConfigCT] = useLocalStorage<ConfigCT>('configCT', mockData.configCT);
 
   // Session state (not persisted)
   const [userLogado, setUserLogado] = useState<User | null>(null);
@@ -161,11 +164,12 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     alugueis,
     agendamentos,
     treinos,
-    exercicios
+    exercicios,
+    configCT
   }), [
     planos, alunos, professores, unidades, presencas,
     financeiro, produtos, plataformas, horarios, gestores, metas, alugueis,
-    agendamentos, treinos, exercicios
+    agendamentos, treinos, exercicios, configCT
   ]);
 
   const value = useMemo(() => ({
@@ -190,6 +194,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setAgendamentos,
     setTreinos,
     setExercicios,
+    setConfigCT,
     setUserLogado,
     setUnidadeSelecionada,
     
@@ -227,6 +232,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setAgendamentos,
     setTreinos,
     setExercicios,
+    setConfigCT,
     activeTab,
     activeTabFilter,
     cart,
