@@ -58,6 +58,21 @@ export interface Unidade {
   };
 }
 
+export interface ConfigCT {
+  nomeCT: string;
+  contato?: {
+    email?: string;
+    telefone?: string;
+  };
+  horarioFuncionamentoPadrao?: {
+    inicio: string;
+    fim: string;
+  };
+  branding?: {
+    logoUrl?: string;
+  };
+}
+
 export interface Plano {
   id: number;
   nome: string;
@@ -257,6 +272,7 @@ export interface MockData {
   agendamentos: Agendamento[];
   treinos: Treino[];
   exercicios: Exercicio[];
+  configCT: ConfigCT;
 }
 
 export interface ThemeContextType {
@@ -307,7 +323,7 @@ export interface SearchState {
 }
 
 // Export utility types
-export type TabKeys = 'dashboard' | 'alunos' | 'professores' | 'gestores' | 'presencas' | 'agendamentos' | 'treinos' | 'planos' | 'unidades' | 'financeiro' | 'produtos' | 'alugueis';
+export type TabKeys = 'dashboard' | 'alunos' | 'professores' | 'gestores' | 'presencas' | 'agendamentos' | 'treinos' | 'planos' | 'unidades' | 'financeiro' | 'produtos' | 'alugueis' | 'configuracoes';
 
 export interface Tab {
   key: TabKeys;

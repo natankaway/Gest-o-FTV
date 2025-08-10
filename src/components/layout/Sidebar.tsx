@@ -152,6 +152,18 @@ export const Sidebar: React.FC<SidebarProps> = memo(({
       });
     }
 
+    // Configuration section (admin only)
+    if (userRole === 'admin') {
+      sections.push({
+        id: 'configuracoes',
+        title: "⚙️ Sistema",
+        icon: Settings,
+        items: [
+          { id: 'configuracoes', label: 'Configurações do CT', icon: Settings, roles: ['admin'] }
+        ]
+      });
+    }
+
     return sections;
   }, [userRole]);
 
