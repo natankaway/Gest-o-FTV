@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useAppState } from '@/contexts';
 import { Plus, Edit2, Trash2, Users, User, UserCheck } from 'lucide-react';
 import { nanoid } from 'nanoid';
-import type { Torneio, Dupla, Jogador, Aluno } from '@/types';
+import type { Torneio, Dupla, Jogador } from '@/types';
 
 interface DuplasManagerProps {
   torneio: Torneio;
@@ -80,7 +80,7 @@ export const DuplasManager: React.FC<DuplasManagerProps> = ({
 
     const newDupla: Dupla = {
       id: editingId || `dupla_${nanoid()}`,
-      nome: formData.nome.trim() || undefined,
+      ...(formData.nome.trim() && { nome: formData.nome.trim() }),
       jogadores: [
         {
           tipo: formData.jogador1.tipo,
@@ -144,8 +144,7 @@ export const DuplasManager: React.FC<DuplasManagerProps> = ({
       if (field === 'tipo') {
         newFormData[jogadorKey] = {
           tipo: value as 'aluno' | 'convidado',
-          nome: '',
-          ...(value === 'aluno' && { id: undefined })
+          nome: ''
         };
       } else if (field === 'alunoId' && value) {
         const aluno = alunos.find(a => a.id.toString() === value);
@@ -208,6 +207,7 @@ export const DuplasManager: React.FC<DuplasManagerProps> = ({
             </div>
             {canEdit && !isAdding && !editingId && canAddMore && (
               <button
+                type="button"
                 onClick={handleAdd}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
