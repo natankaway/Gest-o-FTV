@@ -295,6 +295,7 @@ export interface MockData {
   agendamentos: Agendamento[];
   treinos: Treino[];
   exercicios: Exercicio[];
+  torneios: Torneio[];
   configCT: ConfigCT;
 }
 
@@ -345,8 +346,74 @@ export interface SearchState {
   limit: number;
 }
 
+// Torneios types
+export interface Jogador {
+  tipo: 'aluno' | 'convidado';
+  id?: string;
+  nome: string;
+}
+
+export interface Dupla {
+  id: string;
+  nome?: string;
+  jogadores: [Jogador, Jogador];
+  unidadeId?: string;
+  inscritoEm: string; // ISO string
+}
+
+export interface Match {
+  id: string;
+  categoriaId: string;
+  fase: 'WB' | 'LB' | 'SF' | 'F' | '3P'; // Winner Bracket, Loser Bracket, Semifinal, Final, 3rd Place
+  round: number;
+  a?: string; // team id
+  b?: string; // team id
+  horario?: string; // ISO string
+  placar?: {
+    a: number;
+    b: number;
+  };
+  bestOf?: 1 | 3;
+  vencedor?: string;
+  perdedor?: string;
+  proximoVencedorMatchId?: string;
+  proximoPerdedorMatchId?: string;
+}
+
+export interface BracketState {
+  status: 'nao-gerado' | 'gerado' | 'em-andamento' | 'finalizado';
+  matches: Match[];
+  roundAtual?: number;
+  configuracao: {
+    sorteioInicialSeed?: number;
+  };
+}
+
+export interface Categoria {
+  id: string;
+  nome: string;
+  limiteDuplas?: number;
+  formato: 'double-elim-semi-3p';
+  bestOfSF?: 1 | 3;
+  bestOfFinal?: 1 | 3;
+  duplas: Dupla[];
+  chaveamento: BracketState;
+}
+
+export interface Torneio {
+  id: string;
+  nome: string;
+  descricao?: string;
+  local?: string;
+  dataInicio?: string; // ISO string
+  dataFim?: string; // ISO string
+  status: 'Inscrições' | 'Sorteio' | 'Em andamento' | 'Finalizado';
+  criadoPor: string;
+  categorias: Categoria[];
+}
+
 // Export utility types
-export type TabKeys = 'dashboard' | 'alunos' | 'professores' | 'gestores' | 'presencas' | 'agendamentos' | 'treinos' | 'planos' | 'unidades' | 'financeiro' | 'produtos' | 'alugueis' | 'configuracoes' | 'metas';
+export type TabKeys = 'dashboard' | 'alunos' | 'professores' | 'gestores' | 'presencas' | 'agendamentos' | 'treinos' | 'planos' | 'unidades' | 'financeiro' | 'produtos' | 'alugueis' | 'configuracoes' | 'metas' | 'torneios';
 
 export interface Tab {
   key: TabKeys;
