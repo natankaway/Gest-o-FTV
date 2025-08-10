@@ -216,12 +216,19 @@ export const mockData: MockData = {
   ],
 
   financeiro: [
-    { id: 1, alunoId: 1, aluno: 'João Silva', valor: 150, data: '2025-07-05', status: 'pago', tipo: 'receita', categoria: 'Mensalidade', metodo: 'mensalidade', descricao: 'Mensalidade Julho' },
-    { id: 2, alunoId: 2, aluno: 'Maria Santos', valor: 120, data: '2025-07-03', status: 'pago', tipo: 'receita', categoria: 'Mensalidade', metodo: 'mensalidade', descricao: 'Mensalidade Julho' },
-    { id: 3, alunoId: 3, aluno: 'Pedro Costa', valor: 180, data: '2025-07-01', status: 'pendente', tipo: 'receita', categoria: 'Mensalidade', metodo: 'mensalidade', descricao: 'Mensalidade Julho' },
-    { id: 4, alunoId: 4, aluno: 'Ana Oliveira', valor: 50, data: '2025-07-06', status: 'pago', tipo: 'receita', categoria: 'Diária', metodo: 'diaria-dinheiro', descricao: 'Diária avulsa' },
-    { id: 5, valor: 500, data: '2025-07-01', status: 'pago', tipo: 'despesa', categoria: 'Aluguel', metodo: 'aluguel', descricao: 'Aluguel Quadra' },
-    { id: 6, valor: 45.50, data: '2025-07-02', status: 'pago', tipo: 'receita', categoria: 'Plataforma', metodo: 'diaria-plataforma', descricao: 'Wellhub (Gympass)' }
+    { id: 1, alunoId: 1, aluno: 'João Silva', valor: 150, data: '2025-07-05', status: 'pago', tipo: 'receita', categoria: 'Mensalidade', metodo: 'mensalidade', descricao: 'Mensalidade Julho', unidade: 'Centro' },
+    { id: 2, alunoId: 2, aluno: 'Maria Santos', valor: 120, data: '2025-07-03', status: 'pago', tipo: 'receita', categoria: 'Mensalidade', metodo: 'mensalidade', descricao: 'Mensalidade Julho', unidade: 'Zona Sul' },
+    { id: 3, alunoId: 3, aluno: 'Pedro Costa', valor: 180, data: '2025-07-01', status: 'pendente', tipo: 'receita', categoria: 'Mensalidade', metodo: 'mensalidade', descricao: 'Mensalidade Julho', unidade: 'Zona Norte' },
+    { id: 4, alunoId: 4, aluno: 'Ana Oliveira', valor: 50, data: '2025-07-06', status: 'pago', tipo: 'receita', categoria: 'Diária', metodo: 'diaria-dinheiro', descricao: 'Diária avulsa', unidade: 'Barra' },
+    { id: 5, valor: 500, data: '2025-07-01', status: 'pago', tipo: 'despesa', categoria: 'Aluguel', metodo: 'aluguel', descricao: 'Aluguel Quadra', unidade: 'Centro' },
+    { id: 6, valor: 45.50, data: '2025-07-02', status: 'pago', tipo: 'receita', categoria: 'Plataforma', metodo: 'diaria-plataforma', descricao: 'Wellhub (Gympass)', unidade: 'Centro' },
+    // Additional sample data for testing
+    { id: 7, alunoId: 2, aluno: 'Maria Santos', valor: 30, data: '2025-07-07', status: 'pago', tipo: 'receita', categoria: 'Produto', metodo: 'dinheiro', descricao: 'Venda Isotônico', unidade: 'Zona Sul' },
+    { id: 8, valor: 200, data: '2025-07-05', status: 'pago', tipo: 'despesa', categoria: 'Manutenção', metodo: 'transferencia', descricao: 'Manutenção rede', unidade: 'Zona Sul' },
+    { id: 9, alunoId: 3, aluno: 'Pedro Costa', valor: 25, data: '2025-07-08', status: 'pendente', tipo: 'receita', categoria: 'Produto', metodo: 'pix', descricao: 'Protetor Solar', unidade: 'Zona Norte' },
+    { id: 10, valor: 300, data: '2025-07-06', status: 'pago', tipo: 'despesa', categoria: 'Equipamento', metodo: 'cartao-credito', descricao: 'Bolas futevôlei', unidade: 'Barra' },
+    { id: 11, alunoId: 1, aluno: 'João Silva', valor: 15, data: '2025-07-09', status: 'pago', tipo: 'receita', categoria: 'Produto', metodo: 'dinheiro', descricao: 'Água + Isotônico', unidade: 'Centro' },
+    { id: 12, valor: 400, data: '2025-07-04', status: 'pendente', tipo: 'despesa', categoria: 'Aluguel', metodo: 'aluguel', descricao: 'Aluguel Quadra', unidade: 'Zona Norte' }
   ],
 
   produtos: [
@@ -245,7 +252,8 @@ export const mockData: MockData = {
 
   gestores: [
     { id: 1, nome: 'Roberto Silva', telefone: '(11) 94444-4444', email: 'roberto@futevolei.com', senha: '123456', cargo: 'Gerente Geral', unidades: ['Centro'], permissoes: ['admin'], ativo: true },
-    { id: 2, nome: 'Carla Mendes', telefone: '(11) 95555-5555', email: 'carla@futevolei.com', senha: '123456', cargo: 'Supervisora', unidades: ['Zona Sul'], permissoes: ['gestor'], ativo: true }
+    { id: 2, nome: 'Carla Mendes', telefone: '(11) 95555-5555', email: 'carla@futevolei.com', senha: '123456', cargo: 'Supervisora', unidades: ['Zona Sul'], permissoes: ['gestor'], ativo: true },
+    { id: 3, nome: 'Paulo Santos', telefone: '(11) 96666-6666', email: 'paulo@futevolei.com', senha: '123456', cargo: 'Gestor Regional', unidades: ['Zona Norte', 'Barra'], permissoes: ['gestor'], ativo: true }
   ],
 
   metas: [
