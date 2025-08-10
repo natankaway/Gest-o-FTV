@@ -147,7 +147,8 @@ export const Sidebar: React.FC<SidebarProps> = memo(({
         icon: DollarSign,
         items: [
           { id: 'financeiro', label: 'Financeiro', icon: DollarSign, roles: ['admin', 'gestor'] },
-          { id: 'produtos', label: 'Produtos', icon: ShoppingCart, roles: ['admin', 'gestor'] }
+          { id: 'produtos', label: 'Produtos', icon: ShoppingCart, roles: ['admin', 'gestor'] },
+          { id: 'metas', label: 'Metas', icon: Target, roles: ['admin', 'gestor'] }
         ]
       });
     }
