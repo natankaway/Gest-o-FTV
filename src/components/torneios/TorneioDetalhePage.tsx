@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useAppState } from '@/contexts';
-import { ArrowLeft, Trophy, Users, Target, Settings } from 'lucide-react';
+import { ArrowLeft, Trophy, Users, Target } from 'lucide-react';
 import { CategoriaForm } from './CategoriaForm';
 import { DuplasManager } from './DuplasManager';
 import { ChaveamentoView } from './ChaveamentoView';

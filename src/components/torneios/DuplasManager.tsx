@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useAppState } from '@/contexts';
 import { Plus, Edit2, Trash2, Users, User, UserCheck } from 'lucide-react';
-import { nanoid } from 'nanoid';
-import type { Torneio, Dupla, Jogador, Aluno } from '@/types';
+import { DuplaFormModal } from './DuplaFormModal';
+import type { Torneio, Dupla } from '@/types';
 
 interface DuplasManagerProps {
   torneio: Torneio;
@@ -10,20 +10,6 @@ interface DuplasManagerProps {
   selectedCategoria: string | null;
   onSelectCategoria: (categoriaId: string | null) => void;
   canEdit: boolean;
-}
-
-interface DuplaFormData {
-  nome: string;
-  jogador1: {
-    tipo: 'aluno' | 'convidado';
-    id?: string;
-    nome: string;
-  };
-  jogador2: {
-    tipo: 'aluno' | 'convidado';
-    id?: string;
-    nome: string;
-  };
 }
 
 export const DuplasManager: React.FC<DuplasManagerProps> = ({
@@ -34,75 +20,36 @@ export const DuplasManager: React.FC<DuplasManagerProps> = ({
   canEdit
 }) => {
   const { dadosMockados } = useAppState();
-  const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState<DuplaFormData>({
-    nome: '',
-    jogador1: { tipo: 'aluno', nome: '' },
-    jogador2: { tipo: 'aluno', nome: '' }
-  });
-
-  const alunos = dadosMockados.alunos;
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingDupla, setEditingDupla] = useState<Dupla | null>(null);
   const categoriaAtual = selectedCategoria ? torneio.categorias.find(c => c.id === selectedCategoria) : null;
-
-  const resetForm = useCallback(() => {
-    setFormData({
-      nome: '',
-      jogador1: { tipo: 'aluno', nome: '' },
-      jogador2: { tipo: 'aluno', nome: '' }
-    });
-    setIsAdding(false);
-    setEditingId(null);
-  }, []);
 
   const handleAdd = useCallback(() => {
     if (!selectedCategoria) return;
-    setIsAdding(true);
-    resetForm();
-  }, [selectedCategoria, resetForm]);
+    setEditingDupla(null);
+    setIsModalOpen(true);
+  }, [selectedCategoria]);
 
   const handleEdit = useCallback((dupla: Dupla) => {
-    setFormData({
-      nome: dupla.nome || '',
-      jogador1: dupla.jogadores[0],
-      jogador2: dupla.jogadores[1]
-    });
-    setEditingId(dupla.id);
-    setIsAdding(false);
+    setEditingDupla(dupla);
+    setIsModalOpen(true);
   }, []);
 
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+    setEditingDupla(null);
+  }, []);
 
-    if (!selectedCategoria || !formData.jogador1.nome.trim() || !formData.jogador2.nome.trim()) {
-      return;
-    }
-
-    const newDupla: Dupla = {
-      id: editingId || `dupla_${nanoid()}`,
-      nome: formData.nome.trim() || undefined,
-      jogadores: [
-        {
-          tipo: formData.jogador1.tipo,
-          ...(formData.jogador1.tipo === 'aluno' && formData.jogador1.id && { id: formData.jogador1.id }),
-          nome: formData.jogador1.nome.trim()
-        },
-        {
-          tipo: formData.jogador2.tipo,
-          ...(formData.jogador2.tipo === 'aluno' && formData.jogador2.id && { id: formData.jogador2.id }),
-          nome: formData.jogador2.nome.trim()
-        }
-      ] as [Jogador, Jogador],
-      inscritoEm: new Date().toISOString()
-    };
+  const handleSubmitDupla = useCallback((dupla: Dupla) => {
+    if (!selectedCategoria) return;
 
     const updatedTorneio = {
       ...torneio,
       categorias: torneio.categorias.map(categoria => {
         if (categoria.id === selectedCategoria) {
-          const duplas = editingId
-            ? categoria.duplas.map(d => d.id === editingId ? newDupla : d)
-            : [...categoria.duplas, newDupla];
+          const duplas = editingDupla
+            ? categoria.duplas.map(d => d.id === editingDupla.id ? dupla : d)
+            : [...categoria.duplas, dupla];
           
           return { ...categoria, duplas };
         }
@@ -111,8 +58,7 @@ export const DuplasManager: React.FC<DuplasManagerProps> = ({
     };
 
     onUpdateTorneio(updatedTorneio);
-    resetForm();
-  }, [formData, editingId, selectedCategoria, torneio, onUpdateTorneio, resetForm]);
+  }, [selectedCategoria, editingDupla, torneio, onUpdateTorneio]);
 
   const handleDelete = useCallback((duplaId: string) => {
     if (!selectedCategoria) return;
@@ -134,38 +80,6 @@ export const DuplasManager: React.FC<DuplasManagerProps> = ({
       onUpdateTorneio(updatedTorneio);
     }
   }, [selectedCategoria, torneio, onUpdateTorneio]);
-
-  const handleJogadorChange = useCallback((jogadorIndex: 1 | 2, field: string, value: string) => {
-    const jogadorKey = `jogador${jogadorIndex}` as 'jogador1' | 'jogador2';
-    
-    setFormData(prev => {
-      const newFormData = { ...prev };
-      
-      if (field === 'tipo') {
-        newFormData[jogadorKey] = {
-          tipo: value as 'aluno' | 'convidado',
-          nome: '',
-          ...(value === 'aluno' && { id: undefined })
-        };
-      } else if (field === 'alunoId' && value) {
-        const aluno = alunos.find(a => a.id.toString() === value);
-        if (aluno) {
-          newFormData[jogadorKey] = {
-            tipo: 'aluno',
-            id: value,
-            nome: aluno.nome
-          };
-        }
-      } else {
-        newFormData[jogadorKey] = {
-          ...newFormData[jogadorKey],
-          [field]: value
-        };
-      }
-      
-      return newFormData;
-    });
-  }, [alunos]);
 
   const canAddMore = useMemo(() => {
     if (!categoriaAtual) return false;
@@ -206,8 +120,9 @@ export const DuplasManager: React.FC<DuplasManagerProps> = ({
                 {canEdit ? 'Gerencie as duplas desta categoria' : 'Visualize as duplas desta categoria'}
               </p>
             </div>
-            {canEdit && !isAdding && !editingId && canAddMore && (
+            {canEdit && canAddMore && (
               <button
+                type="button"
                 onClick={handleAdd}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
@@ -223,114 +138,6 @@ export const DuplasManager: React.FC<DuplasManagerProps> = ({
                 Limite de duplas atingido para esta categoria ({categoriaAtual.limiteDuplas} duplas).
               </p>
             </div>
-          )}
-
-          {/* Add/Edit Form */}
-          {(isAdding || editingId) && (
-            <form onSubmit={handleSubmit} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6 border-2 border-dashed border-gray-300 dark:border-gray-600">
-              <h3 className="text-md font-medium text-gray-900 dark:text-white mb-4">
-                {editingId ? 'Editar Dupla' : 'Nova Dupla'}
-              </h3>
-              
-              <div className="space-y-4">
-                {/* Nome da Dupla */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Nome da Dupla (opcional)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.nome}
-                    onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                    placeholder="Ex: Dupla Relâmpago"
-                  />
-                </div>
-
-                {/* Jogadores */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {[1, 2].map((jogadorIndex) => {
-                    const jogadorKey = `jogador${jogadorIndex}` as 'jogador1' | 'jogador2';
-                    const jogador = formData[jogadorKey];
-                    
-                    return (
-                      <div key={jogadorIndex} className="space-y-3">
-                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Jogador {jogadorIndex} *
-                        </h4>
-                        
-                        {/* Tipo */}
-                        <div>
-                          <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                            Tipo
-                          </label>
-                          <select
-                            value={jogador.tipo}
-                            onChange={(e) => handleJogadorChange(jogadorIndex as 1 | 2, 'tipo', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-                          >
-                            <option value="aluno">Aluno</option>
-                            <option value="convidado">Convidado</option>
-                          </select>
-                        </div>
-
-                        {/* Aluno Selector ou Nome */}
-                        {jogador.tipo === 'aluno' ? (
-                          <div>
-                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                              Selecionar Aluno
-                            </label>
-                            <select
-                              value={jogador.id || ''}
-                              onChange={(e) => handleJogadorChange(jogadorIndex as 1 | 2, 'alunoId', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-                              required
-                            >
-                              <option value="">Escolha um aluno...</option>
-                              {alunos.map(aluno => (
-                                <option key={aluno.id} value={aluno.id}>
-                                  {aluno.nome}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        ) : (
-                          <div>
-                            <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                              Nome do Convidado
-                            </label>
-                            <input
-                              type="text"
-                              value={jogador.nome}
-                              onChange={(e) => handleJogadorChange(jogadorIndex as 1 | 2, 'nome', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
-                              placeholder="Digite o nome"
-                              required
-                            />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  {editingId ? 'Salvar' : 'Adicionar'}
-                </button>
-              </div>
-            </form>
           )}
 
           {/* Duplas List */}
@@ -416,6 +223,14 @@ export const DuplasManager: React.FC<DuplasManagerProps> = ({
           </p>
         </div>
       )}
+
+      {/* Dupla Form Modal */}
+      <DuplaFormModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        dupla={editingDupla}
+        onSubmit={handleSubmitDupla}
+      />
     </div>
   );
 };
