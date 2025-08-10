@@ -176,6 +176,20 @@ export interface Meta {
   unidade: string;
 }
 
+export interface MetaGeral {
+  id: string;
+  titulo: string;
+  descricao?: string;
+  escopo: 'CT' | 'Unidade';
+  unidadeId?: string;
+  valorAlvo: number;
+  valorAtual: number;
+  prazo?: string;
+  responsavel?: string;
+  criadoEm?: string;
+  atualizadoEm?: string;
+}
+
 export interface Aluguel {
   id: number;
   cliente: string;
@@ -276,6 +290,7 @@ export interface MockData {
   horarios: Horario[];
   gestores: Gestor[];
   metas: Meta[];
+  metasGerais: MetaGeral[];
   alugueis: Aluguel[];
   agendamentos: Agendamento[];
   treinos: Treino[];
@@ -331,7 +346,7 @@ export interface SearchState {
 }
 
 // Export utility types
-export type TabKeys = 'dashboard' | 'alunos' | 'professores' | 'gestores' | 'presencas' | 'agendamentos' | 'treinos' | 'planos' | 'unidades' | 'financeiro' | 'produtos' | 'alugueis' | 'configuracoes';
+export type TabKeys = 'dashboard' | 'alunos' | 'professores' | 'gestores' | 'presencas' | 'agendamentos' | 'treinos' | 'planos' | 'unidades' | 'financeiro' | 'produtos' | 'alugueis' | 'configuracoes' | 'metas';
 
 export interface Tab {
   key: TabKeys;

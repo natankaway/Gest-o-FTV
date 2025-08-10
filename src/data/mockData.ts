@@ -273,6 +273,47 @@ export const mockData: MockData = {
     { id: 2, tipo: 'Novos Alunos', meta: 20, atual: 15, periodo: '2025-07', unidade: 'Zona Sul' }
   ],
 
+  metasGerais: [
+    {
+      id: '1',
+      titulo: 'Aumentar receita do CT',
+      descricao: 'Meta para aumentar a receita total do centro de treinamento',
+      escopo: 'CT' as const,
+      valorAlvo: 100000,
+      valorAtual: 65000,
+      prazo: '2024-12-31',
+      responsavel: 'Diretor Geral',
+      criadoEm: '2024-01-01T00:00:00.000Z',
+      atualizadoEm: '2024-07-15T10:30:00.000Z'
+    },
+    {
+      id: '2',
+      titulo: 'Captação de novos alunos - Centro',
+      descricao: 'Aumentar número de alunos matriculados na unidade Centro',
+      escopo: 'Unidade' as const,
+      unidadeId: 'Centro',
+      valorAlvo: 150,
+      valorAtual: 120,
+      prazo: '2024-08-31',
+      responsavel: 'João Santos',
+      criadoEm: '2024-06-01T00:00:00.000Z',
+      atualizadoEm: '2024-07-15T14:20:00.000Z'
+    },
+    {
+      id: '3',
+      titulo: 'Melhoria de equipamentos - Zona Sul',
+      descricao: 'Renovar e melhorar equipamentos da unidade',
+      escopo: 'Unidade' as const,
+      unidadeId: 'Zona Sul',
+      valorAlvo: 50000,
+      valorAtual: 30000,
+      prazo: '2024-09-30',
+      responsavel: 'Maria Silva',
+      criadoEm: '2024-05-15T00:00:00.000Z',
+      atualizadoEm: '2024-07-10T16:45:00.000Z'
+    }
+  ],
+
   alugueis: [
     { id: 1, cliente: 'Empresa XYZ', telefone: '(11) 3000-9000', data: '2025-07-15', horario: '14:00', duracao: 2, valor: 200, status: 'confirmado', unidade: 'Centro' },
     { id: 2, cliente: 'Grupo ABC', telefone: '(11) 3000-8000', data: '2025-07-20', horario: '16:00', duracao: 1, valor: 120, status: 'pendente', unidade: 'Barra' }

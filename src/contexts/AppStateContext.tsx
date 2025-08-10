@@ -15,6 +15,7 @@ import type {
   Presenca, 
   Horario, 
   Meta, 
+  MetaGeral,
   Aluguel, 
   Agendamento,
   Treino,
@@ -37,6 +38,7 @@ interface AppStateContextType extends AppState {
   setPresencas: React.Dispatch<React.SetStateAction<Presenca[]>>;
   setHorarios: React.Dispatch<React.SetStateAction<Horario[]>>;
   setMetas: React.Dispatch<React.SetStateAction<Meta[]>>;
+  setMetasGerais: React.Dispatch<React.SetStateAction<MetaGeral[]>>;
   setAlugueis: React.Dispatch<React.SetStateAction<Aluguel[]>>;
   setAgendamentos: React.Dispatch<React.SetStateAction<Agendamento[]>>;
   setTreinos: React.Dispatch<React.SetStateAction<Treino[]>>;
@@ -89,6 +91,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const [presencas, setPresencas] = useLocalStorage<Presenca[]>('presencas', mockData.presencas);
   const [horarios, setHorarios] = useLocalStorage<Horario[]>('horarios', mockData.horarios);
   const [metas, setMetas] = useLocalStorage<Meta[]>('metas', mockData.metas);
+  const [metasGerais, setMetasGerais] = useLocalStorage<MetaGeral[]>('metasGerais', mockData.metasGerais);
   const [alugueis, setAlugueis] = useLocalStorage<Aluguel[]>('alugueis', mockData.alugueis);
   const [agendamentos, setAgendamentos] = useLocalStorage<Agendamento[]>('agendamentos', mockData.agendamentos);
   const [treinos, setTreinos] = useLocalStorage<Treino[]>('treinos', mockData.treinos);
@@ -161,6 +164,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     horarios,
     gestores,
     metas,
+    metasGerais,
     alugueis,
     agendamentos,
     treinos,
@@ -168,7 +172,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     configCT
   }), [
     planos, alunos, professores, unidades, presencas,
-    financeiro, produtos, plataformas, horarios, gestores, metas, alugueis,
+    financeiro, produtos, plataformas, horarios, gestores, metas, metasGerais, alugueis,
     agendamentos, treinos, exercicios, configCT
   ]);
 
@@ -190,6 +194,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setPresencas,
     setHorarios,
     setMetas,
+    setMetasGerais,
     setAlugueis,
     setAgendamentos,
     setTreinos,
@@ -228,6 +233,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setPresencas,
     setHorarios,
     setMetas,
+    setMetasGerais,
     setAlugueis,
     setAgendamentos,
     setTreinos,
