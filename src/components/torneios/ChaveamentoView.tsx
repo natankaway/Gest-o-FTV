@@ -1,6 +1,9 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { useAppState } from '@/contexts';
 import { Target, Shuffle, Play } from 'lucide-react';
 import { nanoid } from 'nanoid';
+import { torneioStateUtils } from '@/utils/torneioStateUtils';
+import toast from 'react-hot-toast';
 import type { Torneio, Match, BracketState } from '@/types';
 
 interface ChaveamentoViewProps {
@@ -18,18 +21,21 @@ interface MatchResultFormData {
 
 export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
   torneio,
-  onUpdateTorneio,
+  onUpdateTorneio: _onUpdateTorneio, // Keep for interface compatibility
   selectedCategoria,
   onSelectCategoria,
   canEdit
 }) => {
+  const { dadosMockados, setTorneios } = useAppState();
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
   const [resultForm, setResultForm] = useState<MatchResultFormData>({
     placarA: '',
     placarB: ''
   });
 
-  const categoriaAtual = selectedCategoria ? torneio.categorias.find(c => c.id === selectedCategoria) : null;
+  // Get current tournament from latest state
+  const currentTorneio = dadosMockados.torneios.find(t => t.id === torneio.id) || torneio;
+  const categoriaAtual = selectedCategoria ? currentTorneio.categorias.find(c => c.id === selectedCategoria) : null;
   
   const canGenerateBracket = useMemo(() => {
     return categoriaAtual && categoriaAtual.duplas.length >= 4 && 
@@ -54,8 +60,10 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
     for (let i = duplas.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       const temp = duplas[i];
-      duplas[i] = duplas[j];
-      duplas[j] = temp;
+      if (temp && duplas[j]) {
+        duplas[i] = duplas[j];
+        duplas[j] = temp;
+      }
     }
 
     const matches: Match[] = [];
@@ -87,17 +95,15 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
       }
     };
 
-    const updatedTorneio = {
-      ...torneio,
-      categorias: torneio.categorias.map(categoria => 
-        categoria.id === selectedCategoria 
-          ? { ...categoria, chaveamento: newBracket }
-          : categoria
-      )
-    };
-
-    onUpdateTorneio(updatedTorneio);
-  }, [categoriaAtual, selectedCategoria, torneio, onUpdateTorneio]);
+    setTorneios(prev => torneioStateUtils.updateChaveamento(
+      prev,
+      currentTorneio.id,
+      selectedCategoria,
+      () => newBracket
+    ));
+    
+    toast.success('Chaveamento gerado com sucesso!');
+  }, [categoriaAtual, selectedCategoria, currentTorneio.id, setTorneios]);
 
   const handleEditResult = useCallback((match: Match) => {
     setEditingMatch(match.id);
@@ -114,52 +120,55 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
     const placarB = parseInt(resultForm.placarB);
 
     if (isNaN(placarA) || isNaN(placarB) || placarA < 0 || placarB < 0) {
-      alert('Por favor, insira placares válidos');
+      toast.error('Por favor, insira placares válidos');
       return;
     }
 
     if (placarA === placarB) {
-      alert('O placar não pode ser empate');
+      toast.error('O placar não pode ser empate');
       return;
     }
 
-    const updatedMatches = categoriaAtual.chaveamento.matches.map(match => {
-      if (match.id === editingMatch) {
-        const vencedor = placarA > placarB ? match.a : match.b;
-        const perdedor = placarA > placarB ? match.b : match.a;
-        
+    const currentMatch = categoriaAtual.chaveamento.matches.find(m => m.id === editingMatch);
+    if (!currentMatch) return;
+
+    const vencedor = placarA > placarB ? currentMatch.a : currentMatch.b;
+    const perdedor = placarA > placarB ? currentMatch.b : currentMatch.a;
+
+    const matchResult: Partial<Match> = {
+      placar: { a: placarA, b: placarB },
+      ...(vencedor && { vencedor }),
+      ...(perdedor && { perdedor })
+    };
+
+    setTorneios(prev => torneioStateUtils.updateMatchResult(
+      prev,
+      currentTorneio.id,
+      selectedCategoria,
+      editingMatch,
+      matchResult
+    ));
+
+    // Update bracket status based on results
+    setTorneios(prev => torneioStateUtils.updateChaveamento(
+      prev,
+      currentTorneio.id,
+      selectedCategoria,
+      (chaveamento) => {
+        const hasAnyResult = chaveamento.matches.some(match => 
+          match.id === editingMatch ? true : match.placar
+        );
         return {
-          ...match,
-          placar: { a: placarA, b: placarB },
-          ...(vencedor && { vencedor }),
-          ...(perdedor && { perdedor })
+          ...chaveamento,
+          status: hasAnyResult ? 'em-andamento' : 'gerado'
         };
       }
-      return match;
-    });
+    ));
 
-    const hasAnyResult = updatedMatches.some(match => match.placar);
-    const newStatus = hasAnyResult ? 'em-andamento' : 'gerado';
-
-    const updatedBracket: BracketState = {
-      ...categoriaAtual.chaveamento,
-      matches: updatedMatches,
-      status: newStatus
-    };
-
-    const updatedTorneio = {
-      ...torneio,
-      categorias: torneio.categorias.map(categoria => 
-        categoria.id === selectedCategoria 
-          ? { ...categoria, chaveamento: updatedBracket }
-          : categoria
-      )
-    };
-
-    onUpdateTorneio(updatedTorneio);
     setEditingMatch(null);
     setResultForm({ placarA: '', placarB: '' });
-  }, [editingMatch, categoriaAtual, selectedCategoria, torneio, onUpdateTorneio, resultForm]);
+    toast.success('Resultado registrado com sucesso!');
+  }, [editingMatch, categoriaAtual, selectedCategoria, currentTorneio.id, setTorneios, resultForm]);
 
   const getDuplaName = useCallback((duplaId?: string) => {
     if (!duplaId || !categoriaAtual) return 'TBD';
@@ -211,7 +220,7 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
           className="w-full max-w-md px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
         >
           <option value="">Escolha uma categoria...</option>
-          {torneio.categorias.map(categoria => (
+          {currentTorneio.categorias.map(categoria => (
             <option key={categoria.id} value={categoria.id}>
               {categoria.nome} ({categoria.duplas.length} duplas)
             </option>

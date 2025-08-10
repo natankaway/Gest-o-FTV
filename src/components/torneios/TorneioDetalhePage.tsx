@@ -4,6 +4,8 @@ import { ArrowLeft, Trophy, Users, Target } from 'lucide-react';
 import { CategoriaForm } from './CategoriaForm';
 import { DuplasManager } from './DuplasManager';
 import { ChaveamentoView } from './ChaveamentoView';
+import { torneioStateUtils } from '@/utils/torneioStateUtils';
+import toast from 'react-hot-toast';
 import type { Torneio, Categoria } from '@/types';
 
 interface TorneioDetalhePageProps {
@@ -17,59 +19,53 @@ export const TorneioDetalhePage: React.FC<TorneioDetalhePageProps> = ({
   torneio,
   onBack
 }) => {
-  const { userLogado, setTorneios } = useAppState();
+  const { userLogado, dadosMockados, setTorneios } = useAppState();
   const [activeTab, setActiveTab] = useState<TabType>('categorias');
   const [selectedCategoria, setSelectedCategoria] = useState<string | null>(null);
   
   const userRole = userLogado?.perfil || 'aluno';
   const canEdit = userRole === 'admin' || userRole === 'gestor' || userRole === 'professor';
 
+  // Get the current tournament from the latest state to ensure fresh data
+  const currentTorneio = dadosMockados.torneios.find(t => t.id === torneio.id) || torneio;
+
   const updateTorneio = useCallback((updatedTorneio: Torneio) => {
     setTorneios(prev => prev.map(t => t.id === updatedTorneio.id ? updatedTorneio : t));
   }, [setTorneios]);
 
   const addCategoria = useCallback((categoria: Categoria) => {
-    const updatedTorneio = {
-      ...torneio,
-      categorias: [...torneio.categorias, categoria]
-    };
-    updateTorneio(updatedTorneio);
-  }, [torneio, updateTorneio]);
+    setTorneios(prev => torneioStateUtils.pushCategoria(prev, currentTorneio.id, categoria));
+    toast.success('Categoria adicionada com sucesso!');
+  }, [currentTorneio.id, setTorneios]);
 
   const updateCategoria = useCallback((categoriaId: string, updatedCategoria: Categoria) => {
-    const updatedTorneio = {
-      ...torneio,
-      categorias: torneio.categorias.map(c => c.id === categoriaId ? updatedCategoria : c)
-    };
-    updateTorneio(updatedTorneio);
-  }, [torneio, updateTorneio]);
+    setTorneios(prev => torneioStateUtils.updateCategoria(prev, currentTorneio.id, categoriaId, () => updatedCategoria));
+    toast.success('Categoria atualizada com sucesso!');
+  }, [currentTorneio.id, setTorneios]);
 
   const removeCategoria = useCallback((categoriaId: string) => {
-    const updatedTorneio = {
-      ...torneio,
-      categorias: torneio.categorias.filter(c => c.id !== categoriaId)
-    };
-    updateTorneio(updatedTorneio);
-  }, [torneio, updateTorneio]);
+    setTorneios(prev => torneioStateUtils.removeCategoria(prev, currentTorneio.id, categoriaId));
+    toast.success('Categoria removida com sucesso!');
+  }, [currentTorneio.id, setTorneios]);
 
   const tabs = [
     {
       id: 'categorias' as TabType,
       label: 'Categorias',
       icon: Trophy,
-      count: torneio.categorias.length
+      count: currentTorneio.categorias.length
     },
     {
       id: 'duplas' as TabType,
       label: 'Duplas',
       icon: Users,
-      count: torneio.categorias.reduce((total, cat) => total + cat.duplas.length, 0)
+      count: currentTorneio.categorias.reduce((total, cat) => total + cat.duplas.length, 0)
     },
     {
       id: 'chaveamento' as TabType,
       label: 'Chaveamento',
       icon: Target,
-      disabled: torneio.categorias.length === 0
+      disabled: currentTorneio.categorias.length === 0
     }
   ];
 
@@ -98,7 +94,7 @@ export const TorneioDetalhePage: React.FC<TorneioDetalhePageProps> = ({
       case 'categorias':
         return (
           <CategoriaForm
-            torneio={torneio}
+            torneio={currentTorneio}
             onAddCategoria={addCategoria}
             onUpdateCategoria={updateCategoria}
             onRemoveCategoria={removeCategoria}
@@ -108,7 +104,7 @@ export const TorneioDetalhePage: React.FC<TorneioDetalhePageProps> = ({
       case 'duplas':
         return (
           <DuplasManager
-            torneio={torneio}
+            torneio={currentTorneio}
             onUpdateTorneio={updateTorneio}
             selectedCategoria={selectedCategoria}
             onSelectCategoria={setSelectedCategoria}
@@ -118,7 +114,7 @@ export const TorneioDetalhePage: React.FC<TorneioDetalhePageProps> = ({
       case 'chaveamento':
         return (
           <ChaveamentoView
-            torneio={torneio}
+            torneio={currentTorneio}
             onUpdateTorneio={updateTorneio}
             selectedCategoria={selectedCategoria}
             onSelectCategoria={setSelectedCategoria}
@@ -144,14 +140,14 @@ export const TorneioDetalhePage: React.FC<TorneioDetalhePageProps> = ({
         <div className="flex-1">
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              {torneio.nome}
+              {currentTorneio.nome}
             </h1>
-            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(torneio.status)}`}>
-              {torneio.status}
+            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(currentTorneio.status)}`}>
+              {currentTorneio.status}
             </span>
           </div>
-          {torneio.descricao && (
-            <p className="text-gray-600 dark:text-gray-400">{torneio.descricao}</p>
+          {currentTorneio.descricao && (
+            <p className="text-gray-600 dark:text-gray-400">{currentTorneio.descricao}</p>
           )}
         </div>
       </div>
@@ -159,22 +155,22 @@ export const TorneioDetalhePage: React.FC<TorneioDetalhePageProps> = ({
       {/* Tournament Info */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {torneio.local && (
+          {currentTorneio.local && (
             <div>
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Local</span>
-              <p className="text-gray-900 dark:text-white">{torneio.local}</p>
+              <p className="text-gray-900 dark:text-white">{currentTorneio.local}</p>
             </div>
           )}
-          {torneio.dataInicio && (
+          {currentTorneio.dataInicio && (
             <div>
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Data de Início</span>
-              <p className="text-gray-900 dark:text-white">{formatDate(torneio.dataInicio)}</p>
+              <p className="text-gray-900 dark:text-white">{formatDate(currentTorneio.dataInicio)}</p>
             </div>
           )}
-          {torneio.dataFim && (
+          {currentTorneio.dataFim && (
             <div>
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Data de Fim</span>
-              <p className="text-gray-900 dark:text-white">{formatDate(torneio.dataFim)}</p>
+              <p className="text-gray-900 dark:text-white">{formatDate(currentTorneio.dataFim)}</p>
             </div>
           )}
         </div>

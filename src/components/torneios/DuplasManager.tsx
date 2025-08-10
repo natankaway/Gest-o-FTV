@@ -2,6 +2,8 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useAppState } from '@/contexts';
 import { Plus, Edit2, Trash2, Users, User, UserCheck } from 'lucide-react';
 import { DuplaFormModal } from './DuplaFormModal';
+import { torneioStateUtils } from '@/utils/torneioStateUtils';
+import toast from 'react-hot-toast';
 import type { Torneio, Dupla } from '@/types';
 
 interface DuplasManagerProps {
@@ -14,15 +16,18 @@ interface DuplasManagerProps {
 
 export const DuplasManager: React.FC<DuplasManagerProps> = ({
   torneio,
-  onUpdateTorneio,
+  onUpdateTorneio: _onUpdateTorneio, // Keep for interface compatibility but not used
   selectedCategoria,
   onSelectCategoria,
   canEdit
 }) => {
-  const { dadosMockados } = useAppState();
+  const { dadosMockados, setTorneios } = useAppState();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDupla, setEditingDupla] = useState<Dupla | null>(null);
-  const categoriaAtual = selectedCategoria ? torneio.categorias.find(c => c.id === selectedCategoria) : null;
+  
+  // Get current tournament from latest state
+  const currentTorneio = dadosMockados.torneios.find(t => t.id === torneio.id) || torneio;
+  const categoriaAtual = selectedCategoria ? currentTorneio.categorias.find(c => c.id === selectedCategoria) : null;
 
   const handleAdd = useCallback(() => {
     if (!selectedCategoria) return;
@@ -41,45 +46,60 @@ export const DuplasManager: React.FC<DuplasManagerProps> = ({
   }, []);
 
   const handleSubmitDupla = useCallback((dupla: Dupla) => {
-    if (!selectedCategoria) return;
+    if (!selectedCategoria || !categoriaAtual) {
+      toast.error('Selecione uma categoria primeiro');
+      return;
+    }
 
-    const updatedTorneio = {
-      ...torneio,
-      categorias: torneio.categorias.map(categoria => {
-        if (categoria.id === selectedCategoria) {
-          const duplas = editingDupla
-            ? categoria.duplas.map(d => d.id === editingDupla.id ? dupla : d)
-            : [...categoria.duplas, dupla];
-          
-          return { ...categoria, duplas };
-        }
-        return categoria;
-      })
-    };
+    // Validate duplicate players
+    if (!torneioStateUtils.validateDuplaPlayers(dupla)) {
+      toast.error('Não é possível criar uma dupla com o mesmo jogador nas duas posições');
+      return;
+    }
 
-    onUpdateTorneio(updatedTorneio);
-  }, [selectedCategoria, editingDupla, torneio, onUpdateTorneio]);
+    // Check category limit
+    if (!editingDupla && !torneioStateUtils.canAddDupla(categoriaAtual)) {
+      toast.error(`Limite de duplas atingido para esta categoria (${categoriaAtual.limiteDuplas})`);
+      return;
+    }
+
+    if (editingDupla) {
+      // Update existing dupla
+      setTorneios(prev => torneioStateUtils.updateDupla(
+        prev, 
+        currentTorneio.id, 
+        selectedCategoria, 
+        editingDupla.id, 
+        () => dupla
+      ));
+      toast.success('Dupla atualizada com sucesso!');
+    } else {
+      // Add new dupla
+      setTorneios(prev => torneioStateUtils.pushDupla(
+        prev, 
+        currentTorneio.id, 
+        selectedCategoria, 
+        dupla
+      ));
+      toast.success('Dupla adicionada com sucesso!');
+    }
+
+    handleCloseModal();
+  }, [selectedCategoria, categoriaAtual, editingDupla, currentTorneio.id, setTorneios]);
 
   const handleDelete = useCallback((duplaId: string) => {
     if (!selectedCategoria) return;
     
     if (window.confirm('Tem certeza que deseja excluir esta dupla?')) {
-      const updatedTorneio = {
-        ...torneio,
-        categorias: torneio.categorias.map(categoria => {
-          if (categoria.id === selectedCategoria) {
-            return {
-              ...categoria,
-              duplas: categoria.duplas.filter(d => d.id !== duplaId)
-            };
-          }
-          return categoria;
-        })
-      };
-
-      onUpdateTorneio(updatedTorneio);
+      setTorneios(prev => torneioStateUtils.removeDupla(
+        prev, 
+        currentTorneio.id, 
+        selectedCategoria, 
+        duplaId
+      ));
+      toast.success('Dupla removida com sucesso!');
     }
-  }, [selectedCategoria, torneio, onUpdateTorneio]);
+  }, [selectedCategoria, currentTorneio.id, setTorneios]);
 
   const canAddMore = useMemo(() => {
     if (!categoriaAtual) return false;
@@ -99,7 +119,7 @@ export const DuplasManager: React.FC<DuplasManagerProps> = ({
           className="w-full max-w-md px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
         >
           <option value="">Escolha uma categoria...</option>
-          {torneio.categorias.map(categoria => (
+          {currentTorneio.categorias.map(categoria => (
             <option key={categoria.id} value={categoria.id}>
               {categoria.nome} ({categoria.duplas.length} duplas
               {categoria.limiteDuplas && ` / ${categoria.limiteDuplas}`})
