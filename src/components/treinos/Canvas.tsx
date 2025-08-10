@@ -15,12 +15,14 @@ import type {
   DrawingPath,
 } from '@/types/canvas';
 import { DEFAULT_CANVAS_CONFIG } from '@/types/canvas';
+import { getCanvasPoint } from '@/utils/canvas/coords';
 
 interface CanvasProps {
   data?: PranchetaData | undefined;
   selectedTool: ToolType;
   selectedColor: string;
   onDataChange?: (data: PranchetaData) => void;
+  onRequestTextEditor?: (position: Point) => void;
   readonly?: boolean;
   config?: Partial<CanvasConfig>;
 }
@@ -30,12 +32,15 @@ export const Canvas: React.FC<CanvasProps> = memo(({
   selectedTool,
   selectedColor,
   onDataChange,
+  onRequestTextEditor,
   readonly = false,
   config: configOverride = {}
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const currentFreeDrawRef = useRef<{ item: FreeDrawItem; path: DrawingPath } | null>(null);
   const arrowStartRef = useRef<Point | null>(null);
+  const renderRequestRef = useRef<number | null>(null);
+  const isDirtyRef = useRef<boolean>(true);
   const [canvasState, setCanvasState] = useState<CanvasState>({
     items: data?.items || [],
     selectedTool,
@@ -80,6 +85,51 @@ export const Canvas: React.FC<CanvasProps> = memo(({
   const generateId = useCallback(() => {
     return `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }, []);
+
+  // Initialize and resize canvas with proper DPR handling
+  const initializeCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Get the container size
+    const container = canvas.parentElement;
+    if (!container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+
+    // Calculate canvas size based on container and config aspect ratio
+    const aspectRatio = config.width / config.height;
+    let canvasWidth = containerRect.width;
+    let canvasHeight = canvasWidth / aspectRatio;
+
+    // If height exceeds container, limit by height
+    if (canvasHeight > containerRect.height * 0.8) {
+      canvasHeight = containerRect.height * 0.8;
+      canvasWidth = canvasHeight * aspectRatio;
+    }
+
+    // Ensure minimum size
+    canvasWidth = Math.max(canvasWidth, 200);
+    canvasHeight = Math.max(canvasHeight, 200 / aspectRatio);
+
+    // Set canvas logical size
+    canvas.style.width = `${canvasWidth}px`;
+    canvas.style.height = `${canvasHeight}px`;
+
+    // Set canvas physical size with DPR for crisp rendering
+    canvas.width = Math.floor(canvasWidth * dpr);
+    canvas.height = Math.floor(canvasHeight * dpr);
+
+    // Scale the context to account for DPR
+    ctx.scale(dpr, dpr);
+
+    // Mark dirty for immediate render
+    isDirtyRef.current = true;
+  }, [config.width, config.height]);
 
   // Draw futevolei court background and lines
   const drawField = useCallback((ctx: CanvasRenderingContext2D) => {
@@ -389,12 +439,20 @@ export const Canvas: React.FC<CanvasProps> = memo(({
   }, []);
 
   // Render the canvas
-  const render = useCallback(() => {
+  const performRender = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    // Reset transform and state before drawing
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+
+    // Apply DPR scaling
+    const dpr = window.devicePixelRatio || 1;
+    ctx.scale(dpr, dpr);
 
     // Draw field
     drawField(ctx);
@@ -405,21 +463,59 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     });
   }, [canvasState.items, drawField, drawItem]);
 
+  // Mark canvas as dirty and schedule render
+  const markDirty = useCallback(() => {
+    isDirtyRef.current = true;
+    if (!renderRequestRef.current) {
+      renderRequestRef.current = requestAnimationFrame(() => {
+        renderRequestRef.current = null;
+        if (isDirtyRef.current) {
+          performRender();
+          isDirtyRef.current = false;
+        }
+      });
+    }
+  }, [performRender]);
+
+  // Initial canvas setup
+  useEffect(() => {
+    initializeCanvas();
+    markDirty();
+
+    // Setup resize observer
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      initializeCanvas();
+      markDirty();
+    });
+
+    const container = canvas.parentElement;
+    if (container) {
+      resizeObserver.observe(container);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+      if (renderRequestRef.current) {
+        cancelAnimationFrame(renderRequestRef.current);
+      }
+    };
+  }, [initializeCanvas, markDirty]);
+
   // Render when state changes
   useEffect(() => {
-    render();
-  }, [render]);
+    markDirty();
+  }, [markDirty, canvasState.items]);
 
-  // Get mouse position relative to canvas
+  // Get mouse position relative to canvas with precise coordinate conversion
   const getMousePosition = useCallback((event: React.MouseEvent<HTMLCanvasElement>): Point => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
 
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    };
+    // Use precise coordinate conversion that accounts for DPR, scaling, etc.
+    return getCanvasPoint(event, canvas, { scale: 1, pan: { x: 0, y: 0 } });
   }, []);
 
   // Find item at position
@@ -649,13 +745,8 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         } as BallItem;
 
       case 'text':
-        return {
-          ...baseItem,
-          type: 'text',
-          text: 'Texto',
-          fontSize: 16,
-          fontFamily: 'Arial',
-        } as TextItem;
+        // Text items are now created via the text editor callback, not directly here
+        return null;
 
       case 'block':
         return {
@@ -751,6 +842,11 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         isDrawing: true,
         items: [...prev.items, newFreeDrawItem],
       }));
+    } else if (selectedTool === 'text') {
+      // Request text editor to be opened at clicked position
+      if (onRequestTextEditor) {
+        onRequestTextEditor(position);
+      }
     } else if (selectedTool === 'arrow' || selectedTool === 'curved-arrow') {
       // Store arrow start position
       arrowStartRef.current = position;
@@ -1020,22 +1116,18 @@ export const Canvas: React.FC<CanvasProps> = memo(({
   }, [deleteSelectedItems, clearCanvas]);
 
   return (
-    <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+    <div className="relative border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900" style={{ minHeight: '400px' }}>
       <canvas
         ref={canvasRef}
-        width={config.width}
-        height={config.height}
         className="block cursor-crosshair"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onDoubleClick={handleDoubleClick}
         style={{
-          width: 'auto',
-          height: '60vh', // Limit height to 60% of viewport for better display
           maxWidth: '100%',
           maxHeight: '70vh',
-          aspectRatio: `${config.width}/${config.height}`, // Maintain correct aspect ratio
+          display: 'block',
         }}
       />
       
