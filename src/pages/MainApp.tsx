@@ -5,6 +5,7 @@ import { Sidebar, Header } from '@/components/layout';
 import { MainDashboard } from '@/components/dashboard';
 import { AlunosPage } from '@/components/alunos';
 import { ProfessoresPage } from '@/components/professores';
+import { GestoresPage } from '@/components/gestores';
 import { PresencasPage } from '@/components/presencas';
 import { PlanosPage } from '@/components/planos';
 import { ProdutosPage } from '@/components/produtos';
@@ -35,6 +36,8 @@ export const MainApp: React.FC = () => {
         return <AlunosPage />;
       case 'professores':
         return <ProfessoresPage />;
+      case 'gestores':
+        return <GestoresPage />;
       case 'presencas':
         return <PresencasPage />;
       case 'agendamentos':
