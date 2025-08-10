@@ -1,11 +1,6 @@
-export { TreinosPage } from './TreinosPage';
+// Exporta apenas os componentes necessários para a nova tela de treinos.
 
-// Canvas/Prancheta components
-export { Canvas } from './Canvas';
-export { CanvasToolbar } from './CanvasToolbar';
-export { ThemeSelector } from './ThemeSelector';
-export { TreinoForm } from './TreinoForm';
+export { TreinosPage } from './TreinosPage';
 export { TreinosManager } from './TreinosManager';
-export { TextEditor } from './TextEditor';
-export { ZoomPanControls, useZoomPan } from './ZoomPan';
-export { DrawingEngine, PathUtils } from './DrawingEngine';
+export { TreinoForm } from './TreinoForm';
+export { PranchetaTatica } from './PranchetaTatica';
