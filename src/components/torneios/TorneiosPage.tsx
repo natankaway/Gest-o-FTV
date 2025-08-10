@@ -1,18 +1,22 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useAppState } from '@/contexts';
 import { usePagination, useDebouncedSearch } from '@/hooks';
-import { Plus, Trophy, Filter, Calendar, MapPin, Search } from 'lucide-react';
+import { Plus, Trophy, Filter, Calendar, MapPin, Search, Trash2 } from 'lucide-react';
 import { TorneioFormModal } from './TorneioFormModal';
 import { TorneioDetalhePage } from './TorneioDetalhePage';
 import type { Torneio } from '@/types';
 
 export const TorneiosPage: React.FC = () => {
-  const { dadosMockados, userLogado } = useAppState();
+  const { dadosMockados, userLogado, setTorneios } = useAppState();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTorneio, setSelectedTorneio] = useState<Torneio | null>(null);
   const [viewingTorneio, setViewingTorneio] = useState<Torneio | null>(null);
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState<{ isOpen: boolean; torneio: Torneio | null }>({
+    isOpen: false,
+    torneio: null
+  });
   
   const debouncedSearch = useDebouncedSearch(searchTerm, 300);
   
@@ -48,11 +52,6 @@ export const TorneiosPage: React.FC = () => {
     setIsCreateModalOpen(true);
   }, []);
 
-  const handleEditTorneio = useCallback((torneio: Torneio) => {
-    setSelectedTorneio(torneio);
-    setIsCreateModalOpen(true);
-  }, []);
-
   const handleViewTorneio = useCallback((torneio: Torneio) => {
     setViewingTorneio(torneio);
   }, []);
@@ -64,6 +63,27 @@ export const TorneiosPage: React.FC = () => {
   const handleCloseModal = useCallback(() => {
     setIsCreateModalOpen(false);
     setSelectedTorneio(null);
+  }, []);
+
+  const handleDeleteTorneio = useCallback((torneio: Torneio, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent triggering the card click
+    setDeleteConfirmModal({ isOpen: true, torneio });
+  }, []);
+
+  const handleConfirmDelete = useCallback(() => {
+    if (deleteConfirmModal.torneio) {
+      setTorneios(prev => prev.filter(t => t.id !== deleteConfirmModal.torneio!.id));
+      
+      // If we're currently viewing this tournament, redirect to list
+      if (viewingTorneio && viewingTorneio.id === deleteConfirmModal.torneio.id) {
+        setViewingTorneio(null);
+      }
+    }
+    setDeleteConfirmModal({ isOpen: false, torneio: null });
+  }, [deleteConfirmModal.torneio, setTorneios, viewingTorneio]);
+
+  const handleCancelDelete = useCallback(() => {
+    setDeleteConfirmModal({ isOpen: false, torneio: null });
   }, []);
 
   const getStatusColor = (status: Torneio['status']) => {
@@ -182,10 +202,20 @@ export const TorneiosPage: React.FC = () => {
           {currentData.map((torneio) => (
             <div
               key={torneio.id}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow cursor-pointer"
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow cursor-pointer relative group"
               onClick={() => handleViewTorneio(torneio)}
             >
-              <div className="flex items-start justify-between mb-4">
+              {canEdit && (
+                <button
+                  onClick={(e) => handleDeleteTorneio(torneio, e)}
+                  className="absolute top-2 right-2 p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                  title="Excluir torneio"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+              
+              <div className="flex items-start justify-between mb-4 pr-8">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
                   {torneio.nome}
                 </h3>
@@ -262,6 +292,37 @@ export const TorneiosPage: React.FC = () => {
           isOpen={isCreateModalOpen}
           onClose={handleCloseModal}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmModal.isOpen && deleteConfirmModal.torneio && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+            <div className="p-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                Confirmar Exclusão
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Tem certeza que deseja excluir o torneio "{deleteConfirmModal.torneio.nome}"? 
+                Esta ação não pode ser desfeita e todos os dados do torneio serão perdidos.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelDelete}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Excluir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

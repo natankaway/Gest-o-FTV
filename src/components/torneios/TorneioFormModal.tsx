@@ -18,8 +18,7 @@ export const TorneioFormModal: React.FC<TorneioFormModalProps> = ({
     descricao: '',
     local: '',
     dataInicio: '',
-    dataFim: '',
-    status: 'Inscrições' as Torneio['status']
+    dataFim: ''
   });
 
   const isEditing = !!torneio;
@@ -30,9 +29,8 @@ export const TorneioFormModal: React.FC<TorneioFormModalProps> = ({
         nome: torneio.nome,
         descricao: torneio.descricao ?? '',
         local: torneio.local ?? '',
-        dataInicio: torneio.dataInicio ? torneio.dataInicio.split('T')[0] : '',
-        dataFim: torneio.dataFim ? torneio.dataFim.split('T')[0] : '',
-        status: torneio.status
+        dataInicio: torneio.dataInicio ? (torneio.dataInicio.includes('T') ? torneio.dataInicio.split('T')[0] : torneio.dataInicio) : '',
+        dataFim: torneio.dataFim ? (torneio.dataFim.includes('T') ? torneio.dataFim.split('T')[0] : torneio.dataFim) : ''
       });
     } else {
       setFormData({
@@ -40,8 +38,7 @@ export const TorneioFormModal: React.FC<TorneioFormModalProps> = ({
         descricao: '',
         local: '',
         dataInicio: '',
-        dataFim: '',
-        status: 'Inscrições'
+        dataFim: ''
       });
     }
   }, [torneio]);
@@ -56,7 +53,7 @@ export const TorneioFormModal: React.FC<TorneioFormModalProps> = ({
     const newTorneio: Torneio = {
       id: torneio?.id || `torneio_${Date.now()}`,
       nome: formData.nome.trim(),
-      status: formData.status,
+      status: isEditing ? torneio.status : 'Inscrições',
       criadoPor: userLogado?.nome || 'Sistema',
       categorias: torneio?.categorias || [],
       ...(formData.descricao.trim() && { descricao: formData.descricao.trim() }),
@@ -166,23 +163,6 @@ export const TorneioFormModal: React.FC<TorneioFormModalProps> = ({
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
-          </div>
-
-          {/* Status */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Status
-            </label>
-            <select
-              value={formData.status}
-              onChange={(e) => handleInputChange('status', e.target.value as Torneio['status'])}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="Inscrições">Inscrições</option>
-              <option value="Sorteio">Sorteio</option>
-              <option value="Em andamento">Em andamento</option>
-              <option value="Finalizado">Finalizado</option>
-            </select>
           </div>
 
           {/* Actions */}
