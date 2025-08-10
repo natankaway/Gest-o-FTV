@@ -3,6 +3,7 @@ import { useAppState } from '@/contexts';
 import { usePagination, useDebouncedSearch } from '@/hooks';
 import { Plus, Trophy, Filter, Calendar, MapPin, Search } from 'lucide-react';
 import { TorneioFormModal } from './TorneioFormModal';
+import { TorneioDetalhePage } from './TorneioDetalhePage';
 import type { Torneio } from '@/types';
 
 export const TorneiosPage: React.FC = () => {
@@ -11,6 +12,7 @@ export const TorneiosPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedTorneio, setSelectedTorneio] = useState<Torneio | null>(null);
+  const [viewingTorneio, setViewingTorneio] = useState<Torneio | null>(null);
   
   const debouncedSearch = useDebouncedSearch(searchTerm, 300);
   
@@ -51,6 +53,14 @@ export const TorneiosPage: React.FC = () => {
     setIsCreateModalOpen(true);
   }, []);
 
+  const handleViewTorneio = useCallback((torneio: Torneio) => {
+    setViewingTorneio(torneio);
+  }, []);
+
+  const handleBackToList = useCallback(() => {
+    setViewingTorneio(null);
+  }, []);
+
   const handleCloseModal = useCallback(() => {
     setIsCreateModalOpen(false);
     setSelectedTorneio(null);
@@ -75,6 +85,16 @@ export const TorneiosPage: React.FC = () => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
+
+  // If viewing a specific tournament, show detail page
+  if (viewingTorneio) {
+    return (
+      <TorneioDetalhePage
+        torneio={viewingTorneio}
+        onBack={handleBackToList}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -163,7 +183,7 @@ export const TorneiosPage: React.FC = () => {
             <div
               key={torneio.id}
               className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => canEdit && handleEditTorneio(torneio)}
+              onClick={() => handleViewTorneio(torneio)}
             >
               <div className="flex items-start justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
