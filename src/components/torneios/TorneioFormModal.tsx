@@ -1,208 +1,219 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { useAppState } from '@/contexts';
-import { X, Calendar, MapPin } from 'lucide-react';
-import type { Torneio, ModalProps } from '@/types';
+import { useState, useMemo, useCallback } from 'react';
+import { nanoid } from 'nanoid';
+import type { Torneio, Categoria } from '@/types/torneiros'; // ajuste o caminho se necessário
 
-interface TorneioFormModalProps extends ModalProps {
-  torneio?: Torneio | null;
-}
+type Props = {
+  modo: 'create' | 'edit';
+  torneio?: Torneio;
+  onClose: () => void;
+  onSave: (t: Torneio) => void;
+};
 
-export const TorneioFormModal: React.FC<TorneioFormModalProps> = ({
-  isOpen,
-  onClose,
-  torneio
-}) => {
-  const { setTorneios, userLogado } = useAppState();
-  const [formData, setFormData] = useState({
-    nome: '',
-    descricao: '',
-    local: '',
-    dataInicio: '',
-    dataFim: '',
-    status: 'Inscrições' as Torneio['status']
+export default function TorneioFormModal({ modo, torneio, onClose, onSave }: Props) {
+  const [form, setForm] = useState<Torneio>(() => {
+    if (torneio) return torneio;
+    return {
+      id: nanoid(),
+      nome: '',
+      descricao: '',
+      local: '',
+      dataInicio: '',
+      dataFim: '',
+      // Removido: status no formulário de criação
+      status: 'Inscrições', // setado automaticamente no create
+      criadoPor: '', // preencher do usuário logado
+      categorias: [],
+    };
   });
 
-  const isEditing = !!torneio;
-
-  useEffect(() => {
-    if (torneio) {
-      setFormData({
-        nome: torneio.nome,
-        descricao: torneio.descricao ?? '',
-        local: torneio.local ?? '',
-        dataInicio: torneio.dataInicio ? torneio.dataInicio.split('T')[0] : '',
-        dataFim: torneio.dataFim ? torneio.dataFim.split('T')[0] : '',
-        status: torneio.status
-      });
-    } else {
-      setFormData({
-        nome: '',
-        descricao: '',
-        local: '',
-        dataInicio: '',
-        dataFim: '',
-        status: 'Inscrições'
-      });
-    }
-  }, [torneio]);
-
-  const handleSubmit = useCallback((e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.nome.trim()) {
-      return;
-    }
-
-    const newTorneio: Torneio = {
-      id: torneio?.id || `torneio_${Date.now()}`,
-      nome: formData.nome.trim(),
-      status: formData.status,
-      criadoPor: userLogado?.nome || 'Sistema',
-      categorias: torneio?.categorias || [],
-      ...(formData.descricao.trim() && { descricao: formData.descricao.trim() }),
-      ...(formData.local.trim() && { local: formData.local.trim() }),
-      ...(formData.dataInicio && { dataInicio: new Date(formData.dataInicio).toISOString() }),
-      ...(formData.dataFim && { dataFim: new Date(formData.dataFim).toISOString() })
+  const addCategoria = useCallback(() => {
+    const nova: Categoria = {
+      id: nanoid(),
+      nome: '',
+      limiteDuplas: undefined, // opcional
+      formato: 'double-elim-semi-3p',
+      bestOfSF: 1,
+      bestOfFinal: 1,
+      duplas: [],
+      chaveamento: {
+        status: 'nao-gerado',
+        matches: [],
+        roundAtual: 0,
+        configuracao: {},
+      },
     };
-
-    if (isEditing) {
-      setTorneios(prev => prev.map(t => t.id === torneio.id ? newTorneio : t));
-    } else {
-      setTorneios(prev => [...prev, newTorneio]);
-    }
-
-    onClose();
-  }, [formData, torneio, userLogado, setTorneios, onClose, isEditing]);
-
-  const handleInputChange = useCallback((field: keyof typeof formData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setForm(prev => ({ ...prev, categorias: [...(prev.categorias ?? []), nova] }));
   }, []);
 
-  if (!isOpen) return null;
+  const updateCategoria = useCallback((id: string, patch: Partial<Categoria>) => {
+    setForm(prev => ({
+      ...prev,
+      categorias: (prev.categorias ?? []).map(c => (c.id === id ? { ...c, ...patch } : c)),
+    }));
+  }, []);
+
+  const removeCategoria = useCallback((id: string) => {
+    setForm(prev => ({
+      ...prev,
+      categorias: (prev.categorias ?? []).filter(c => c.id !== id),
+    }));
+  }, []);
+
+  const salvar = useCallback(() => {
+    const payload: Torneio = {
+      ...form,
+      // No create, garantimos status inicial:
+      status: modo === 'create' ? 'Inscrições' : form.status,
+    };
+    onSave(payload);
+  }, [form, onSave, modo]);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            {isEditing ? 'Editar Torneio' : 'Criar Torneio'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            <X className="h-6 w-6" />
-          </button>
-        </div>
+    <div className="modal">
+      <div className="modal-box">
+        <h2 className="text-xl font-semibold">
+          {modo === 'create' ? 'Criar Torneio' : 'Editar Torneio'}
+        </h2>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* Nome */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Nome do Torneio *
-            </label>
+        <div className="mt-4 space-y-3">
+          <label className="form-control">
+            <span className="label-text">Nome</span>
             <input
-              type="text"
-              value={formData.nome}
-              onChange={(e) => handleInputChange('nome', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Digite o nome do torneio"
-              required
+              className="input input-bordered"
+              value={form.nome}
+              onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
             />
-          </div>
+          </label>
 
-          {/* Descrição */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Descrição
-            </label>
+          <label className="form-control">
+            <span className="label-text">Descrição</span>
             <textarea
-              value={formData.descricao}
-              onChange={(e) => handleInputChange('descricao', e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Descrição do torneio (opcional)"
+              className="textarea textarea-bordered"
+              value={form.descricao ?? ''}
+              onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))}
             />
-          </div>
+          </label>
 
-          {/* Local */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              <MapPin className="inline h-4 w-4 mr-1" />
-              Local
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <label className="form-control">
+              <span className="label-text">Local</span>
+              <input
+                className="input input-bordered"
+                value={form.local ?? ''}
+                onChange={e => setForm(f => ({ ...f, local: e.target.value }))}
+              />
             </label>
-            <input
-              type="text"
-              value={formData.local}
-              onChange={(e) => handleInputChange('local', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              placeholder="Local do torneio (opcional)"
-            />
-          </div>
-
-          {/* Datas */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                <Calendar className="inline h-4 w-4 mr-1" />
-                Data Início
-              </label>
+            <label className="form-control">
+              <span className="label-text">Data inicial</span>
               <input
                 type="date"
-                value={formData.dataInicio}
-                onChange={(e) => handleInputChange('dataInicio', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="input input-bordered"
+                value={form.dataInicio ?? ''}
+                onChange={e => setForm(f => ({ ...f, dataInicio: e.target.value }))}
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                <Calendar className="inline h-4 w-4 mr-1" />
-                Data Fim
-              </label>
+            </label>
+            <label className="form-control">
+              <span className="label-text">Data final</span>
               <input
                 type="date"
-                value={formData.dataFim}
-                onChange={(e) => handleInputChange('dataFim', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                className="input input-bordered"
+                value={form.dataFim ?? ''}
+                onChange={e => setForm(f => ({ ...f, dataFim: e.target.value }))}
               />
+            </label>
+          </div>
+
+          {/* Removido: campo de Status no formulário de criação/edição */}
+          {/* Se desejar permitir edição de status apenas no modo 'edit', pode renderizar condicionalmente aqui. */}
+
+          <div className="mt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium">Categorias</h3>
+              <button
+                type="button"
+                className="btn btn-sm btn-primary"
+                onClick={addCategoria}
+              >
+                Adicionar categoria
+              </button>
+            </div>
+
+            <div className="mt-3 space-y-3">
+              {(form.categorias ?? []).map(cat => (
+                <div key={cat.id} className="p-3 rounded border border-base-300 space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <label className="form-control">
+                      <span className="label-text">Nome da categoria</span>
+                      <input
+                        className="input input-bordered"
+                        value={cat.nome}
+                        onChange={e => updateCategoria(cat.id, { nome: e.target.value })}
+                        placeholder="Ex.: Masculina, Iniciante, Mista..."
+                      />
+                    </label>
+                    <label className="form-control">
+                      <span className="label-text">Limite de duplas (opcional)</span>
+                      <input
+                        type="number"
+                        min={0}
+                        className="input input-bordered"
+                        value={cat.limiteDuplas ?? ''}
+                        onChange={e => {
+                          const v = e.target.value === '' ? undefined : Number(e.target.value);
+                          updateCategoria(cat.id, { limiteDuplas: v });
+                        }}
+                        placeholder="Ex.: 8, 16"
+                      />
+                    </label>
+                    <label className="form-control">
+                      <span className="label-text">Semifinal (best-of)</span>
+                      <select
+                        className="select select-bordered"
+                        value={cat.bestOfSF ?? 1}
+                        onChange={e => updateCategoria(cat.id, { bestOfSF: Number(e.target.value) as 1 | 3 })}
+                      >
+                        <option value={1}>Melhor de 1</option>
+                        <option value={3}>Melhor de 3</option>
+                      </select>
+                    </label>
+                    <label className="form-control">
+                      <span className="label-text">Final (best-of)</span>
+                      <select
+                        className="select select-bordered"
+                        value={cat.bestOfFinal ?? 1}
+                        onChange={e => updateCategoria(cat.id, { bestOfFinal: Number(e.target.value) as 1 | 3 })}
+                      >
+                        <option value={1}>Melhor de 1</option>
+                        <option value={3}>Melhor de 3</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm text-error"
+                      onClick={() => removeCategoria(cat.id)}
+                    >
+                      Remover
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Status */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Status
-            </label>
-            <select
-              value={formData.status}
-              onChange={(e) => handleInputChange('status', e.target.value as Torneio['status'])}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="Inscrições">Inscrições</option>
-              <option value="Sorteio">Sorteio</option>
-              <option value="Em andamento">Em andamento</option>
-              <option value="Finalizado">Finalizado</option>
-            </select>
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
+          <div className="mt-6 flex justify-end gap-2">
+            <button type="button" className="btn btn-ghost" onClick={onClose}>
               Cancelar
             </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              {isEditing ? 'Salvar' : 'Criar'}
+            <button type="button" className="btn btn-primary" onClick={salvar}>
+              Salvar
             </button>
           </div>
-        </form>
+        </div>
       </div>
+      <div className="modal-backdrop" onClick={onClose} />
     </div>
   );
-};
+}
