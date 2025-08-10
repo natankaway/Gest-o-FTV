@@ -22,7 +22,7 @@ import {
   Maximize2
 } from 'lucide-react';
 import type { Treino, TreinoFormData } from '@/types';
-import type { PranchetaData, ToolType, TextEditorState, CourtTheme } from '@/types/canvas';
+import type { PranchetaData, ToolType, TextEditorState, CourtTheme, Point } from '@/types/canvas';
 import { COURT_THEMES } from '@/types/canvas';
 
 type ViewMode = 'list' | 'edit';
@@ -42,6 +42,7 @@ interface TreinosManagerState {
   textEditor: {
     isOpen: boolean;
     initialState?: Partial<TextEditorState>;
+    pendingPosition?: Point; // Store position where text should be placed
   };
 }
 
@@ -243,17 +244,6 @@ export const TreinosManager: React.FC = memo(() => {
   // Handle tool change
   const handleToolChange = useCallback((tool: ToolType) => {
     setState(prev => ({ ...prev, selectedTool: tool }));
-
-    // Auto-open text editor when text tool is selected
-    if (tool === 'text') {
-      setState(prev => ({
-        ...prev,
-        textEditor: {
-          isOpen: true,
-          initialState: {}
-        }
-      }));
-    }
   }, []);
 
   // Handle color change
@@ -262,14 +252,50 @@ export const TreinosManager: React.FC = memo(() => {
   }, []);
 
   // Handle text editor
-  const handleTextEditorSave = useCallback((textState: TextEditorState) => {
-    // This would be handled by the Canvas component to add text
-    console.log('Text to add:', textState);
+  const handleTextEditorRequest = useCallback((position: Point) => {
     setState(prev => ({
       ...prev,
-      textEditor: { isOpen: false }
+      textEditor: {
+        isOpen: true,
+        pendingPosition: position,
+        initialState: {}
+      }
     }));
   }, []);
+
+  const handleTextEditorSave = useCallback((textState: TextEditorState) => {
+    if (!state.textEditor.pendingPosition) return;
+
+    // Create text item at the pending position
+    const newTextItem = {
+      id: `item_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type: 'text' as const,
+      position: state.textEditor.pendingPosition,
+      color: textState.color,
+      text: textState.text,
+      fontSize: textState.fontSize,
+      fontFamily: textState.fontFamily,
+      selected: false,
+    };
+
+    // Add to prancheta data
+    setState(prev => ({
+      ...prev,
+      pranchetaData: prev.pranchetaData ? {
+        ...prev.pranchetaData,
+        items: [...prev.pranchetaData.items, newTextItem],
+        updatedAt: new Date().toISOString(),
+      } : {
+        id: `prancheta_${Date.now()}`,
+        items: [newTextItem],
+        fieldDimensions: { width: 500, height: 1000 },
+        backgroundColor: '#F4A460',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      textEditor: { isOpen: false }
+    }));
+  }, [state.textEditor.pendingPosition]);
 
   const handleTextEditorCancel = useCallback(() => {
     setState(prev => ({
@@ -616,6 +642,7 @@ export const TreinosManager: React.FC = memo(() => {
                       selectedTool={state.selectedTool}
                       selectedColor={state.selectedColor}
                       onDataChange={handlePranchetaDataChange}
+                      onRequestTextEditor={handleTextEditorRequest}
                     />
                   </div>
                 </div>

@@ -15,12 +15,14 @@ import type {
   DrawingPath,
 } from '@/types/canvas';
 import { DEFAULT_CANVAS_CONFIG } from '@/types/canvas';
+import { getCanvasPoint } from '@/utils/canvas/coords';
 
 interface CanvasProps {
   data?: PranchetaData | undefined;
   selectedTool: ToolType;
   selectedColor: string;
   onDataChange?: (data: PranchetaData) => void;
+  onRequestTextEditor?: (position: Point) => void;
   readonly?: boolean;
   config?: Partial<CanvasConfig>;
 }
@@ -30,12 +32,15 @@ export const Canvas: React.FC<CanvasProps> = memo(({
   selectedTool,
   selectedColor,
   onDataChange,
+  onRequestTextEditor,
   readonly = false,
   config: configOverride = {}
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const currentFreeDrawRef = useRef<{ item: FreeDrawItem; path: DrawingPath } | null>(null);
   const arrowStartRef = useRef<Point | null>(null);
+  const renderRequestRef = useRef<number | null>(null);
+  const isDirtyRef = useRef<boolean>(true);
   const [canvasState, setCanvasState] = useState<CanvasState>({
     items: data?.items || [],
     selectedTool,
@@ -388,8 +393,8 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     ctx.restore();
   }, []);
 
-  // Render the canvas
-  const render = useCallback(() => {
+  // Perform the actual render
+  const performRender = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -405,21 +410,41 @@ export const Canvas: React.FC<CanvasProps> = memo(({
     });
   }, [canvasState.items, drawField, drawItem]);
 
+  // Mark canvas as dirty and schedule render
+  const markDirty = useCallback(() => {
+    isDirtyRef.current = true;
+    if (!renderRequestRef.current) {
+      renderRequestRef.current = requestAnimationFrame(() => {
+        renderRequestRef.current = null;
+        if (isDirtyRef.current) {
+          performRender();
+          isDirtyRef.current = false;
+        }
+      });
+    }
+  }, [performRender]);
+
   // Render when state changes
   useEffect(() => {
-    render();
-  }, [render]);
+    markDirty();
+  }, [markDirty, canvasState.items]);
 
-  // Get mouse position relative to canvas
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (renderRequestRef.current) {
+        cancelAnimationFrame(renderRequestRef.current);
+      }
+    };
+  }, []);
+
+  // Get mouse position relative to canvas with precise coordinate conversion
   const getMousePosition = useCallback((event: React.MouseEvent<HTMLCanvasElement>): Point => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
 
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top,
-    };
+    // Use precise coordinate conversion that accounts for DPR, scaling, etc.
+    return getCanvasPoint(event, canvas, { scale: 1, pan: { x: 0, y: 0 } });
   }, []);
 
   // Find item at position
@@ -649,13 +674,8 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         } as BallItem;
 
       case 'text':
-        return {
-          ...baseItem,
-          type: 'text',
-          text: 'Texto',
-          fontSize: 16,
-          fontFamily: 'Arial',
-        } as TextItem;
+        // Text items are now created via the text editor callback, not directly here
+        return null;
 
       case 'block':
         return {
@@ -751,6 +771,11 @@ export const Canvas: React.FC<CanvasProps> = memo(({
         isDrawing: true,
         items: [...prev.items, newFreeDrawItem],
       }));
+    } else if (selectedTool === 'text') {
+      // Request text editor to be opened at clicked position
+      if (onRequestTextEditor) {
+        onRequestTextEditor(position);
+      }
     } else if (selectedTool === 'arrow' || selectedTool === 'curved-arrow') {
       // Store arrow start position
       arrowStartRef.current = position;
