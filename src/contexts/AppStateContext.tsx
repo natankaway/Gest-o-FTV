@@ -20,6 +20,7 @@ import type {
   Agendamento,
   Treino,
   Exercicio,
+  Torneio,
   CartItem,
   TabKeys,
   ConfigCT
@@ -43,6 +44,7 @@ interface AppStateContextType extends AppState {
   setAgendamentos: React.Dispatch<React.SetStateAction<Agendamento[]>>;
   setTreinos: React.Dispatch<React.SetStateAction<Treino[]>>;
   setExercicios: React.Dispatch<React.SetStateAction<Exercicio[]>>;
+  setTorneios: React.Dispatch<React.SetStateAction<Torneio[]>>;
   setConfigCT: React.Dispatch<React.SetStateAction<ConfigCT>>;
   
   // Session state
@@ -96,6 +98,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const [agendamentos, setAgendamentos] = useLocalStorage<Agendamento[]>('agendamentos', mockData.agendamentos);
   const [treinos, setTreinos] = useLocalStorage<Treino[]>('treinos', mockData.treinos);
   const [exercicios, setExercicios] = useLocalStorage<Exercicio[]>('exercicios', mockData.exercicios);
+  const [torneios, setTorneios] = useLocalStorage<Torneio[]>('torneios', mockData.torneios);
   const [configCT, setConfigCT] = useLocalStorage<ConfigCT>('configCT', mockData.configCT);
 
   // Session state (not persisted)
@@ -169,11 +172,12 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     agendamentos,
     treinos,
     exercicios,
+    torneios,
     configCT
   }), [
     planos, alunos, professores, unidades, presencas,
     financeiro, produtos, plataformas, horarios, gestores, metas, metasGerais, alugueis,
-    agendamentos, treinos, exercicios, configCT
+    agendamentos, treinos, exercicios, torneios, configCT
   ]);
 
   const value = useMemo(() => ({
@@ -199,6 +203,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setAgendamentos,
     setTreinos,
     setExercicios,
+    setTorneios,
     setConfigCT,
     setUserLogado,
     setUnidadeSelecionada,
@@ -238,6 +243,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setAgendamentos,
     setTreinos,
     setExercicios,
+    setTorneios,
     setConfigCT,
     activeTab,
     activeTabFilter,

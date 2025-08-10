@@ -12,6 +12,7 @@ import { ProdutosPage } from '@/components/produtos';
 import { FinanceiroPage } from '@/components/financeiro';
 import { AgendamentosPage } from '@/components/agendamentos';
 import { TreinosPage } from '@/components/treinos';
+import { TorneiosPage } from '@/components/torneios';
 import { ConfiguracoesPage } from '@/components/configuracoes';
 import { MetasPage } from '@/components/metas';
 import { ErrorBoundary } from '@/components/common';
@@ -45,6 +46,8 @@ export const MainApp: React.FC = () => {
         return <AgendamentosPage />;
       case 'treinos':
         return <TreinosPage />;
+      case 'torneios':
+        return <TorneiosPage />;
       case 'planos':
         return <PlanosPage />;
       case 'produtos':

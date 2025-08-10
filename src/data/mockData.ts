@@ -399,6 +399,8 @@ export const mockData: MockData = {
     }
   ],
 
+  torneios: [],
+
   configCT: {
     nomeCT: 'Gestão FTV',
     contato: {

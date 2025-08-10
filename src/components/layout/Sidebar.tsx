@@ -12,7 +12,8 @@ import {
   ShoppingCart, 
   LogOut,
   ChevronDown,
-  X
+  X,
+  Trophy
 } from 'lucide-react';
 import type { TabKeys } from '@/types';
 
@@ -127,14 +128,37 @@ export const Sidebar: React.FC<SidebarProps> = memo(({
     }
 
     // Training section
-    if (userRole === 'admin' || userRole === 'professor') {
+    if (userRole === 'admin' || userRole === 'professor' || userRole === 'gestor') {
+      const treinamentoItems: MenuItem[] = [];
+      
+      // Treinos only for admin and professor
+      if (userRole === 'admin' || userRole === 'professor') {
+        treinamentoItems.push({ id: 'treinos', label: 'Treinos', icon: Target, roles: ['admin', 'professor'] });
+      }
+      
+      // Add torneios to the training section for admin, gestor, and professor
+      treinamentoItems.push({ id: 'torneios', label: 'Torneios', icon: Trophy, roles: ['admin', 'gestor', 'professor'] });
+      
+      if (userRole === 'admin') {
+        treinamentoItems.push({ id: 'planos', label: 'Planos', icon: BookOpen, roles: ['admin'] });
+      }
+      
+      sections.push({
+        id: 'treinamento',
+        title: "🏃‍♂️ Treinamento",
+        icon: Target,
+        items: treinamentoItems
+      });
+    }
+
+    // Special case for students - they can only view torneios
+    if (userRole === 'aluno') {
       sections.push({
         id: 'treinamento',
         title: "🏃‍♂️ Treinamento",
         icon: Target,
         items: [
-          { id: 'treinos', label: 'Treinos', icon: Target, roles: ['admin', 'professor'] },
-          { id: 'planos', label: 'Planos', icon: BookOpen, roles: ['admin'] }
+          { id: 'torneios', label: 'Torneios', icon: Trophy, roles: ['aluno'] }
         ]
       });
     }
