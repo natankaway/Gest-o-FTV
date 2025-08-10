@@ -216,6 +216,7 @@ export interface Treino {
   unidade: string;
   data?: string;
   status?: 'planejado' | 'em-andamento' | 'concluido';
+  pranchetaData?: PranchetaData;
 }
 
 // UI and state types
