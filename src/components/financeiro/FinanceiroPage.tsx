@@ -184,7 +184,7 @@ const FinancialTable: React.FC<FinancialTableProps> = ({ registros, onEdit }) =>
   );
 };
 
-// Per Unit Summary Component  
+// Per Unit Summary Component with Profit Distribution  
 interface UnitSummaryProps {
   unidade: string;
   registros: RegistroFinanceiro[];
@@ -192,6 +192,8 @@ interface UnitSummaryProps {
 }
 
 const UnitSummary: React.FC<UnitSummaryProps> = ({ unidade, registros, onEdit }) => {
+  const { dadosMockados } = useAppState();
+  
   const stats = useMemo(() => {
     const receitas = registros.filter(r => r.tipo === 'receita').reduce((acc, r) => acc + r.valor, 0);
     const despesas = registros.filter(r => r.tipo === 'despesa').reduce((acc, r) => acc + r.valor, 0);
@@ -199,6 +201,20 @@ const UnitSummary: React.FC<UnitSummaryProps> = ({ unidade, registros, onEdit })
     
     return { receitas, despesas, saldo };
   }, [registros]);
+
+  // Get unit's society configuration
+  const unidadeData = dadosMockados.unidades.find(u => u.nome === unidade);
+  const socios = unidadeData?.socios?.filter(s => s.ativo) || [];
+
+  // Calculate profit distribution (only positive profits)
+  const profitDistribution = useMemo(() => {
+    const lucro = Math.max(0, stats.saldo); // Lock negative profits at 0
+    
+    return socios.map(socio => ({
+      ...socio,
+      valorDistribuido: Math.round(lucro * (socio.percentual / 100) * 100) / 100 // Round to nearest cent
+    }));
+  }, [stats.saldo, socios]);
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
@@ -233,6 +249,37 @@ const UnitSummary: React.FC<UnitSummaryProps> = ({ unidade, registros, onEdit })
           </p>
         </div>
       </div>
+
+      {/* Profit Distribution */}
+      {socios.length > 0 && (
+        <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+          <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3 flex items-center">
+            <DollarSign className="h-4 w-4 mr-2" />
+            Distribuição de Lucros
+          </h4>
+          <div className="space-y-2">
+            {profitDistribution.map((distribucao) => (
+              <div key={distribucao.id} className="flex items-center justify-between">
+                <span className="text-sm text-gray-700 dark:text-gray-300">
+                  {distribucao.nome} ({distribucao.percentual}%)
+                </span>
+                <span className={`text-sm font-medium ${
+                  distribucao.valorDistribuido > 0 
+                    ? 'text-green-600 dark:text-green-400' 
+                    : 'text-gray-500 dark:text-gray-400'
+                }`}>
+                  R$ {distribucao.valorDistribuido.toFixed(2)}
+                </span>
+              </div>
+            ))}
+            {stats.saldo < 0 && (
+              <div className="text-xs text-red-600 dark:text-red-400 mt-2">
+                * Lucro negativo: distribuição travada em R$ 0,00
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Recent Transactions */}
       <div>

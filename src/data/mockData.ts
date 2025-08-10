@@ -149,6 +149,10 @@ export const mockData: MockData = {
       email: 'centro@futevolei.com', 
       gestorId: 1, 
       ativa: true,
+      socios: [
+        { id: 1, nome: 'João Silva', percentual: 60, ativo: true },
+        { id: 2, nome: 'Maria Santos', percentual: 40, ativo: true }
+      ],
       configuracoes: {
         horarioFuncionamento: {
           inicio: '06:00',
@@ -165,6 +169,11 @@ export const mockData: MockData = {
       email: 'zonasul@futevolei.com', 
       gestorId: 2, 
       ativa: true,
+      socios: [
+        { id: 3, nome: 'Pedro Costa', percentual: 50, ativo: true },
+        { id: 4, nome: 'Ana Oliveira', percentual: 30, ativo: true },
+        { id: 5, nome: 'Carlos Mendes', percentual: 20, ativo: true }
+      ],
       configuracoes: {
         horarioFuncionamento: {
           inicio: '07:00',
@@ -197,6 +206,9 @@ export const mockData: MockData = {
       email: 'barra@futevolei.com', 
       gestorId: 4, 
       ativa: true,
+      socios: [
+        { id: 6, nome: 'Lucas Ferreira', percentual: 100, ativo: true }
+      ],
       configuracoes: {
         horarioFuncionamento: {
           inicio: '06:00',

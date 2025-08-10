@@ -41,6 +41,13 @@ export interface Gestor extends Usuario {
   permissoes: string[];
 }
 
+export interface Socio {
+  id: number;
+  nome: string;
+  percentual: number;
+  ativo: boolean;
+}
+
 export interface Unidade {
   id: number;
   nome: string;
@@ -49,6 +56,7 @@ export interface Unidade {
   email: string;
   gestorId: number;
   ativa: boolean;
+  socios?: Socio[];
   configuracoes?: {
     horarioFuncionamento: {
       inicio: string;

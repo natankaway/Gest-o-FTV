@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { useNotifications } from '@/contexts';
-import { Save, X, ArrowLeft } from 'lucide-react';
-import { formatPhone, validateEmail } from '@/utils';
-import type { Unidade, UnidadeFormData, Gestor } from '@/types';
+import { useAppState, useNotifications } from '@/contexts';
+import { Save, X, ArrowLeft, Plus, Trash2, Users } from 'lucide-react';
+import { formatPhone, validateEmail, generateId } from '@/utils';
+import type { Unidade, UnidadeFormData, Gestor, Socio } from '@/types';
 
 interface UnidadeFormProps {
   unidade?: Unidade | null;
@@ -17,6 +17,7 @@ export const UnidadeForm: React.FC<UnidadeFormProps> = ({
   onCancel,
   gestores
 }) => {
+  const { userLogado } = useAppState();
   const { addNotification } = useNotifications();
   const [formData, setFormData] = useState<UnidadeFormData>({
     nome: '',
@@ -25,6 +26,7 @@ export const UnidadeForm: React.FC<UnidadeFormProps> = ({
     email: '',
     gestorId: 0,
     ativa: true,
+    socios: [],
     configuracoes: {
       horarioFuncionamento: {
         inicio: '06:00',
@@ -46,6 +48,7 @@ export const UnidadeForm: React.FC<UnidadeFormProps> = ({
         email: unidade.email,
         gestorId: unidade.gestorId,
         ativa: unidade.ativa,
+        socios: unidade.socios || [],
         configuracoes: unidade.configuracoes || {
           horarioFuncionamento: {
             inicio: '06:00',
@@ -101,6 +104,23 @@ export const UnidadeForm: React.FC<UnidadeFormProps> = ({
       if (!capacidadeMaxima || capacidadeMaxima < 1) {
         newErrors.capacidadeMaxima = 'Capacidade máxima deve ser maior que 0';
       }
+    }
+
+    // Validate socios if any exist
+    if (formData.socios && formData.socios.length > 0) {
+      const totalPercentual = formData.socios.reduce((sum, socio) => sum + socio.percentual, 0);
+      if (Math.abs(totalPercentual - 100) > 0.01) {
+        newErrors.socios = 'A soma dos percentuais dos sócios deve ser 100%';
+      }
+
+      formData.socios.forEach((socio, index) => {
+        if (!socio.nome.trim()) {
+          newErrors[`socio-${index}-nome`] = 'Nome do sócio é obrigatório';
+        }
+        if (socio.percentual <= 0 || socio.percentual > 100) {
+          newErrors[`socio-${index}-percentual`] = 'Percentual deve estar entre 0% e 100%';
+        }
+      });
     }
 
     setErrors(newErrors);
@@ -161,6 +181,39 @@ export const UnidadeForm: React.FC<UnidadeFormProps> = ({
       }
     }));
   }, []);
+
+  // Socios management functions
+  const addSocio = useCallback(() => {
+    const newSocio: Socio = {
+      id: generateId(),
+      nome: '',
+      percentual: 0,
+      ativo: true
+    };
+    setFormData(prev => ({
+      ...prev,
+      socios: [...(prev.socios || []), newSocio]
+    }));
+  }, []);
+
+  const updateSocio = useCallback((index: number, field: keyof Socio, value: any) => {
+    setFormData(prev => ({
+      ...prev,
+      socios: prev.socios?.map((socio, i) => 
+        i === index ? { ...socio, [field]: value } : socio
+      ) || []
+    }));
+  }, []);
+
+  const removeSocio = useCallback((index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      socios: prev.socios?.filter((_, i) => i !== index) || []
+    }));
+  }, []);
+
+  // Check if user can edit societies (only admin)
+  const canEditSocieties = userLogado?.perfil === 'admin';
 
   return (
     <div className="space-y-6">
@@ -369,6 +422,138 @@ export const UnidadeForm: React.FC<UnidadeFormProps> = ({
             <p className="text-red-500 text-sm">{errors.horario}</p>
           )}
         </div>
+
+        {/* Society Configuration */}
+        {canEditSocieties && (
+          <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
+                  <Users className="h-5 w-5 mr-2" />
+                  Configuração de Sociedade
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Configure os sócios e percentuais para distribuição de lucros
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={addSocio}
+                className="inline-flex items-center px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Adicionar Sócio
+              </button>
+            </div>
+
+            {formData.socios && formData.socios.length > 0 ? (
+              <div className="space-y-3">
+                {formData.socios.map((socio, index) => (
+                  <div key={socio.id} className="flex items-center space-x-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="flex-1">
+                      <input
+                        type="text"
+                        value={socio.nome}
+                        onChange={(e) => updateSocio(index, 'nome', e.target.value)}
+                        placeholder="Nome do sócio"
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white ${
+                          errors[`socio-${index}-nome`] ? 'border-red-500' : 'border-gray-300 dark:border-gray-500'
+                        }`}
+                      />
+                      {errors[`socio-${index}-nome`] && (
+                        <p className="text-red-500 text-xs mt-1">{errors[`socio-${index}-nome`]}</p>
+                      )}
+                    </div>
+                    
+                    <div className="w-32">
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={socio.percentual}
+                          onChange={(e) => updateSocio(index, 'percentual', parseFloat(e.target.value) || 0)}
+                          className={`w-full px-3 py-2 pr-8 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-600 dark:text-white ${
+                            errors[`socio-${index}-percentual`] ? 'border-red-500' : 'border-gray-300 dark:border-gray-500'
+                          }`}
+                          placeholder="0"
+                        />
+                        <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">%</span>
+                      </div>
+                      {errors[`socio-${index}-percentual`] && (
+                        <p className="text-red-500 text-xs mt-1">{errors[`socio-${index}-percentual`]}</p>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={socio.ativo}
+                        onChange={(e) => updateSocio(index, 'ativo', e.target.checked)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                        Ativo
+                      </label>
+                    </div>
+                    
+                    <button
+                      type="button"
+                      onClick={() => removeSocio(index)}
+                      className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                      title="Remover sócio"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+                
+                {errors.socios && (
+                  <p className="text-red-500 text-sm">{errors.socios}</p>
+                )}
+                
+                {formData.socios.length > 0 && (
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Total: {formData.socios.reduce((sum, socio) => sum + socio.percentual, 0).toFixed(2)}%
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <Users className="mx-auto h-12 w-12 mb-3 opacity-50" />
+                <p>Nenhum sócio configurado</p>
+                <p className="text-sm">Clique em "Adicionar Sócio" para configurar a sociedade</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {!canEditSocieties && formData.socios && formData.socios.length > 0 && (
+          <div className="space-y-4 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
+              <Users className="h-5 w-5 mr-2" />
+              Sociedade (Visualização)
+            </h3>
+            <div className="space-y-2">
+              {formData.socios.map((socio) => (
+                <div key={socio.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <span className="font-medium text-gray-900 dark:text-white">{socio.nome}</span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-600 dark:text-gray-400">{socio.percentual}%</span>
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      socio.ativo 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
+                    }`}>
+                      {socio.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
