@@ -128,21 +128,96 @@ export const torneioStateUtils = {
   },
 
   /**
-   * Updates a specific match result in the bracket
+   * Updates a specific match result and propagates winner to next match
    */
   updateMatchResult: (
     torneios: Torneio[], 
     torneioId: string, 
     categoriaId: string, 
     matchId: string, 
-    result: Partial<Match>
+    result: { placarA: number; placarB: number }
   ): Torneio[] => {
-    return torneioStateUtils.updateChaveamento(torneios, torneioId, categoriaId, (chaveamento) => ({
-      ...chaveamento,
-      matches: chaveamento.matches.map(match =>
-        match.id === matchId ? { ...match, ...result } : match
-      )
-    }));
+    return torneioStateUtils.updateChaveamento(torneios, torneioId, categoriaId, (chaveamento) => {
+      const updatedMatches = [...chaveamento.matches];
+      const matchIndex = updatedMatches.findIndex(m => m.id === matchId);
+      
+      if (matchIndex === -1) return chaveamento;
+      
+      const currentMatch = updatedMatches[matchIndex];
+      if (!currentMatch || !currentMatch.a || !currentMatch.b) return chaveamento;
+      
+      const vencedor = result.placarA > result.placarB ? currentMatch.a : currentMatch.b;
+      const perdedor = result.placarA > result.placarB ? currentMatch.b : currentMatch.a;
+      
+      // Update current match
+      updatedMatches[matchIndex] = {
+        ...currentMatch,
+        placar: { a: result.placarA, b: result.placarB },
+        vencedor,
+        perdedor,
+        status: 'finalizado'
+      };
+      
+      // Propagate winner to next match if exists
+      if (currentMatch.nextMatchId && currentMatch.nextMatchSlot) {
+        const nextMatchIndex = updatedMatches.findIndex(m => m.id === currentMatch.nextMatchId);
+        if (nextMatchIndex !== -1) {
+          const nextMatch = updatedMatches[nextMatchIndex];
+          const slotKey = currentMatch.nextMatchSlot === 1 ? 'a' : 'b';
+          updatedMatches[nextMatchIndex] = {
+            ...nextMatch,
+            [slotKey]: vencedor
+          };
+        }
+      }
+      
+      // Calculate metrics
+      const totalMatches = updatedMatches.length;
+      const finalizadas = updatedMatches.filter(m => m.status === 'finalizado').length;
+      const allFinished = finalizadas === totalMatches;
+      
+      return {
+        ...chaveamento,
+        matches: updatedMatches,
+        status: allFinished ? 'finalizado' : (finalizadas > 0 ? 'em-andamento' : 'gerado'),
+        roundAtual: torneioStateUtils.calculateCurrentRound(updatedMatches)
+      };
+    });
+  },
+
+  /**
+   * Calculates the current round based on match completion
+   */
+  calculateCurrentRound: (matches: Match[]): number => {
+    const matchesByRound = matches.reduce((acc, match) => {
+      if (!acc[match.round]) {
+        acc[match.round] = [];
+      }
+      acc[match.round].push(match);
+      return acc;
+    }, {} as Record<number, Match[]>);
+
+    for (const round of Object.keys(matchesByRound).map(Number).sort()) {
+      const roundMatches = matchesByRound[round];
+      if (roundMatches) {
+        const allFinished = roundMatches.every(m => m.status === 'finalizado');
+        if (!allFinished) return round;
+      }
+    }
+    
+    return Math.max(...Object.keys(matchesByRound).map(Number));
+  },
+
+  /**
+   * Generates a unique key for a player for comparison purposes
+   */
+  getJogadorKey: (jogador: Dupla['jogadores'][0]): string => {
+    if (jogador.tipo === 'aluno' && jogador.id) {
+      return `aluno:${jogador.id}`;
+    }
+    // For guests, normalize name: trim, lowercase, collapse multiple spaces
+    const normalizedName = jogador.nome.trim().toLowerCase().replace(/\s+/g, ' ');
+    return `guest:${normalizedName}`;
   },
 
   /**
@@ -150,21 +225,84 @@ export const torneioStateUtils = {
    */
   validateDuplaPlayers: (dupla: Pick<Dupla, 'jogadores'>): boolean => {
     const [jogador1, jogador2] = dupla.jogadores;
+    const key1 = torneioStateUtils.getJogadorKey(jogador1);
+    const key2 = torneioStateUtils.getJogadorKey(jogador2);
+    return key1 !== key2;
+  },
+
+  /**
+   * Validates if a dupla would create duplicate players in a category
+   */
+  validateDuplaUniquenessInCategory: (
+    dupla: Pick<Dupla, 'jogadores'>, 
+    categoria: Categoria, 
+    excludeDuplaId?: string
+  ): { isValid: boolean; message?: string } => {
+    const [jogador1, jogador2] = dupla.jogadores;
     
-    // Both are students - compare by ID
-    if (jogador1.tipo === 'aluno' && jogador2.tipo === 'aluno') {
-      return jogador1.id !== jogador2.id;
+    // Get all existing players in category (excluding the dupla being edited)
+    const existingPlayerKeys = new Set<string>();
+    categoria.duplas.forEach(existingDupla => {
+      if (excludeDuplaId && existingDupla.id === excludeDuplaId) return;
+      existingDupla.jogadores.forEach(jogador => {
+        existingPlayerKeys.add(torneioStateUtils.getJogadorKey(jogador));
+      });
+    });
+
+    // Check if any player in the new dupla already exists
+    const key1 = torneioStateUtils.getJogadorKey(jogador1);
+    const key2 = torneioStateUtils.getJogadorKey(jogador2);
+
+    if (existingPlayerKeys.has(key1)) {
+      const playerType = jogador1.tipo === 'aluno' ? 'aluno' : 'convidado';
+      return {
+        isValid: false,
+        message: `Este ${playerType} (${jogador1.nome}) já participa de uma dupla nesta categoria.`
+      };
     }
-    
-    // Both are guests - compare by normalized name
-    if (jogador1.tipo === 'convidado' && jogador2.tipo === 'convidado') {
-      const nome1 = jogador1.nome.trim().toLowerCase();
-      const nome2 = jogador2.nome.trim().toLowerCase();
-      return nome1 !== nome2;
+
+    if (existingPlayerKeys.has(key2)) {
+      const playerType = jogador2.tipo === 'aluno' ? 'aluno' : 'convidado';
+      return {
+        isValid: false,
+        message: `Este ${playerType} (${jogador2.nome}) já participa de uma dupla nesta categoria.`
+      };
     }
+
+    return { isValid: true };
+  },
+
+  /**
+   * Validates if a dupla would be identical to existing duplas in category
+   */
+  validateDuplaIdentical: (
+    dupla: Pick<Dupla, 'jogadores'>, 
+    categoria: Categoria, 
+    excludeDuplaId?: string
+  ): { isValid: boolean; message?: string } => {
+    const [jogador1, jogador2] = dupla.jogadores;
+    const key1 = torneioStateUtils.getJogadorKey(jogador1);
+    const key2 = torneioStateUtils.getJogadorKey(jogador2);
     
-    // One student, one guest - always valid
-    return true;
+    // Sort keys to handle A/B vs B/A comparison
+    const sortedKeys = [key1, key2].sort();
+
+    for (const existingDupla of categoria.duplas) {
+      if (excludeDuplaId && existingDupla.id === excludeDuplaId) continue;
+      
+      const existingKey1 = torneioStateUtils.getJogadorKey(existingDupla.jogadores[0]);
+      const existingKey2 = torneioStateUtils.getJogadorKey(existingDupla.jogadores[1]);
+      const existingSortedKeys = [existingKey1, existingKey2].sort();
+      
+      if (sortedKeys[0] === existingSortedKeys[0] && sortedKeys[1] === existingSortedKeys[1]) {
+        return {
+          isValid: false,
+          message: 'Esta dupla já existe nesta categoria.'
+        };
+      }
+    }
+
+    return { isValid: true };
   },
 
   /**

@@ -51,9 +51,31 @@ export const DuplasManager: React.FC<DuplasManagerProps> = ({
       return;
     }
 
-    // Validate duplicate players
+    // Validate duplicate players within the dupla
     if (!torneioStateUtils.validateDuplaPlayers(dupla)) {
       toast.error('Não é possível criar uma dupla com o mesmo jogador nas duas posições');
+      return;
+    }
+
+    // Validate uniqueness within category
+    const uniquenessCheck = torneioStateUtils.validateDuplaUniquenessInCategory(
+      dupla, 
+      categoriaAtual, 
+      editingDupla?.id
+    );
+    if (!uniquenessCheck.isValid) {
+      toast.error(uniquenessCheck.message || 'Jogador já participa de outra dupla nesta categoria');
+      return;
+    }
+
+    // Validate identical dupla
+    const identicalCheck = torneioStateUtils.validateDuplaIdentical(
+      dupla, 
+      categoriaAtual, 
+      editingDupla?.id
+    );
+    if (!identicalCheck.isValid) {
+      toast.error(identicalCheck.message || 'Esta dupla já existe nesta categoria');
       return;
     }
 
