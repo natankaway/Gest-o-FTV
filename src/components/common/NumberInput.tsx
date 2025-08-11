@@ -1,23 +1,22 @@
 import React, { memo } from 'react';
 
-interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
+interface NumberInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
   label?: string;
-  error?: string | undefined;
+  error?: string;
   required?: boolean;
   'aria-describedby'?: string;
 }
 
-export const Input: React.FC<InputProps> = memo(({ 
+export const NumberInput: React.FC<NumberInputProps> = memo(({ 
   label, 
   error, 
   required = false, 
-  type = 'text',
   id,
   className = '',
   'aria-describedby': ariaDescribedBy,
   ...props 
 }) => {
-  const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+  const inputId = id || `number-input-${Math.random().toString(36).substr(2, 9)}`;
   const errorId = `${inputId}-error`;
 
   return (
@@ -33,10 +32,10 @@ export const Input: React.FC<InputProps> = memo(({
       )}
       <input
         id={inputId}
-        type={type}
+        type="number"
         aria-invalid={error ? 'true' : 'false'}
         aria-describedby={error ? errorId : ariaDescribedBy}
-        className={`w-full px-3 py-3 sm:py-4 text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors touch-manipulation ${
+        className={`w-full px-3 py-2 text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
           error 
             ? 'border-red-500 bg-red-50 dark:bg-red-900/20' 
             : ''
@@ -45,7 +44,6 @@ export const Input: React.FC<InputProps> = memo(({
           backgroundColor: error ? undefined : 'var(--input-bg)',
           color: 'var(--input-text)',
           borderColor: error ? 'var(--input-border-error)' : 'var(--input-border)',
-          minHeight: '44px'
         }}
         {...props}
       />

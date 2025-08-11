@@ -475,7 +475,12 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
                                               min="0"
                                               value={resultForm.placarA}
                                               onChange={(e) => setResultForm(prev => ({ ...prev, placarA: e.target.value }))}
-                                              className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-center text-sm"
+                                              className="w-16 px-2 py-1 border rounded text-center text-sm transition-colors"
+                                              style={{
+                                                backgroundColor: 'var(--input-bg)',
+                                                color: 'var(--input-text)',
+                                                borderColor: 'var(--input-border)',
+                                              }}
                                               placeholder="0"
                                             />
                                             <span className="text-gray-400">x</span>
@@ -484,7 +489,12 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
                                               min="0"
                                               value={resultForm.placarB}
                                               onChange={(e) => setResultForm(prev => ({ ...prev, placarB: e.target.value }))}
-                                              className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-center text-sm"
+                                              className="w-16 px-2 py-1 border rounded text-center text-sm transition-colors"
+                                              style={{
+                                                backgroundColor: 'var(--input-bg)',
+                                                color: 'var(--input-text)',
+                                                borderColor: 'var(--input-border)',
+                                              }}
                                               placeholder="0"
                                             />
                                             <button

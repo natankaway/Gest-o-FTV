@@ -11,6 +11,35 @@ const createScrollbarStyles = () => {
     }
     
     const cssStyles = `
+      /* CSS Custom Properties for Theme */
+      :root {
+        /* Input styling variables */
+        --input-bg: #ffffff;
+        --input-text: #1f2937;
+        --input-placeholder: #6b7280;
+        --input-border: #d1d5db;
+        --input-border-focus: #3b82f6;
+        --input-border-error: #ef4444;
+        
+        /* Toast variables */
+        --toast-bg: #333;
+        --toast-color: #fff;
+      }
+      
+      .dark {
+        /* Dark mode input styling variables */
+        --input-bg: #374151;
+        --input-text: #ffffff;
+        --input-placeholder: #9ca3af;
+        --input-border: #4b5563;
+        --input-border-focus: #3b82f6;
+        --input-border-error: #ef4444;
+        
+        /* Dark mode toast variables */
+        --toast-bg: #1f2937;
+        --toast-color: #fff;
+      }
+
       /* Custom Scrollbars */
       ::-webkit-scrollbar {
         width: 6px;
@@ -55,6 +84,15 @@ const createScrollbarStyles = () => {
       .dark * {
         scrollbar-width: thin;
         scrollbar-color: rgba(255, 255, 255, 0.25) rgba(255, 255, 255, 0.08);
+      }
+      
+      /* Input placeholder styling */
+      input::placeholder {
+        color: var(--input-placeholder);
+      }
+      
+      input:focus {
+        border-color: var(--input-border-focus) !important;
       }
     `;
 

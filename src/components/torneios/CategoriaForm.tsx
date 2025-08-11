@@ -14,6 +14,7 @@ interface CategoriaFormProps {
 interface CategoriaFormData {
   nome: string;
   limiteDuplas: string;
+  formato: 'single' | 'double';
   bestOfSF: 1 | 3;
   bestOfFinal: 1 | 3;
 }
@@ -30,6 +31,7 @@ export const CategoriaForm: React.FC<CategoriaFormProps> = ({
   const [formData, setFormData] = useState<CategoriaFormData>({
     nome: '',
     limiteDuplas: '',
+    formato: 'single',
     bestOfSF: 1,
     bestOfFinal: 1
   });
@@ -38,6 +40,7 @@ export const CategoriaForm: React.FC<CategoriaFormProps> = ({
     setFormData({
       nome: '',
       limiteDuplas: '',
+      formato: 'single',
       bestOfSF: 1,
       bestOfFinal: 1
     });
@@ -49,6 +52,7 @@ export const CategoriaForm: React.FC<CategoriaFormProps> = ({
     setFormData({
       nome: '',
       limiteDuplas: '',
+      formato: 'single',
       bestOfSF: 1,
       bestOfFinal: 1
     });
@@ -60,6 +64,7 @@ export const CategoriaForm: React.FC<CategoriaFormProps> = ({
     setFormData({
       nome: categoria.nome,
       limiteDuplas: categoria.limiteDuplas?.toString() || '',
+      formato: categoria.formato || 'single',
       bestOfSF: categoria.bestOfSF || 1,
       bestOfFinal: categoria.bestOfFinal || 1
     });
@@ -77,7 +82,7 @@ export const CategoriaForm: React.FC<CategoriaFormProps> = ({
     const categoriaData: Categoria = {
       id: editingId || `categoria_${nanoid()}`,
       nome: formData.nome.trim(),
-      formato: 'double-elim-semi-3p',
+      formato: formData.formato,
       duplas: [],
       chaveamento: {
         status: 'nao-gerado',
@@ -139,7 +144,7 @@ export const CategoriaForm: React.FC<CategoriaFormProps> = ({
             {editingId ? 'Editar Categoria' : 'Nova Categoria'}
           </h3>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
             {/* Nome */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -153,6 +158,21 @@ export const CategoriaForm: React.FC<CategoriaFormProps> = ({
                 placeholder="Ex: Masculino, Feminino, Misto"
                 required
               />
+            </div>
+
+            {/* Formato do Torneio */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Formato
+              </label>
+              <select
+                value={formData.formato}
+                onChange={(e) => handleInputChange('formato', e.target.value as 'single' | 'double')}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+              >
+                <option value="single">Eliminação Simples</option>
+                <option value="double">Dupla Eliminação</option>
+              </select>
             </div>
 
             {/* Limite de Duplas */}

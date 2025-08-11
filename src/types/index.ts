@@ -369,11 +369,13 @@ export interface Match {
   a?: string; // team id
   b?: string; // team id
   horario?: string; // ISO string
+  scores?: Array<{a: number, b: number}>; // Multiple sets for best-of
   placar?: {
     a: number;
     b: number;
   };
   bestOf?: 1 | 3;
+  winsToAdvance?: number; // Calculated as Math.ceil(bestOf / 2)
   vencedor?: string;
   perdedor?: string;
   proximoVencedorMatchId?: string;
@@ -396,7 +398,7 @@ export interface Categoria {
   id: string;
   nome: string;
   limiteDuplas?: number;
-  formato: 'double-elim-semi-3p';
+  formato: 'single' | 'double'; // single elimination or double elimination
   bestOfSF?: 1 | 3;
   bestOfFinal?: 1 | 3;
   duplas: Dupla[];
