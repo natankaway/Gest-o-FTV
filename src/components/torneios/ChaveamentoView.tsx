@@ -15,8 +15,8 @@ interface ChaveamentoViewProps {
 }
 
 interface MatchResultFormData {
-  placarA: string;
-  placarB: string;
+  sets: Array<{placarA: string, placarB: string}>;
+  currentSetIndex: number;
 }
 
 export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
@@ -29,8 +29,8 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
   const { dadosMockados, setTorneios } = useAppState();
   const [editingMatch, setEditingMatch] = useState<string | null>(null);
   const [resultForm, setResultForm] = useState<MatchResultFormData>({
-    placarA: '',
-    placarB: ''
+    sets: [{placarA: '', placarB: ''}],
+    currentSetIndex: 0
   });
 
   // Get current tournament from latest state
@@ -87,6 +87,7 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
           a: duplaA.id,
           b: duplaB.id,
           bestOf: 1,
+          winsToAdvance: 1,
           status: 'pendente'
         });
       }
@@ -107,12 +108,21 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
         if (round === totalRounds) fase = 'F'; // Final
         else if (round === totalRounds - 1) fase = 'SF'; // Semifinal
         
+        // Determine bestOf based on fase and categoria settings
+        let bestOf: 1 | 3 = 1;
+        if (fase === 'F') {
+          bestOf = (categoriaAtual.bestOfFinal as 1 | 3) || 1;
+        } else if (fase === 'SF') {
+          bestOf = (categoriaAtual.bestOfSF as 1 | 3) || 1;
+        }
+        
         const newMatch: Match = {
           id: matchId,
           categoriaId: selectedCategoria,
           fase,
           round,
-          bestOf: round >= totalRounds - 1 ? (categoriaAtual.bestOfFinal || 1) : 1,
+          bestOf,
+          winsToAdvance: Math.ceil(bestOf / 2),
           status: 'pendente'
         };
         
@@ -173,28 +183,68 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
   }, [categoriaAtual, selectedCategoria, currentTorneio.id, setTorneios]);
 
   const handleEditResult = useCallback((match: Match) => {
+    const bestOf = match.bestOf || 1;
+    const winsToAdvance = Math.ceil(bestOf / 2);
+    
     setEditingMatch(match.id);
+    
+    // Initialize sets based on existing scores or empty sets
+    const existingSets = match.scores || [];
+    const initSets = existingSets.length > 0 
+      ? existingSets.map(s => ({ placarA: s.a.toString(), placarB: s.b.toString() }))
+      : [{ placarA: '', placarB: '' }];
+    
     setResultForm({
-      placarA: match.placar?.a.toString() || '',
-      placarB: match.placar?.b.toString() || ''
+      sets: initSets,
+      currentSetIndex: 0
     });
   }, []);
 
   const handleSaveResult = useCallback(() => {
     if (!editingMatch || !categoriaAtual || !selectedCategoria) return;
 
-    const placarA = parseInt(resultForm.placarA);
-    const placarB = parseInt(resultForm.placarB);
+    const currentMatch = categoriaAtual.chaveamento.matches.find(m => m.id === editingMatch);
+    if (!currentMatch) return;
 
-    if (isNaN(placarA) || isNaN(placarB) || placarA < 0 || placarB < 0) {
-      toast.error('Por favor, insira placares válidos');
+    const bestOf = currentMatch.bestOf || 1;
+    const winsToAdvance = Math.ceil(bestOf / 2);
+
+    // Validate all sets
+    const validSets: Array<{a: number, b: number}> = [];
+    for (const set of resultForm.sets) {
+      const placarA = parseInt(set.placarA);
+      const placarB = parseInt(set.placarB);
+
+      if (isNaN(placarA) || isNaN(placarB) || placarA < 0 || placarB < 0) {
+        toast.error('Por favor, insira placares válidos para todos os sets');
+        return;
+      }
+
+      if (placarA === placarB) {
+        toast.error('O placar não pode ser empate em nenhum set');
+        return;
+      }
+
+      validSets.push({ a: placarA, b: placarB });
+    }
+
+    // Count wins for each team
+    let winsA = 0;
+    let winsB = 0;
+    for (const set of validSets) {
+      if (set.a > set.b) winsA++;
+      else winsB++;
+    }
+
+    // Check if match is complete (someone reached winsToAdvance)
+    if (Math.max(winsA, winsB) < winsToAdvance) {
+      toast.error(`É necessário que uma equipe vença pelo menos ${winsToAdvance} set(s) para finalizar a partida`);
       return;
     }
 
-    if (placarA === placarB) {
-      toast.error('O placar não pode ser empate');
-      return;
-    }
+    // Calculate final scores (total points across all sets)
+    const totalA = validSets.reduce((sum, set) => sum + set.a, 0);
+    const totalB = validSets.reduce((sum, set) => sum + set.b, 0);
 
     // Use the enhanced updateMatchResult that handles propagation
     setTorneios(prev => torneioStateUtils.updateMatchResult(
@@ -202,13 +252,38 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
       currentTorneio.id,
       selectedCategoria,
       editingMatch,
-      { placarA, placarB }
+      { placarA: totalA, placarB: totalB, scores: validSets }
     ));
 
     setEditingMatch(null);
-    setResultForm({ placarA: '', placarB: '' });
+    setResultForm({ sets: [{placarA: '', placarB: ''}], currentSetIndex: 0 });
     toast.success('Resultado registrado com sucesso!');
   }, [editingMatch, categoriaAtual, selectedCategoria, currentTorneio.id, setTorneios, resultForm]);
+
+  const addSet = useCallback(() => {
+    setResultForm(prev => ({
+      ...prev,
+      sets: [...prev.sets, { placarA: '', placarB: '' }],
+      currentSetIndex: prev.sets.length
+    }));
+  }, []);
+
+  const removeSet = useCallback((setIndex: number) => {
+    setResultForm(prev => ({
+      ...prev,
+      sets: prev.sets.filter((_, index) => index !== setIndex),
+      currentSetIndex: Math.min(prev.currentSetIndex, prev.sets.length - 2)
+    }));
+  }, []);
+
+  const updateSetScore = useCallback((setIndex: number, field: 'placarA' | 'placarB', value: string) => {
+    setResultForm(prev => ({
+      ...prev,
+      sets: prev.sets.map((set, index) => 
+        index === setIndex ? { ...set, [field]: value } : set
+      )
+    }));
+  }, []);
 
   const getDuplaName = useCallback((duplaId?: string) => {
     if (!duplaId || !categoriaAtual) return 'TBD';
@@ -450,12 +525,24 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
                                         <div className="text-right">
                                           {match.placar ? (
                                             <div className="space-y-1">
+                                              {/* Total Score */}
                                               <div className={`font-bold text-lg ${match.vencedor === match.a ? 'text-green-600' : 'text-gray-600'}`}>
                                                 {match.placar.a}
                                               </div>
                                               <div className={`font-bold text-lg ${match.vencedor === match.b ? 'text-green-600' : 'text-gray-600'}`}>
                                                 {match.placar.b}
                                               </div>
+                                              
+                                              {/* Sets breakdown if available */}
+                                              {match.scores && match.scores.length > 1 && (
+                                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                  {match.scores.map((set, idx) => (
+                                                    <div key={idx}>
+                                                      Set {idx + 1}: {set.a}-{set.b}
+                                                    </div>
+                                                  ))}
+                                                </div>
+                                              )}
                                             </div>
                                           ) : (
                                             <div className="text-gray-400 text-lg">
@@ -469,36 +556,88 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
                                     {canEdit && match.a && match.b && (
                                       <div className="ml-4">
                                         {editingMatch === match.id ? (
-                                          <div className="flex items-center gap-2">
-                                            <input
-                                              type="number"
-                                              min="0"
-                                              value={resultForm.placarA}
-                                              onChange={(e) => setResultForm(prev => ({ ...prev, placarA: e.target.value }))}
-                                              className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-center text-sm"
-                                              placeholder="0"
-                                            />
-                                            <span className="text-gray-400">x</span>
-                                            <input
-                                              type="number"
-                                              min="0"
-                                              value={resultForm.placarB}
-                                              onChange={(e) => setResultForm(prev => ({ ...prev, placarB: e.target.value }))}
-                                              className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-center text-sm"
-                                              placeholder="0"
-                                            />
-                                            <button
-                                              onClick={handleSaveResult}
-                                              className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
-                                            >
-                                              Salvar
-                                            </button>
-                                            <button
-                                              onClick={() => setEditingMatch(null)}
-                                              className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
-                                            >
-                                              Cancelar
-                                            </button>
+                                          <div className="space-y-2">
+                                            {/* Match Configuration Info */}
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                              {match.bestOf && match.bestOf > 1 
+                                                ? `Melhor de ${match.bestOf} (vence quem ganhar ${Math.ceil(match.bestOf / 2)} set${Math.ceil(match.bestOf / 2) > 1 ? 's' : ''})`
+                                                : 'Jogo único'
+                                              }
+                                            </div>
+                                            
+                                            {/* Sets Input */}
+                                            <div className="space-y-2">
+                                              {resultForm.sets.map((set, setIndex) => (
+                                                <div key={setIndex} className="flex items-center gap-2">
+                                                  <span className="text-xs text-gray-500 w-8">Set {setIndex + 1}:</span>
+                                                  <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={set.placarA}
+                                                    onChange={(e) => updateSetScore(setIndex, 'placarA', e.target.value)}
+                                                    className="w-12 px-1 py-1 border rounded text-center text-xs transition-colors"
+                                                    style={{
+                                                      backgroundColor: 'var(--input-bg)',
+                                                      color: 'var(--input-text)',
+                                                      borderColor: 'var(--input-border)',
+                                                    }}
+                                                    placeholder="0"
+                                                  />
+                                                  <span className="text-gray-400 text-xs">x</span>
+                                                  <input
+                                                    type="number"
+                                                    min="0"
+                                                    value={set.placarB}
+                                                    onChange={(e) => updateSetScore(setIndex, 'placarB', e.target.value)}
+                                                    className="w-12 px-1 py-1 border rounded text-center text-xs transition-colors"
+                                                    style={{
+                                                      backgroundColor: 'var(--input-bg)',
+                                                      color: 'var(--input-text)',
+                                                      borderColor: 'var(--input-border)',
+                                                    }}
+                                                    placeholder="0"
+                                                  />
+                                                  {resultForm.sets.length > 1 && (
+                                                    <button
+                                                      onClick={() => removeSet(setIndex)}
+                                                      className="px-1 py-1 text-red-600 hover:text-red-700 text-xs"
+                                                      title="Remover set"
+                                                    >
+                                                      ✕
+                                                    </button>
+                                                  )}
+                                                </div>
+                                              ))}
+                                            </div>
+                                            
+                                            {/* Add Set Button (only for best-of matches) */}
+                                            {match.bestOf && match.bestOf > 1 && resultForm.sets.length < match.bestOf && (
+                                              <button
+                                                onClick={addSet}
+                                                className="text-xs text-blue-600 hover:text-blue-700 underline"
+                                              >
+                                                + Adicionar set
+                                              </button>
+                                            )}
+                                            
+                                            {/* Action Buttons */}
+                                            <div className="flex gap-2">
+                                              <button
+                                                onClick={handleSaveResult}
+                                                className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                                              >
+                                                Salvar
+                                              </button>
+                                              <button
+                                                onClick={() => {
+                                                  setEditingMatch(null);
+                                                  setResultForm({ sets: [{placarA: '', placarB: ''}], currentSetIndex: 0 });
+                                                }}
+                                                className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
+                                              >
+                                                Cancelar
+                                              </button>
+                                            </div>
                                           </div>
                                         ) : (
                                           <button

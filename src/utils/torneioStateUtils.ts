@@ -135,7 +135,7 @@ export const torneioStateUtils = {
     torneioId: string, 
     categoriaId: string, 
     matchId: string, 
-    result: { placarA: number; placarB: number }
+    result: { placarA: number; placarB: number; scores?: Array<{a: number, b: number}> }
   ): Torneio[] => {
     return torneioStateUtils.updateChaveamento(torneios, torneioId, categoriaId, (chaveamento) => {
       const updatedMatches = [...chaveamento.matches];
@@ -153,6 +153,7 @@ export const torneioStateUtils = {
       updatedMatches[matchIndex] = {
         ...currentMatch,
         placar: { a: result.placarA, b: result.placarB },
+        ...(result.scores && { scores: result.scores }),
         vencedor,
         perdedor,
         status: 'finalizado'
