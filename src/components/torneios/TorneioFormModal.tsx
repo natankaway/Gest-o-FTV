@@ -7,13 +7,21 @@ interface TorneioFormModalProps extends ModalProps {
   torneio?: Torneio | null;
 }
 
+interface TorneioFormData {
+  nome: string;
+  descricao: string;
+  local: string;
+  dataInicio: string;
+  dataFim: string;
+}
+
 export const TorneioFormModal: React.FC<TorneioFormModalProps> = ({
   isOpen,
   onClose,
   torneio
 }) => {
   const { setTorneios, userLogado } = useAppState();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<TorneioFormData>({
     nome: '',
     descricao: '',
     local: '',
@@ -29,8 +37,12 @@ export const TorneioFormModal: React.FC<TorneioFormModalProps> = ({
         nome: torneio.nome,
         descricao: torneio.descricao ?? '',
         local: torneio.local ?? '',
-        dataInicio: torneio.dataInicio ? (torneio.dataInicio.includes('T') ? torneio.dataInicio.split('T')[0] : torneio.dataInicio) : '',
-        dataFim: torneio.dataFim ? (torneio.dataFim.includes('T') ? torneio.dataFim.split('T')[0] : torneio.dataFim) : ''
+        dataInicio: torneio.dataInicio 
+          ? (torneio.dataInicio.includes('T') ? torneio.dataInicio.split('T')[0] : torneio.dataInicio) 
+          : '',
+        dataFim: torneio.dataFim 
+          ? (torneio.dataFim.includes('T') ? torneio.dataFim.split('T')[0] : torneio.dataFim) 
+          : ''
       });
     } else {
       setFormData({

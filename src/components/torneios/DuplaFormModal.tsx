@@ -2,6 +2,8 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useAppState } from '@/contexts';
 import { X } from 'lucide-react';
 import { nanoid } from 'nanoid';
+import { torneioStateUtils } from '@/utils/torneioStateUtils';
+import toast from 'react-hot-toast';
 import type { Dupla, Jogador, ModalProps } from '@/types';
 
 interface DuplaFormData {
@@ -59,6 +61,7 @@ export const DuplaFormModal: React.FC<DuplaFormModalProps> = ({
     e.preventDefault();
 
     if (!formData.jogador1.nome.trim() || !formData.jogador2.nome.trim()) {
+      toast.error('Todos os jogadores devem ter nome');
       return;
     }
 
@@ -80,6 +83,12 @@ export const DuplaFormModal: React.FC<DuplaFormModalProps> = ({
       inscritoEm: dupla?.inscritoEm || new Date().toISOString()
     };
 
+    // Validate duplicate players before submitting
+    if (!torneioStateUtils.validateDuplaPlayers(newDupla)) {
+      toast.error('Não é possível criar uma dupla com o mesmo jogador nas duas posições');
+      return;
+    }
+
     onSubmit(newDupla);
     onClose();
   }, [formData, dupla, onSubmit, onClose]);
@@ -96,7 +105,7 @@ export const DuplaFormModal: React.FC<DuplaFormModalProps> = ({
           nome: ''
         };
         if (value === 'aluno') {
-          newFormData[jogadorKey].id = undefined;
+          delete newFormData[jogadorKey].id;
         }
       } else if (field === 'alunoId' && value) {
         const aluno = alunos.find(a => a.id.toString() === value);
