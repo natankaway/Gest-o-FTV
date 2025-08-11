@@ -378,6 +378,9 @@ export interface Match {
   perdedor?: string;
   proximoVencedorMatchId?: string;
   proximoPerdedorMatchId?: string;
+  status: 'pendente' | 'andamento' | 'finalizado';
+  nextMatchId?: string; // ID of the next match
+  nextMatchSlot?: 1 | 2; // Which slot (1 or 2) in the next match
 }
 
 export interface BracketState {

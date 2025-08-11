@@ -51,8 +51,6 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
   const generateBracket = useCallback(() => {
     if (!categoriaAtual || !selectedCategoria) return;
 
-    // Simple bracket generation - this is a basic implementation
-    // In a real tournament system, this would be much more complex
     const duplas = [...categoriaAtual.duplas];
     const numDuplas = duplas.length;
     
@@ -68,22 +66,91 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
 
     const matches: Match[] = [];
     
-    // Generate first round matches (Winner Bracket)
+    // Calculate bracket structure
+    const totalRounds = Math.ceil(Math.log2(numDuplas));
+    
+    // Generate first round matches
     const firstRoundMatches = Math.floor(numDuplas / 2);
+    const firstRoundMatchIds: string[] = [];
+    
     for (let i = 0; i < firstRoundMatches; i++) {
       const duplaA = duplas[i * 2];
       const duplaB = duplas[i * 2 + 1];
       if (duplaA && duplaB) {
+        const matchId = `match_${nanoid()}`;
+        firstRoundMatchIds.push(matchId);
         matches.push({
-          id: `match_${nanoid()}`,
+          id: matchId,
           categoriaId: selectedCategoria,
           fase: 'WB',
           round: 1,
           a: duplaA.id,
           b: duplaB.id,
-          bestOf: 1
+          bestOf: 1,
+          status: 'pendente'
         });
       }
+    }
+    
+    // Generate subsequent rounds
+    let currentRoundMatchIds = firstRoundMatchIds;
+    for (let round = 2; round <= totalRounds; round++) {
+      const nextRoundMatchIds: string[] = [];
+      const matchesInRound = Math.ceil(currentRoundMatchIds.length / 2);
+      
+      for (let i = 0; i < matchesInRound; i++) {
+        const matchId = `match_${nanoid()}`;
+        nextRoundMatchIds.push(matchId);
+        
+        // Determine fase based on round
+        let fase: Match['fase'] = 'WB';
+        if (round === totalRounds) fase = 'F'; // Final
+        else if (round === totalRounds - 1) fase = 'SF'; // Semifinal
+        
+        const newMatch: Match = {
+          id: matchId,
+          categoriaId: selectedCategoria,
+          fase,
+          round,
+          bestOf: round >= totalRounds - 1 ? (categoriaAtual.bestOfFinal || 1) : 1,
+          status: 'pendente'
+        };
+        
+        matches.push(newMatch);
+      }
+      
+      // Link previous round matches to next round
+      for (let i = 0; i < currentRoundMatchIds.length; i += 2) {
+        const match1Id = currentRoundMatchIds[i];
+        const match2Id = currentRoundMatchIds[i + 1];
+        const nextMatchId = nextRoundMatchIds[Math.floor(i / 2)];
+        
+        if (match1Id && nextMatchId) {
+          const match1Index = matches.findIndex(m => m.id === match1Id);
+          if (match1Index !== -1) {
+            const currentMatch = matches[match1Index];
+            matches[match1Index] = {
+              ...currentMatch,
+              nextMatchId,
+              nextMatchSlot: 1
+            };
+          }
+        }
+        
+        if (match2Id && nextMatchId) {
+          const match2Index = matches.findIndex(m => m.id === match2Id);
+          if (match2Index !== -1) {
+            const currentMatch = matches[match2Index];
+            matches[match2Index] = {
+              ...currentMatch,
+              nextMatchId,
+              nextMatchSlot: 2
+            };
+          }
+        }
+      }
+      
+      currentRoundMatchIds = nextRoundMatchIds;
     }
 
     const newBracket: BracketState = {
@@ -129,40 +196,13 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
       return;
     }
 
-    const currentMatch = categoriaAtual.chaveamento.matches.find(m => m.id === editingMatch);
-    if (!currentMatch) return;
-
-    const vencedor = placarA > placarB ? currentMatch.a : currentMatch.b;
-    const perdedor = placarA > placarB ? currentMatch.b : currentMatch.a;
-
-    const matchResult: Partial<Match> = {
-      placar: { a: placarA, b: placarB },
-      ...(vencedor && { vencedor }),
-      ...(perdedor && { perdedor })
-    };
-
+    // Use the enhanced updateMatchResult that handles propagation
     setTorneios(prev => torneioStateUtils.updateMatchResult(
       prev,
       currentTorneio.id,
       selectedCategoria,
       editingMatch,
-      matchResult
-    ));
-
-    // Update bracket status based on results
-    setTorneios(prev => torneioStateUtils.updateChaveamento(
-      prev,
-      currentTorneio.id,
-      selectedCategoria,
-      (chaveamento) => {
-        const hasAnyResult = chaveamento.matches.some(match => 
-          match.id === editingMatch ? true : match.placar
-        );
-        return {
-          ...chaveamento,
-          status: hasAnyResult ? 'em-andamento' : 'gerado'
-        };
-      }
+      { placarA, placarB }
     ));
 
     setEditingMatch(null);
@@ -324,10 +364,10 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
                 </div>
               </div>
 
-              {/* Matches */}
+              {/* Matches organized by rounds */}
               <div>
                 <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
-                  Partidas
+                  Partidas por Rodada
                 </h3>
                 
                 {categoriaAtual.chaveamento.matches.length === 0 ? (
@@ -337,102 +377,147 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-3">
-                    {categoriaAtual.chaveamento.matches.map((match) => (
-                      <div
-                        key={match.id}
-                        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-4">
-                              <div className="text-sm text-gray-600 dark:text-gray-400">
-                                {match.fase} R{match.round}
+                  <div className="space-y-6">
+                    {/* Group matches by round */}
+                    {Object.entries(
+                      categoriaAtual.chaveamento.matches.reduce((acc, match) => {
+                        if (!acc[match.round]) {
+                          acc[match.round] = [];
+                        }
+                        acc[match.round].push(match);
+                        return acc;
+                      }, {} as Record<number, Match[]>)
+                    )
+                      .sort(([a], [b]) => Number(a) - Number(b))
+                      .map(([round, matches]) => {
+                        const roundNum = Number(round);
+                        const getRoundLabel = (round: number) => {
+                          const totalRounds = Math.max(...categoriaAtual.chaveamento.matches.map(m => m.round));
+                          if (round === totalRounds) return 'Final';
+                          if (round === totalRounds - 1) return 'Semifinal';
+                          return `Rodada ${round}`;
+                        };
+                        
+                        return (
+                          <div key={round} className="space-y-3">
+                            <div className="flex items-center gap-3">
+                              <h4 className="text-lg font-medium text-gray-900 dark:text-white">
+                                {getRoundLabel(roundNum)}
+                              </h4>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                ({matches.filter(m => m.status === 'finalizado').length}/{matches.length} finalizadas)
                               </div>
-                              {match.bestOf && match.bestOf > 1 && (
-                                <div className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded">
-                                  MD{match.bestOf}
-                                </div>
-                              )}
                             </div>
                             
-                            <div className="mt-2 flex items-center gap-4">
-                              <div className="flex-1">
-                                <div className="font-medium text-gray-900 dark:text-white">
-                                  {getDuplaName(match.a)}
-                                </div>
-                                <div className="font-medium text-gray-900 dark:text-white">
-                                  {getDuplaName(match.b)}
-                                </div>
-                              </div>
-                              
-                              <div className="text-right">
-                                {match.placar ? (
-                                  <div className="space-y-1">
-                                    <div className={`font-bold ${match.vencedor === match.a ? 'text-green-600' : 'text-gray-600'}`}>
-                                      {match.placar.a}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {matches.map((match) => (
+                                <div
+                                  key={match.id}
+                                  className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-4 ${
+                                    match.status === 'finalizado' 
+                                      ? 'border-green-200 dark:border-green-800' 
+                                      : 'border-gray-200 dark:border-gray-700'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <div className="text-xs text-gray-600 dark:text-gray-400">
+                                          {match.fase}
+                                        </div>
+                                        {match.bestOf && match.bestOf > 1 && (
+                                          <div className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded">
+                                            MD{match.bestOf}
+                                          </div>
+                                        )}
+                                        {match.status === 'finalizado' && (
+                                          <div className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded">
+                                            Finalizada
+                                          </div>
+                                        )}
+                                      </div>
+                                      
+                                      <div className="flex items-center gap-4">
+                                        <div className="flex-1 space-y-1">
+                                          <div className={`text-sm ${match.vencedor === match.a ? 'font-bold text-green-600' : 'text-gray-900 dark:text-white'}`}>
+                                            {getDuplaName(match.a)}
+                                          </div>
+                                          <div className={`text-sm ${match.vencedor === match.b ? 'font-bold text-green-600' : 'text-gray-900 dark:text-white'}`}>
+                                            {getDuplaName(match.b)}
+                                          </div>
+                                        </div>
+                                        
+                                        <div className="text-right">
+                                          {match.placar ? (
+                                            <div className="space-y-1">
+                                              <div className={`font-bold text-lg ${match.vencedor === match.a ? 'text-green-600' : 'text-gray-600'}`}>
+                                                {match.placar.a}
+                                              </div>
+                                              <div className={`font-bold text-lg ${match.vencedor === match.b ? 'text-green-600' : 'text-gray-600'}`}>
+                                                {match.placar.b}
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <div className="text-gray-400 text-lg">
+                                              -<br />-
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
-                                    <div className={`font-bold ${match.vencedor === match.b ? 'text-green-600' : 'text-gray-600'}`}>
-                                      {match.placar.b}
-                                    </div>
+                                    
+                                    {canEdit && match.a && match.b && (
+                                      <div className="ml-4">
+                                        {editingMatch === match.id ? (
+                                          <div className="flex items-center gap-2">
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              value={resultForm.placarA}
+                                              onChange={(e) => setResultForm(prev => ({ ...prev, placarA: e.target.value }))}
+                                              className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-center text-sm"
+                                              placeholder="0"
+                                            />
+                                            <span className="text-gray-400">x</span>
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              value={resultForm.placarB}
+                                              onChange={(e) => setResultForm(prev => ({ ...prev, placarB: e.target.value }))}
+                                              className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-center text-sm"
+                                              placeholder="0"
+                                            />
+                                            <button
+                                              onClick={handleSaveResult}
+                                              className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                                            >
+                                              Salvar
+                                            </button>
+                                            <button
+                                              onClick={() => setEditingMatch(null)}
+                                              className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
+                                            >
+                                              Cancelar
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <button
+                                            onClick={() => handleEditResult(match)}
+                                            className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+                                          >
+                                            <Play className="h-3 w-3" />
+                                            {match.placar ? 'Editar' : 'Registrar'}
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
                                   </div>
-                                ) : (
-                                  <div className="text-gray-400">
-                                    -<br />-
-                                  </div>
-                                )}
-                              </div>
+                                </div>
+                              ))}
                             </div>
                           </div>
-                          
-                          {canEdit && match.a && match.b && (
-                            <div className="ml-4">
-                              {editingMatch === match.id ? (
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={resultForm.placarA}
-                                    onChange={(e) => setResultForm(prev => ({ ...prev, placarA: e.target.value }))}
-                                    className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-center text-sm"
-                                    placeholder="0"
-                                  />
-                                  <span className="text-gray-400">x</span>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={resultForm.placarB}
-                                    onChange={(e) => setResultForm(prev => ({ ...prev, placarB: e.target.value }))}
-                                    className="w-16 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-center text-sm"
-                                    placeholder="0"
-                                  />
-                                  <button
-                                    onClick={handleSaveResult}
-                                    className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
-                                  >
-                                    Salvar
-                                  </button>
-                                  <button
-                                    onClick={() => setEditingMatch(null)}
-                                    className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
-                                  >
-                                    Cancelar
-                                  </button>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => handleEditResult(match)}
-                                  className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
-                                >
-                                  <Play className="h-3 w-3" />
-                                  {match.placar ? 'Editar' : 'Registrar'}
-                                </button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                        );
+                      })}
                   </div>
                 )}
               </div>
