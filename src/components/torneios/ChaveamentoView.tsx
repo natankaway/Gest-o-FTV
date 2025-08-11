@@ -66,31 +66,123 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
 
     const matches: Match[] = [];
     
-    // Calculate bracket structure
-    const totalRounds = Math.ceil(Math.log2(numDuplas));
+    // Calculate if we need play-in matches for non-power-of-two participants
+    const lowerPowerOfTwo = Math.pow(2, Math.floor(Math.log2(numDuplas)));
+    const playInMatchesCount = numDuplas - lowerPowerOfTwo;
+    
+    let roundOneParticipants: typeof duplas = [];
+    
+    // Handle play-in matches (round 0) if needed
+    if (playInMatchesCount > 0) {
+      // Select duplas for play-in matches (first playInMatchesCount * 2 duplas)
+      const playInDuplas = duplas.slice(0, playInMatchesCount * 2);
+      // Remaining duplas get byes to round 1
+      const byeDuplas = duplas.slice(playInMatchesCount * 2);
+      
+      // Create play-in matches
+      for (let i = 0; i < playInMatchesCount; i++) {
+        const duplaA = playInDuplas[i * 2];
+        const duplaB = playInDuplas[i * 2 + 1];
+        if (duplaA && duplaB) {
+          const matchId = `match_${nanoid()}`;
+          matches.push({
+            id: matchId,
+            categoriaId: selectedCategoria,
+            fase: 'WB',
+            round: 0, // Play-in round
+            a: duplaA.id,
+            b: duplaB.id,
+            bestOf: 1,
+            winsToAdvance: 1,
+            status: 'pendente'
+          });
+        }
+      }
+      
+      // For round 1, we'll have exactly lowerPowerOfTwo participants:
+      // byeDuplas + play-in winners
+      roundOneParticipants = [...byeDuplas];
+      // Add placeholders for play-in winners (these will be filled when matches are completed)
+      for (let i = 0; i < playInMatchesCount; i++) {
+        roundOneParticipants.push({ id: `playin_winner_${i}`, nome: 'TBD', jogadores: [], inscritoEm: '' } as any);
+      }
+    } else {
+      // No play-in needed, all duplas go to round 1
+      roundOneParticipants = duplas;
+    }
+    
+    // Calculate bracket structure (excluding play-in round)
+    const totalRounds = Math.ceil(Math.log2(lowerPowerOfTwo)) + (playInMatchesCount > 0 ? 1 : 0);
     
     // Generate first round matches
-    const firstRoundMatches = Math.floor(numDuplas / 2);
+    const firstRoundMatches = Math.floor(lowerPowerOfTwo / 2);
     const firstRoundMatchIds: string[] = [];
     
     for (let i = 0; i < firstRoundMatches; i++) {
-      const duplaA = duplas[i * 2];
-      const duplaB = duplas[i * 2 + 1];
+      const duplaA = roundOneParticipants[i * 2];
+      const duplaB = roundOneParticipants[i * 2 + 1];
       if (duplaA && duplaB) {
         const matchId = `match_${nanoid()}`;
         firstRoundMatchIds.push(matchId);
-        matches.push({
+        
+        // Determine participants - could be actual duplas or placeholders for play-in winners
+        const participantA: string | undefined = duplaA.id.startsWith('playin_winner_') ? undefined : duplaA.id;
+        const participantB: string | undefined = duplaB.id.startsWith('playin_winner_') ? undefined : duplaB.id;
+        
+        const match = {
           id: matchId,
           categoriaId: selectedCategoria,
-          fase: 'WB',
+          fase: 'WB' as const,
           round: 1,
-          a: duplaA.id,
-          b: duplaB.id,
-          bestOf: 1,
+          ...(participantA !== undefined && { a: participantA }),
+          ...(participantB !== undefined && { b: participantB }),
+          bestOf: 1 as const,
           winsToAdvance: 1,
-          status: 'pendente'
-        });
+          status: 'pendente' as const
+        };
+        
+        matches.push(match);
       }
+    }
+    
+    // Link play-in matches to round 1 matches
+    if (playInMatchesCount > 0) {
+      const playInMatches = matches.filter(m => m.round === 0);
+      const round1Matches = matches.filter(m => m.round === 1);
+      
+      playInMatches.forEach((playInMatch, index) => {
+        // Each play-in match winner should go to a specific slot in round 1
+        // The bye duplas fill the first slots, play-in winners fill the remaining slots
+        const byeCount = numDuplas - (playInMatchesCount * 2);
+        const targetSlot = byeCount + index; // Position in round 1 where this winner should go
+        const targetMatchIndex = Math.floor(targetSlot / 2);
+        const targetSlotInMatch = (targetSlot % 2) + 1;
+        
+        const targetMatch = round1Matches[targetMatchIndex];
+        if (targetMatch) {
+          // Update play-in match with next match info
+          const playInIndex = matches.findIndex(m => m.id === playInMatch.id);
+          if (playInIndex !== -1) {
+            const currentMatch = matches[playInIndex];
+            if (currentMatch) {
+              const updatedMatch = {
+                id: currentMatch.id,
+                categoriaId: currentMatch.categoriaId,
+                fase: currentMatch.fase,
+                round: currentMatch.round,
+                ...(currentMatch.a && { a: currentMatch.a }),
+                ...(currentMatch.b && { b: currentMatch.b }),
+                ...(currentMatch.bestOf && { bestOf: currentMatch.bestOf }),
+                ...(currentMatch.winsToAdvance && { winsToAdvance: currentMatch.winsToAdvance }),
+                status: currentMatch.status,
+                nextMatchId: targetMatch.id,
+                nextMatchSlot: targetSlotInMatch as 1 | 2
+              };
+              matches[playInIndex] = updatedMatch;
+            }
+          }
+        }
+      });
     }
     
     // Generate subsequent rounds
@@ -139,11 +231,22 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
           const match1Index = matches.findIndex(m => m.id === match1Id);
           if (match1Index !== -1) {
             const currentMatch = matches[match1Index];
-            matches[match1Index] = {
-              ...currentMatch,
-              nextMatchId,
-              nextMatchSlot: 1
-            };
+            if (currentMatch) {
+              const updatedMatch = {
+                id: currentMatch.id,
+                categoriaId: currentMatch.categoriaId,
+                fase: currentMatch.fase,
+                round: currentMatch.round,
+                ...(currentMatch.a && { a: currentMatch.a }),
+                ...(currentMatch.b && { b: currentMatch.b }),
+                ...(currentMatch.bestOf && { bestOf: currentMatch.bestOf }),
+                ...(currentMatch.winsToAdvance && { winsToAdvance: currentMatch.winsToAdvance }),
+                status: currentMatch.status,
+                nextMatchId,
+                nextMatchSlot: 1 as const
+              };
+              matches[match1Index] = updatedMatch;
+            }
           }
         }
         
@@ -151,11 +254,22 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
           const match2Index = matches.findIndex(m => m.id === match2Id);
           if (match2Index !== -1) {
             const currentMatch = matches[match2Index];
-            matches[match2Index] = {
-              ...currentMatch,
-              nextMatchId,
-              nextMatchSlot: 2
-            };
+            if (currentMatch) {
+              const updatedMatch = {
+                id: currentMatch.id,
+                categoriaId: currentMatch.categoriaId,
+                fase: currentMatch.fase,
+                round: currentMatch.round,
+                ...(currentMatch.a && { a: currentMatch.a }),
+                ...(currentMatch.b && { b: currentMatch.b }),
+                ...(currentMatch.bestOf && { bestOf: currentMatch.bestOf }),
+                ...(currentMatch.winsToAdvance && { winsToAdvance: currentMatch.winsToAdvance }),
+                status: currentMatch.status,
+                nextMatchId,
+                nextMatchSlot: 2 as const
+              };
+              matches[match2Index] = updatedMatch;
+            }
           }
         }
       }
@@ -183,9 +297,6 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
   }, [categoriaAtual, selectedCategoria, currentTorneio.id, setTorneios]);
 
   const handleEditResult = useCallback((match: Match) => {
-    const bestOf = match.bestOf || 1;
-    const winsToAdvance = Math.ceil(bestOf / 2);
-    
     setEditingMatch(match.id);
     
     // Initialize sets based on existing scores or empty sets
@@ -459,7 +570,7 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
                         if (!acc[match.round]) {
                           acc[match.round] = [];
                         }
-                        acc[match.round].push(match);
+                        acc[match.round]!.push(match);
                         return acc;
                       }, {} as Record<number, Match[]>)
                     )
@@ -467,6 +578,7 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
                       .map(([round, matches]) => {
                         const roundNum = Number(round);
                         const getRoundLabel = (round: number) => {
+                          if (round === 0) return 'Play-in';
                           const totalRounds = Math.max(...categoriaAtual.chaveamento.matches.map(m => m.round));
                           if (round === totalRounds) return 'Final';
                           if (round === totalRounds - 1) return 'Semifinal';
