@@ -364,10 +364,13 @@ export interface Dupla {
 export interface Match {
   id: string;
   categoriaId: string;
-  fase: 'WB' | 'LB' | 'SF' | 'F' | '3P'; // Winner Bracket, Loser Bracket, Semifinal, Final, 3rd Place
+  fase: 'WB' | 'LB' | 'SF' | 'F' | '3P' | 'PI'; // Winner Bracket, Loser Bracket, Semifinal, Final, 3rd Place, Play-in
   round: number;
   a?: string; // team id
   b?: string; // team id
+  // New: Source references for V/P chaining
+  aSource?: { type: 'direct' | 'winner' | 'loser'; matchId?: string };
+  bSource?: { type: 'direct' | 'winner' | 'loser'; matchId?: string };
   horario?: string; // ISO string
   scores?: Array<{a: number, b: number}>; // Multiple sets for best-of
   placar?: {
@@ -398,7 +401,7 @@ export interface Categoria {
   id: string;
   nome: string;
   limiteDuplas?: number;
-  formato: 'single' | 'double'; // single elimination or double elimination
+  formato: 'single' | 'double' | 'consolation'; // single elimination, double elimination, or consolation format
   bestOfSF?: 1 | 3;
   bestOfFinal?: 1 | 3;
   duplas: Dupla[];

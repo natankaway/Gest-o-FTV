@@ -14,7 +14,7 @@ interface CategoriaFormProps {
 interface CategoriaFormData {
   nome: string;
   limiteDuplas: string;
-  formato: 'single' | 'double';
+  formato: 'single' | 'double' | 'consolation';
   bestOfSF: 1 | 3;
   bestOfFinal: 1 | 3;
 }
@@ -167,11 +167,12 @@ export const CategoriaForm: React.FC<CategoriaFormProps> = ({
               </label>
               <select
                 value={formData.formato}
-                onChange={(e) => handleInputChange('formato', e.target.value as 'single' | 'double')}
+                onChange={(e) => handleInputChange('formato', e.target.value as 'single' | 'double' | 'consolation')}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               >
                 <option value="single">Eliminação Simples</option>
                 <option value="double">Dupla Eliminação</option>
+                <option value="consolation">Consolação (V/P)</option>
               </select>
             </div>
 
@@ -289,6 +290,15 @@ export const CategoriaForm: React.FC<CategoriaFormProps> = ({
                   <span className="text-gray-900 dark:text-white">
                     {categoria.duplas.length}
                     {categoria.limiteDuplas && ` / ${categoria.limiteDuplas}`}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between">
+                  <span className="text-gray-600 dark:text-gray-400">Formato:</span>
+                  <span className="text-gray-900 dark:text-white">
+                    {categoria.formato === 'single' ? 'Eliminação Simples' : 
+                     categoria.formato === 'double' ? 'Dupla Eliminação' : 
+                     'Consolação (V/P)'}
                   </span>
                 </div>
                 

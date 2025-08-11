@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { useAppState } from '@/contexts';
 import { Target, Shuffle, Play } from 'lucide-react';
-import { nanoid } from 'nanoid';
 import { torneioStateUtils } from '@/utils/torneioStateUtils';
+import { generateBracket } from '@/utils/bracketGenerator';
 import toast from 'react-hot-toast';
 import type { Torneio, Match, BracketState } from '@/types';
 
@@ -48,143 +48,30 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
     return categoriaAtual.chaveamento.status === 'gerado' && !hasResults;
   }, [categoriaAtual]);
 
-  const generateBracket = useCallback(() => {
+  const generateBracketAction = useCallback(() => {
     if (!categoriaAtual || !selectedCategoria) return;
 
-    const duplas = [...categoriaAtual.duplas];
-    const numDuplas = duplas.length;
-    
-    // Shuffle duplas for random seeding
-    for (let i = duplas.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const temp = duplas[i];
-      if (temp && duplas[j]) {
-        duplas[i] = duplas[j];
-        duplas[j] = temp;
-      }
-    }
+    try {
+      const newBracket = generateBracket(
+        categoriaAtual.duplas,
+        selectedCategoria,
+        categoriaAtual
+      );
 
-    const matches: Match[] = [];
-    
-    // Calculate bracket structure
-    const totalRounds = Math.ceil(Math.log2(numDuplas));
-    
-    // Generate first round matches
-    const firstRoundMatches = Math.floor(numDuplas / 2);
-    const firstRoundMatchIds: string[] = [];
-    
-    for (let i = 0; i < firstRoundMatches; i++) {
-      const duplaA = duplas[i * 2];
-      const duplaB = duplas[i * 2 + 1];
-      if (duplaA && duplaB) {
-        const matchId = `match_${nanoid()}`;
-        firstRoundMatchIds.push(matchId);
-        matches.push({
-          id: matchId,
-          categoriaId: selectedCategoria,
-          fase: 'WB',
-          round: 1,
-          a: duplaA.id,
-          b: duplaB.id,
-          bestOf: 1,
-          winsToAdvance: 1,
-          status: 'pendente'
-        });
-      }
+      setTorneios(prev => torneioStateUtils.updateChaveamento(
+        prev,
+        currentTorneio.id,
+        selectedCategoria,
+        () => newBracket
+      ));
+      
+      toast.success('Chaveamento gerado com sucesso!');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao gerar chaveamento');
     }
-    
-    // Generate subsequent rounds
-    let currentRoundMatchIds = firstRoundMatchIds;
-    for (let round = 2; round <= totalRounds; round++) {
-      const nextRoundMatchIds: string[] = [];
-      const matchesInRound = Math.ceil(currentRoundMatchIds.length / 2);
-      
-      for (let i = 0; i < matchesInRound; i++) {
-        const matchId = `match_${nanoid()}`;
-        nextRoundMatchIds.push(matchId);
-        
-        // Determine fase based on round
-        let fase: Match['fase'] = 'WB';
-        if (round === totalRounds) fase = 'F'; // Final
-        else if (round === totalRounds - 1) fase = 'SF'; // Semifinal
-        
-        // Determine bestOf based on fase and categoria settings
-        let bestOf: 1 | 3 = 1;
-        if (fase === 'F') {
-          bestOf = (categoriaAtual.bestOfFinal as 1 | 3) || 1;
-        } else if (fase === 'SF') {
-          bestOf = (categoriaAtual.bestOfSF as 1 | 3) || 1;
-        }
-        
-        const newMatch: Match = {
-          id: matchId,
-          categoriaId: selectedCategoria,
-          fase,
-          round,
-          bestOf,
-          winsToAdvance: Math.ceil(bestOf / 2),
-          status: 'pendente'
-        };
-        
-        matches.push(newMatch);
-      }
-      
-      // Link previous round matches to next round
-      for (let i = 0; i < currentRoundMatchIds.length; i += 2) {
-        const match1Id = currentRoundMatchIds[i];
-        const match2Id = currentRoundMatchIds[i + 1];
-        const nextMatchId = nextRoundMatchIds[Math.floor(i / 2)];
-        
-        if (match1Id && nextMatchId) {
-          const match1Index = matches.findIndex(m => m.id === match1Id);
-          if (match1Index !== -1) {
-            const currentMatch = matches[match1Index];
-            matches[match1Index] = {
-              ...currentMatch,
-              nextMatchId,
-              nextMatchSlot: 1
-            };
-          }
-        }
-        
-        if (match2Id && nextMatchId) {
-          const match2Index = matches.findIndex(m => m.id === match2Id);
-          if (match2Index !== -1) {
-            const currentMatch = matches[match2Index];
-            matches[match2Index] = {
-              ...currentMatch,
-              nextMatchId,
-              nextMatchSlot: 2
-            };
-          }
-        }
-      }
-      
-      currentRoundMatchIds = nextRoundMatchIds;
-    }
-
-    const newBracket: BracketState = {
-      status: 'gerado',
-      matches,
-      roundAtual: 1,
-      configuracao: {
-        sorteioInicialSeed: Date.now()
-      }
-    };
-
-    setTorneios(prev => torneioStateUtils.updateChaveamento(
-      prev,
-      currentTorneio.id,
-      selectedCategoria,
-      () => newBracket
-    ));
-    
-    toast.success('Chaveamento gerado com sucesso!');
   }, [categoriaAtual, selectedCategoria, currentTorneio.id, setTorneios]);
 
   const handleEditResult = useCallback((match: Match) => {
-    const bestOf = match.bestOf || 1;
-    const winsToAdvance = Math.ceil(bestOf / 2);
     
     setEditingMatch(match.id);
     
@@ -285,8 +172,17 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
     }));
   }, []);
 
-  const getDuplaName = useCallback((duplaId?: string) => {
-    if (!duplaId || !categoriaAtual) return 'TBD';
+  const getDuplaName = useCallback((duplaId?: string, source?: Match['aSource']) => {
+    if (!duplaId) {
+      if (source?.type === 'winner') {
+        return `V${source.matchId?.split('_')[1]?.slice(0, 3) || '?'}`;
+      }
+      if (source?.type === 'loser') {
+        return `P${source.matchId?.split('_')[1]?.slice(0, 3) || '?'}`;
+      }
+      return 'TBD';
+    }
+    if (!categoriaAtual) return 'TBD';
     const dupla = categoriaAtual.duplas.find(d => d.id === duplaId);
     if (!dupla) return 'TBD';
     return dupla.nome || `${dupla.jogadores[0].nome} / ${dupla.jogadores[1].nome}`;
@@ -360,7 +256,7 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
               <div className="flex gap-2">
                 {canGenerateBracket && (
                   <button
-                    onClick={generateBracket}
+                    onClick={generateBracketAction}
                     className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                   >
                     <Shuffle className="h-4 w-4" />
@@ -370,7 +266,7 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
                 
                 {canReshuffle && (
                   <button
-                    onClick={generateBracket}
+                    onClick={generateBracketAction}
                     className="flex items-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
                   >
                     <Shuffle className="h-4 w-4" />
@@ -459,7 +355,7 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
                         if (!acc[match.round]) {
                           acc[match.round] = [];
                         }
-                        acc[match.round].push(match);
+                        acc[match.round]!.push(match);
                         return acc;
                       }, {} as Record<number, Match[]>)
                     )
@@ -468,6 +364,7 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
                         const roundNum = Number(round);
                         const getRoundLabel = (round: number) => {
                           const totalRounds = Math.max(...categoriaAtual.chaveamento.matches.map(m => m.round));
+                          if (round === 0) return 'Play-in';
                           if (round === totalRounds) return 'Final';
                           if (round === totalRounds - 1) return 'Semifinal';
                           return `Rodada ${round}`;
@@ -498,7 +395,12 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2 mb-2">
                                         <div className="text-xs text-gray-600 dark:text-gray-400">
-                                          {match.fase}
+                                          {match.fase === 'PI' ? 'Play-in' : 
+                                           match.fase === 'WB' ? 'WB' :
+                                           match.fase === 'LB' ? 'LB' :
+                                           match.fase === 'SF' ? 'Semifinal' :
+                                           match.fase === 'F' ? 'Final' :
+                                           match.fase === '3P' ? '3º Lugar' : match.fase}
                                         </div>
                                         {match.bestOf && match.bestOf > 1 && (
                                           <div className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded">
@@ -515,10 +417,10 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
                                       <div className="flex items-center gap-4">
                                         <div className="flex-1 space-y-1">
                                           <div className={`text-sm ${match.vencedor === match.a ? 'font-bold text-green-600' : 'text-gray-900 dark:text-white'}`}>
-                                            {getDuplaName(match.a)}
+                                            {getDuplaName(match.a, match.aSource)}
                                           </div>
                                           <div className={`text-sm ${match.vencedor === match.b ? 'font-bold text-green-600' : 'text-gray-900 dark:text-white'}`}>
-                                            {getDuplaName(match.b)}
+                                            {getDuplaName(match.b, match.bSource)}
                                           </div>
                                         </div>
                                         

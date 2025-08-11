@@ -128,7 +128,7 @@ export const torneioStateUtils = {
   },
 
   /**
-   * Updates a specific match result and propagates winner to next match
+   * Updates a specific match result and propagates winner/loser to next matches using V/P references
    */
   updateMatchResult: (
     torneios: Torneio[], 
@@ -159,7 +159,40 @@ export const torneioStateUtils = {
         status: 'finalizado'
       };
       
-      // Propagate winner to next match if exists
+      // Propagate results to matches that reference this one
+      for (let i = 0; i < updatedMatches.length; i++) {
+        const match = updatedMatches[i];
+        if (!match) continue;
+        
+        let needsUpdate = false;
+        let updates: Partial<Match> = {};
+        
+        // Check if this match references the completed match as winner source
+        if (match.aSource?.type === 'winner' && match.aSource.matchId === matchId) {
+          updates.a = vencedor;
+          needsUpdate = true;
+        }
+        if (match.bSource?.type === 'winner' && match.bSource.matchId === matchId) {
+          updates.b = vencedor;
+          needsUpdate = true;
+        }
+        
+        // Check if this match references the completed match as loser source
+        if (match.aSource?.type === 'loser' && match.aSource.matchId === matchId) {
+          updates.a = perdedor;
+          needsUpdate = true;
+        }
+        if (match.bSource?.type === 'loser' && match.bSource.matchId === matchId) {
+          updates.b = perdedor;
+          needsUpdate = true;
+        }
+        
+        if (needsUpdate) {
+          updatedMatches[i] = { ...match, ...updates } as Match;
+        }
+      }
+      
+      // Legacy propagation for backward compatibility
       if (currentMatch.nextMatchId && currentMatch.nextMatchSlot) {
         const nextMatchIndex = updatedMatches.findIndex(m => m.id === currentMatch.nextMatchId);
         if (nextMatchIndex !== -1) {
@@ -168,7 +201,7 @@ export const torneioStateUtils = {
           updatedMatches[nextMatchIndex] = {
             ...nextMatch,
             [slotKey]: vencedor
-          };
+          } as Match;
         }
       }
       
@@ -194,7 +227,7 @@ export const torneioStateUtils = {
       if (!acc[match.round]) {
         acc[match.round] = [];
       }
-      acc[match.round].push(match);
+      acc[match.round]!.push(match);
       return acc;
     }, {} as Record<number, Match[]>);
 
