@@ -128,7 +128,7 @@ export const torneioStateUtils = {
   },
 
   /**
-   * Updates a specific match result and propagates winner to next match
+   * Updates a specific match result and propagates winner/loser for double elimination
    */
   updateMatchResult: (
     torneios: Torneio[], 
@@ -159,16 +159,49 @@ export const torneioStateUtils = {
         status: 'finalizado'
       };
       
-      // Propagate winner to next match if exists
+      // Handle double elimination propagation
+      if (currentMatch.proximoVencedorMatchId) {
+        const nextMatchIndex = updatedMatches.findIndex(m => m.id === currentMatch.proximoVencedorMatchId);
+        if (nextMatchIndex !== -1) {
+          const nextMatch = updatedMatches[nextMatchIndex];
+          if (nextMatch) {
+            // For double elimination, we need to place the winner in the correct slot
+            if (!nextMatch.a) {
+              updatedMatches[nextMatchIndex] = { ...nextMatch, a: vencedor };
+            } else if (!nextMatch.b) {
+              updatedMatches[nextMatchIndex] = { ...nextMatch, b: vencedor };
+            }
+          }
+        }
+      }
+      
+      // Handle loser bracket placement in double elimination
+      if (currentMatch.proximoPerdedorMatchId) {
+        const loserMatchIndex = updatedMatches.findIndex(m => m.id === currentMatch.proximoPerdedorMatchId);
+        if (loserMatchIndex !== -1) {
+          const loserMatch = updatedMatches[loserMatchIndex];
+          if (loserMatch) {
+            if (!loserMatch.a) {
+              updatedMatches[loserMatchIndex] = { ...loserMatch, a: perdedor };
+            } else if (!loserMatch.b) {
+              updatedMatches[loserMatchIndex] = { ...loserMatch, b: perdedor };
+            }
+          }
+        }
+      }
+      
+      // Legacy support: Propagate winner to next match if using old nextMatchId system
       if (currentMatch.nextMatchId && currentMatch.nextMatchSlot) {
         const nextMatchIndex = updatedMatches.findIndex(m => m.id === currentMatch.nextMatchId);
         if (nextMatchIndex !== -1) {
           const nextMatch = updatedMatches[nextMatchIndex];
-          const slotKey = currentMatch.nextMatchSlot === 1 ? 'a' : 'b';
-          updatedMatches[nextMatchIndex] = {
-            ...nextMatch,
-            [slotKey]: vencedor
-          };
+          if (nextMatch) {
+            const slotKey = currentMatch.nextMatchSlot === 1 ? 'a' : 'b';
+            updatedMatches[nextMatchIndex] = {
+              ...nextMatch,
+              [slotKey]: vencedor
+            };
+          }
         }
       }
       
@@ -194,7 +227,7 @@ export const torneioStateUtils = {
       if (!acc[match.round]) {
         acc[match.round] = [];
       }
-      acc[match.round].push(match);
+      acc[match.round]!.push(match);
       return acc;
     }, {} as Record<number, Match[]>);
 

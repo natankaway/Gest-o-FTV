@@ -52,7 +52,6 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
     if (!categoriaAtual || !selectedCategoria) return;
 
     const duplas = [...categoriaAtual.duplas];
-    const numDuplas = duplas.length;
     
     // Shuffle duplas for random seeding
     for (let i = duplas.length - 1; i > 0; i--) {
@@ -66,7 +65,36 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
 
     const matches: Match[] = [];
     
-    // Calculate bracket structure
+    if (categoriaAtual.formato === 'double') {
+      // Double elimination bracket generation
+      generateDoubleEliminationBracket(duplas, matches, selectedCategoria, categoriaAtual);
+    } else {
+      // Single elimination bracket generation (existing logic)
+      generateSingleEliminationBracket(duplas, matches, selectedCategoria, categoriaAtual);
+    }
+
+    const newBracket: BracketState = {
+      status: 'gerado',
+      matches,
+      roundAtual: 1,
+      configuracao: {
+        sorteioInicialSeed: Date.now()
+      }
+    };
+
+    setTorneios(prev => torneioStateUtils.updateChaveamento(
+      prev,
+      currentTorneio.id,
+      selectedCategoria,
+      () => newBracket
+    ));
+    
+    toast.success('Chaveamento gerado com sucesso!');
+  }, [categoriaAtual, selectedCategoria, currentTorneio.id, setTorneios]);
+
+  // Single elimination generation function (original logic)
+  const generateSingleEliminationBracket = (duplas: any[], matches: Match[], selectedCategoria: string, categoriaAtual: any) => {
+    const numDuplas = duplas.length;
     const totalRounds = Math.ceil(Math.log2(numDuplas));
     
     // Generate first round matches
@@ -139,11 +167,13 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
           const match1Index = matches.findIndex(m => m.id === match1Id);
           if (match1Index !== -1) {
             const currentMatch = matches[match1Index];
-            matches[match1Index] = {
-              ...currentMatch,
-              nextMatchId,
-              nextMatchSlot: 1
-            };
+            if (currentMatch) {
+              matches[match1Index] = {
+                ...currentMatch,
+                nextMatchId,
+                nextMatchSlot: 1
+              };
+            }
           }
         }
         
@@ -151,40 +181,393 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
           const match2Index = matches.findIndex(m => m.id === match2Id);
           if (match2Index !== -1) {
             const currentMatch = matches[match2Index];
-            matches[match2Index] = {
-              ...currentMatch,
-              nextMatchId,
-              nextMatchSlot: 2
-            };
+            if (currentMatch) {
+              matches[match2Index] = {
+                ...currentMatch,
+                nextMatchId,
+                nextMatchSlot: 2
+              };
+            }
           }
         }
       }
       
       currentRoundMatchIds = nextRoundMatchIds;
     }
+  };
 
-    const newBracket: BracketState = {
-      status: 'gerado',
-      matches,
-      roundAtual: 1,
-      configuracao: {
-        sorteioInicialSeed: Date.now()
-      }
-    };
-
-    setTorneios(prev => torneioStateUtils.updateChaveamento(
-      prev,
-      currentTorneio.id,
-      selectedCategoria,
-      () => newBracket
-    ));
+  // Double elimination generation function
+  const generateDoubleEliminationBracket = (duplas: any[], matches: Match[], selectedCategoria: string, categoriaAtual: any) => {
+    const numDuplas = duplas.length;
     
-    toast.success('Chaveamento gerado com sucesso!');
-  }, [categoriaAtual, selectedCategoria, currentTorneio.id, setTorneios]);
+    // Handle play-in matches for non-power-of-2 numbers
+    const nextPowerOf2 = Math.pow(2, Math.ceil(Math.log2(numDuplas)));
+    const playInMatches = numDuplas - (nextPowerOf2 / 2);
+    
+    let qualifiedTeams: string[] = [];
+    let wbRound = 1;
+    
+    // Play-in matches if needed
+    if (playInMatches > 0) {
+      for (let i = 0; i < playInMatches; i++) {
+        const duplaA = duplas[i * 2];
+        const duplaB = duplas[i * 2 + 1];
+        if (duplaA && duplaB) {
+          const matchId = `playin_${nanoid()}`;
+          matches.push({
+            id: matchId,
+            categoriaId: selectedCategoria,
+            fase: 'WB',
+            round: wbRound,
+            a: duplaA.id,
+            b: duplaB.id,
+            bestOf: 1,
+            winsToAdvance: 1,
+            status: 'pendente',
+            proximoVencedorMatchId: `wb_r${wbRound + 1}_${Math.floor(i / 2)}`,
+            proximoPerdedorMatchId: `lb_r1_${i}`
+          });
+        }
+      }
+      
+      // Teams that advance directly to main bracket
+      for (let i = playInMatches * 2; i < duplas.length; i++) {
+        qualifiedTeams.push(duplas[i].id);
+      }
+      
+      wbRound++;
+    } else {
+      // All teams start in first round
+      qualifiedTeams = duplas.map(d => d.id);
+    }
+    
+    // Generate Winner Bracket
+    const wbTeamCount = nextPowerOf2 / 2;
+    const wbRounds = Math.log2(wbTeamCount);
+    
+    // WB Round 1 (or 2 if there were play-ins)
+    let currentWBTeams = wbTeamCount;
+    for (let round = wbRound; round <= wbRound + wbRounds - 1; round++) {
+      const matchesInRound = currentWBTeams / 2;
+      
+      for (let i = 0; i < matchesInRound; i++) {
+        const matchId = `wb_r${round}_${i}`;
+        const isWBFinal = round === wbRound + wbRounds - 1;
+        
+        matches.push({
+          id: matchId,
+          categoriaId: selectedCategoria,
+          fase: 'WB',
+          round: round,
+          bestOf: 1,
+          winsToAdvance: 1,
+          status: 'pendente',
+          proximoVencedorMatchId: isWBFinal ? 'semifinal_1' : `wb_r${round + 1}_${Math.floor(i / 2)}`,
+          proximoPerdedorMatchId: `lb_r${calculateLBRound(round, wbRound)}_${i}`
+        });
+      }
+      
+      currentWBTeams /= 2;
+    }
+    
+    // Generate Loser Bracket
+    generateLoserBracket(matches, selectedCategoria, wbTeamCount);
+    
+    // Generate Semifinals (Games 21 and 22)
+    matches.push({
+      id: 'semifinal_1',
+      categoriaId: selectedCategoria,
+      fase: 'SF',
+      round: 100, // Use high numbers to separate from WB/LB rounds
+      bestOf: categoriaAtual.bestOfSF || 1,
+      winsToAdvance: Math.ceil((categoriaAtual.bestOfSF || 1) / 2),
+      status: 'pendente',
+      proximoVencedorMatchId: 'grand_final',
+      proximoPerdedorMatchId: '3rd_place'
+    });
+    
+    matches.push({
+      id: 'semifinal_2',
+      categoriaId: selectedCategoria,
+      fase: 'SF',
+      round: 100,
+      bestOf: categoriaAtual.bestOfSF || 1,
+      winsToAdvance: Math.ceil((categoriaAtual.bestOfSF || 1) / 2),
+      status: 'pendente',
+      proximoVencedorMatchId: 'grand_final',
+      proximoPerdedorMatchId: '3rd_place'
+    });
+    
+    // 3rd Place Playoff
+    matches.push({
+      id: '3rd_place',
+      categoriaId: selectedCategoria,
+      fase: '3P',
+      round: 101,
+      bestOf: 1,
+      winsToAdvance: 1,
+      status: 'pendente'
+    });
+    
+    // Grand Final
+    matches.push({
+      id: 'grand_final',
+      categoriaId: selectedCategoria,
+      fase: 'F',
+      round: 102,
+      bestOf: categoriaAtual.bestOfFinal || 1,
+      winsToAdvance: Math.ceil((categoriaAtual.bestOfFinal || 1) / 2),
+      status: 'pendente'
+    });
+  };
+  
+  // Helper function to generate loser bracket
+  const generateLoserBracket = (matches: Match[], selectedCategoria: string, wbTeamCount: number) => {
+    let lbTeamsInRound = wbTeamCount / 2; // Losers from WB Round 1
+    
+    // LB has alternating rounds: losers from WB + elimination matches
+    const lbRounds = (Math.log2(wbTeamCount) * 2) - 1;
+    
+    for (let round = 1; round <= lbRounds; round++) {
+      const isEliminationRound = round % 2 === 0;
+      const matchesInRound = isEliminationRound ? lbTeamsInRound / 2 : lbTeamsInRound;
+      
+      for (let i = 0; i < matchesInRound; i++) {
+        const matchId = `lb_r${round}_${i}`;
+        const isLBFinal = round === lbRounds;
+        
+        matches.push({
+          id: matchId,
+          categoriaId: selectedCategoria,
+          fase: 'LB',
+          round: round,
+          bestOf: 1,
+          winsToAdvance: 1,
+          status: 'pendente',
+          proximoVencedorMatchId: isLBFinal ? 'semifinal_2' : `lb_r${round + 1}_${isEliminationRound ? i : Math.floor(i / 2)}`
+        });
+      }
+      
+      if (isEliminationRound) {
+        lbTeamsInRound /= 2;
+      }
+    }
+  };
+  
+  // Helper function to calculate which LB round losers from WB should enter
+  const calculateLBRound = (wbRound: number, wbStartRound: number) => {
+    return (wbRound - wbStartRound) * 2 + 1;
+  };
+
+  // Helper function to render a single match
+  const renderMatch = useCallback((match: Match) => (
+    <div
+      key={match.id}
+      className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-4 ${
+        match.status === 'finalizado' 
+          ? 'border-green-200 dark:border-green-800' 
+          : 'border-gray-200 dark:border-gray-700'
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="text-xs text-gray-600 dark:text-gray-400">
+              {match.fase}
+            </div>
+            {match.bestOf && match.bestOf > 1 && (
+              <div className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded">
+                MD{match.bestOf}
+              </div>
+            )}
+            {match.status === 'finalizado' && (
+              <div className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded">
+                Finalizada
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <div className="flex-1 space-y-1">
+              <div className={`text-sm ${match.vencedor === match.a ? 'font-bold text-green-600' : 'text-gray-900 dark:text-white'}`}>
+                {getDuplaName(match.a)}
+              </div>
+              <div className={`text-sm ${match.vencedor === match.b ? 'font-bold text-green-600' : 'text-gray-900 dark:text-white'}`}>
+                {getDuplaName(match.b)}
+              </div>
+            </div>
+            
+            <div className="text-right">
+              {match.placar ? (
+                <div className="space-y-1">
+                  {/* Total Score */}
+                  <div className={`font-bold text-lg ${match.vencedor === match.a ? 'text-green-600' : 'text-gray-600'}`}>
+                    {match.placar.a}
+                  </div>
+                  <div className={`font-bold text-lg ${match.vencedor === match.b ? 'text-green-600' : 'text-gray-600'}`}>
+                    {match.placar.b}
+                  </div>
+                  
+                  {/* Sets breakdown if available */}
+                  {match.scores && match.scores.length > 1 && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {match.scores.map((set, idx) => (
+                        <div key={idx}>
+                          Set {idx + 1}: {set.a}-{set.b}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-gray-400 text-lg">
+                  -<br />-
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        
+        {canEdit && match.a && match.b && (
+          <div className="ml-4">
+            {editingMatch === match.id ? (
+              <div className="space-y-2">
+                {/* Match Configuration Info */}
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {match.bestOf && match.bestOf > 1 
+                    ? `Melhor de ${match.bestOf} (vence quem ganhar ${Math.ceil(match.bestOf / 2)} set${Math.ceil(match.bestOf / 2) > 1 ? 's' : ''})`
+                    : 'Jogo único'
+                  }
+                </div>
+                
+                {/* Sets Input */}
+                <div className="space-y-2">
+                  {resultForm.sets.map((set, setIndex) => (
+                    <div key={setIndex} className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500 w-8">Set {setIndex + 1}:</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={set.placarA}
+                        onChange={(e) => updateSetScore(setIndex, 'placarA', e.target.value)}
+                        className="w-12 px-1 py-1 border rounded text-center text-xs transition-colors"
+                        style={{
+                          backgroundColor: 'var(--input-bg)',
+                          color: 'var(--input-text)',
+                          borderColor: 'var(--input-border)',
+                        }}
+                        placeholder="0"
+                      />
+                      <span className="text-gray-400 text-xs">x</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={set.placarB}
+                        onChange={(e) => updateSetScore(setIndex, 'placarB', e.target.value)}
+                        className="w-12 px-1 py-1 border rounded text-center text-xs transition-colors"
+                        style={{
+                          backgroundColor: 'var(--input-bg)',
+                          color: 'var(--input-text)',
+                          borderColor: 'var(--input-border)',
+                        }}
+                        placeholder="0"
+                      />
+                      {resultForm.sets.length > 1 && (
+                        <button
+                          onClick={() => removeSet(setIndex)}
+                          className="px-1 py-1 text-red-600 hover:text-red-700 text-xs"
+                          title="Remover set"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Add Set Button (only for best-of matches) */}
+                {match.bestOf && match.bestOf > 1 && resultForm.sets.length < match.bestOf && (
+                  <button
+                    onClick={addSet}
+                    className="text-xs text-blue-600 hover:text-blue-700 underline"
+                  >
+                    + Adicionar set
+                  </button>
+                )}
+                
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveResult}
+                    className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                  >
+                    Salvar
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingMatch(null);
+                      setResultForm({ sets: [{placarA: '', placarB: ''}], currentSetIndex: 0 });
+                    }}
+                    className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => handleEditResult(match)}
+                className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+              >
+                <Play className="h-3 w-3" />
+                {match.placar ? 'Editar' : 'Registrar'}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  ), [canEdit, editingMatch, resultForm, handleEditResult, handleSaveResult, getDuplaName, addSet, removeSet, updateSetScore]);
+
+  // Helper function to render bracket matches organized by rounds
+  const renderBracketMatches = useCallback((matches: Match[]) => {
+    if (matches.length === 0) {
+      return (
+        <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
+          Nenhuma partida
+        </div>
+      );
+    }
+
+    // Group matches by round
+    const matchesByRound = matches.reduce((acc, match) => {
+      if (!acc[match.round]) {
+        acc[match.round] = [];
+      }
+      acc[match.round]!.push(match);
+      return acc;
+    }, {} as Record<number, Match[]>);
+
+    return (
+      <div className="space-y-4">
+        {Object.entries(matchesByRound)
+          .sort(([a], [b]) => Number(a) - Number(b))
+          .map(([round, roundMatches]) => (
+            <div key={round} className="space-y-2">
+              <div className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                Rodada {round} ({roundMatches.filter(m => m.status === 'finalizado').length}/{roundMatches.length})
+              </div>
+              <div className="space-y-2">
+                {roundMatches.map(match => renderMatch(match))}
+              </div>
+            </div>
+          ))}
+      </div>
+    );
+  }, [renderMatch]);
 
   const handleEditResult = useCallback((match: Match) => {
     const bestOf = match.bestOf || 1;
-    const winsToAdvance = Math.ceil(bestOf / 2);
     
     setEditingMatch(match.id);
     
@@ -439,27 +822,90 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
                 </div>
               </div>
 
-              {/* Matches organized by rounds */}
+              {/* Matches Display */}
               <div>
-                <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
-                  Partidas por Rodada
-                </h3>
-                
                 {categoriaAtual.chaveamento.matches.length === 0 ? (
                   <div className="text-center py-8">
                     <p className="text-gray-600 dark:text-gray-400">
                       Nenhuma partida gerada ainda
                     </p>
                   </div>
+                ) : categoriaAtual.formato === 'double' ? (
+                  // Double Elimination Layout
+                  <div className="space-y-8">
+                    <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
+                      Chaveamento Dupla Eliminação
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                      {/* Winner Bracket */}
+                      <div className="space-y-4">
+                        <h4 className="text-md font-medium text-gray-900 dark:text-white border-b pb-2">
+                          🏆 Chave dos Vencedores
+                        </h4>
+                        {renderBracketMatches(categoriaAtual.chaveamento.matches.filter(m => m.fase === 'WB'))}
+                      </div>
+                      
+                      {/* Loser Bracket */}
+                      <div className="space-y-4">
+                        <h4 className="text-md font-medium text-gray-900 dark:text-white border-b pb-2">
+                          🥈 Chave dos Perdedores
+                        </h4>
+                        {renderBracketMatches(categoriaAtual.chaveamento.matches.filter(m => m.fase === 'LB'))}
+                      </div>
+                      
+                      {/* Finals and Special Matches */}
+                      <div className="space-y-4">
+                        <h4 className="text-md font-medium text-gray-900 dark:text-white border-b pb-2">
+                          🎯 Fases Finais
+                        </h4>
+                        <div className="space-y-3">
+                          {/* Semifinals */}
+                          {categoriaAtual.chaveamento.matches.filter(m => m.fase === 'SF').map(match => (
+                            <div key={match.id}>
+                              <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                                Semifinal {match.id.includes('_1') ? '1' : '2'}
+                              </div>
+                              {renderMatch(match)}
+                            </div>
+                          ))}
+                          
+                          {/* 3rd Place */}
+                          {categoriaAtual.chaveamento.matches.filter(m => m.fase === '3P').map(match => (
+                            <div key={match.id}>
+                              <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                                🥉 Disputa 3º Lugar
+                              </div>
+                              {renderMatch(match)}
+                            </div>
+                          ))}
+                          
+                          {/* Grand Final */}
+                          {categoriaAtual.chaveamento.matches.filter(m => m.fase === 'F').map(match => (
+                            <div key={match.id}>
+                              <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                                🏅 Grande Final
+                              </div>
+                              {renderMatch(match)}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ) : (
+                  // Single Elimination Layout (existing logic)
                   <div className="space-y-6">
-                    {/* Group matches by round */}
+                    <h3 className="text-md font-semibold text-gray-900 dark:text-white mb-4">
+                      Partidas por Rodada
+                    </h3>
+                    
                     {Object.entries(
                       categoriaAtual.chaveamento.matches.reduce((acc, match) => {
                         if (!acc[match.round]) {
                           acc[match.round] = [];
                         }
-                        acc[match.round].push(match);
+                        acc[match.round]!.push(match);
                         return acc;
                       }, {} as Record<number, Match[]>)
                     )
@@ -485,174 +931,7 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
                             </div>
                             
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                              {matches.map((match) => (
-                                <div
-                                  key={match.id}
-                                  className={`bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-4 ${
-                                    match.status === 'finalizado' 
-                                      ? 'border-green-200 dark:border-green-800' 
-                                      : 'border-gray-200 dark:border-gray-700'
-                                  }`}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex-1">
-                                      <div className="flex items-center gap-2 mb-2">
-                                        <div className="text-xs text-gray-600 dark:text-gray-400">
-                                          {match.fase}
-                                        </div>
-                                        {match.bestOf && match.bestOf > 1 && (
-                                          <div className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded">
-                                            MD{match.bestOf}
-                                          </div>
-                                        )}
-                                        {match.status === 'finalizado' && (
-                                          <div className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 px-2 py-1 rounded">
-                                            Finalizada
-                                          </div>
-                                        )}
-                                      </div>
-                                      
-                                      <div className="flex items-center gap-4">
-                                        <div className="flex-1 space-y-1">
-                                          <div className={`text-sm ${match.vencedor === match.a ? 'font-bold text-green-600' : 'text-gray-900 dark:text-white'}`}>
-                                            {getDuplaName(match.a)}
-                                          </div>
-                                          <div className={`text-sm ${match.vencedor === match.b ? 'font-bold text-green-600' : 'text-gray-900 dark:text-white'}`}>
-                                            {getDuplaName(match.b)}
-                                          </div>
-                                        </div>
-                                        
-                                        <div className="text-right">
-                                          {match.placar ? (
-                                            <div className="space-y-1">
-                                              {/* Total Score */}
-                                              <div className={`font-bold text-lg ${match.vencedor === match.a ? 'text-green-600' : 'text-gray-600'}`}>
-                                                {match.placar.a}
-                                              </div>
-                                              <div className={`font-bold text-lg ${match.vencedor === match.b ? 'text-green-600' : 'text-gray-600'}`}>
-                                                {match.placar.b}
-                                              </div>
-                                              
-                                              {/* Sets breakdown if available */}
-                                              {match.scores && match.scores.length > 1 && (
-                                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                                  {match.scores.map((set, idx) => (
-                                                    <div key={idx}>
-                                                      Set {idx + 1}: {set.a}-{set.b}
-                                                    </div>
-                                                  ))}
-                                                </div>
-                                              )}
-                                            </div>
-                                          ) : (
-                                            <div className="text-gray-400 text-lg">
-                                              -<br />-
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                    
-                                    {canEdit && match.a && match.b && (
-                                      <div className="ml-4">
-                                        {editingMatch === match.id ? (
-                                          <div className="space-y-2">
-                                            {/* Match Configuration Info */}
-                                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                                              {match.bestOf && match.bestOf > 1 
-                                                ? `Melhor de ${match.bestOf} (vence quem ganhar ${Math.ceil(match.bestOf / 2)} set${Math.ceil(match.bestOf / 2) > 1 ? 's' : ''})`
-                                                : 'Jogo único'
-                                              }
-                                            </div>
-                                            
-                                            {/* Sets Input */}
-                                            <div className="space-y-2">
-                                              {resultForm.sets.map((set, setIndex) => (
-                                                <div key={setIndex} className="flex items-center gap-2">
-                                                  <span className="text-xs text-gray-500 w-8">Set {setIndex + 1}:</span>
-                                                  <input
-                                                    type="number"
-                                                    min="0"
-                                                    value={set.placarA}
-                                                    onChange={(e) => updateSetScore(setIndex, 'placarA', e.target.value)}
-                                                    className="w-12 px-1 py-1 border rounded text-center text-xs transition-colors"
-                                                    style={{
-                                                      backgroundColor: 'var(--input-bg)',
-                                                      color: 'var(--input-text)',
-                                                      borderColor: 'var(--input-border)',
-                                                    }}
-                                                    placeholder="0"
-                                                  />
-                                                  <span className="text-gray-400 text-xs">x</span>
-                                                  <input
-                                                    type="number"
-                                                    min="0"
-                                                    value={set.placarB}
-                                                    onChange={(e) => updateSetScore(setIndex, 'placarB', e.target.value)}
-                                                    className="w-12 px-1 py-1 border rounded text-center text-xs transition-colors"
-                                                    style={{
-                                                      backgroundColor: 'var(--input-bg)',
-                                                      color: 'var(--input-text)',
-                                                      borderColor: 'var(--input-border)',
-                                                    }}
-                                                    placeholder="0"
-                                                  />
-                                                  {resultForm.sets.length > 1 && (
-                                                    <button
-                                                      onClick={() => removeSet(setIndex)}
-                                                      className="px-1 py-1 text-red-600 hover:text-red-700 text-xs"
-                                                      title="Remover set"
-                                                    >
-                                                      ✕
-                                                    </button>
-                                                  )}
-                                                </div>
-                                              ))}
-                                            </div>
-                                            
-                                            {/* Add Set Button (only for best-of matches) */}
-                                            {match.bestOf && match.bestOf > 1 && resultForm.sets.length < match.bestOf && (
-                                              <button
-                                                onClick={addSet}
-                                                className="text-xs text-blue-600 hover:text-blue-700 underline"
-                                              >
-                                                + Adicionar set
-                                              </button>
-                                            )}
-                                            
-                                            {/* Action Buttons */}
-                                            <div className="flex gap-2">
-                                              <button
-                                                onClick={handleSaveResult}
-                                                className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
-                                              >
-                                                Salvar
-                                              </button>
-                                              <button
-                                                onClick={() => {
-                                                  setEditingMatch(null);
-                                                  setResultForm({ sets: [{placarA: '', placarB: ''}], currentSetIndex: 0 });
-                                                }}
-                                                className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700"
-                                              >
-                                                Cancelar
-                                              </button>
-                                            </div>
-                                          </div>
-                                        ) : (
-                                          <button
-                                            onClick={() => handleEditResult(match)}
-                                            className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
-                                          >
-                                            <Play className="h-3 w-3" />
-                                            {match.placar ? 'Editar' : 'Registrar'}
-                                          </button>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              ))}
+                              {matches.map((match) => renderMatch(match))}
                             </div>
                           </div>
                         );
