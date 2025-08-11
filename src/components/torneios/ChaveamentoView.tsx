@@ -48,49 +48,112 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
     return categoriaAtual.chaveamento.status === 'gerado' && !hasResults;
   }, [categoriaAtual]);
 
-  const generateBracket = useCallback(() => {
-    if (!categoriaAtual || !selectedCategoria) return;
+  const getDuplaName = useCallback((duplaId?: string) => {
+    if (!duplaId || !categoriaAtual) return 'TBD';
+    const dupla = categoriaAtual.duplas.find(d => d.id === duplaId);
+    if (!dupla) return 'TBD';
+    return dupla.nome || `${dupla.jogadores[0].nome} / ${dupla.jogadores[1].nome}`;
+  }, [categoriaAtual]);
 
-    const duplas = [...categoriaAtual.duplas];
+  const addSet = useCallback(() => {
+    setResultForm(prev => ({
+      ...prev,
+      sets: [...prev.sets, { placarA: '', placarB: '' }],
+      currentSetIndex: prev.sets.length
+    }));
+  }, []);
+
+  const removeSet = useCallback((setIndex: number) => {
+    setResultForm(prev => ({
+      ...prev,
+      sets: prev.sets.filter((_, index) => index !== setIndex),
+      currentSetIndex: Math.min(prev.currentSetIndex, prev.sets.length - 2)
+    }));
+  }, []);
+
+  const updateSetScore = useCallback((setIndex: number, field: 'placarA' | 'placarB', value: string) => {
+    setResultForm(prev => ({
+      ...prev,
+      sets: prev.sets.map((set, index) => 
+        index === setIndex ? { ...set, [field]: value } : set
+      )
+    }));
+  }, []);
+
+  const handleEditResult = useCallback((match: Match) => {
+    setEditingMatch(match.id);
     
-    // Shuffle duplas for random seeding
-    for (let i = duplas.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const temp = duplas[i];
-      if (temp && duplas[j]) {
-        duplas[i] = duplas[j];
-        duplas[j] = temp;
+    // Initialize sets based on existing scores or empty sets
+    const existingSets = match.scores || [];
+    const initSets = existingSets.length > 0 
+      ? existingSets.map(s => ({ placarA: s.a.toString(), placarB: s.b.toString() }))
+      : [{ placarA: '', placarB: '' }];
+    
+    setResultForm({
+      sets: initSets,
+      currentSetIndex: 0
+    });
+  }, []);
+
+  const handleSaveResult = useCallback(() => {
+    if (!editingMatch || !categoriaAtual || !selectedCategoria) return;
+
+    const currentMatch = categoriaAtual.chaveamento.matches.find(m => m.id === editingMatch);
+    if (!currentMatch) return;
+
+    const bestOf = currentMatch.bestOf || 1;
+    const winsToAdvance = Math.ceil(bestOf / 2);
+
+    // Validate all sets
+    const validSets: Array<{a: number, b: number}> = [];
+    for (const set of resultForm.sets) {
+      const placarA = parseInt(set.placarA);
+      const placarB = parseInt(set.placarB);
+
+      if (isNaN(placarA) || isNaN(placarB) || placarA < 0 || placarB < 0) {
+        toast.error('Por favor, insira placares válidos para todos os sets');
+        return;
       }
+
+      if (placarA === placarB) {
+        toast.error('O placar não pode ser empate em nenhum set');
+        return;
+      }
+
+      validSets.push({ a: placarA, b: placarB });
     }
 
-    const matches: Match[] = [];
-    
-    if (categoriaAtual.formato === 'double') {
-      // Double elimination bracket generation
-      generateDoubleEliminationBracket(duplas, matches, selectedCategoria, categoriaAtual);
-    } else {
-      // Single elimination bracket generation (existing logic)
-      generateSingleEliminationBracket(duplas, matches, selectedCategoria, categoriaAtual);
+    // Count wins for each team
+    let winsA = 0;
+    let winsB = 0;
+    for (const set of validSets) {
+      if (set.a > set.b) winsA++;
+      else winsB++;
     }
 
-    const newBracket: BracketState = {
-      status: 'gerado',
-      matches,
-      roundAtual: 1,
-      configuracao: {
-        sorteioInicialSeed: Date.now()
-      }
-    };
+    // Check if match is complete (someone reached winsToAdvance)
+    if (Math.max(winsA, winsB) < winsToAdvance) {
+      toast.error(`É necessário que uma equipe vença pelo menos ${winsToAdvance} set(s) para finalizar a partida`);
+      return;
+    }
 
-    setTorneios(prev => torneioStateUtils.updateChaveamento(
+    // Calculate final scores (total points across all sets)
+    const totalA = validSets.reduce((sum, set) => sum + set.a, 0);
+    const totalB = validSets.reduce((sum, set) => sum + set.b, 0);
+
+    // Use the enhanced updateMatchResult that handles propagation
+    setTorneios(prev => torneioStateUtils.updateMatchResult(
       prev,
       currentTorneio.id,
       selectedCategoria,
-      () => newBracket
+      editingMatch,
+      { placarA: totalA, placarB: totalB, scores: validSets }
     ));
-    
-    toast.success('Chaveamento gerado com sucesso!');
-  }, [categoriaAtual, selectedCategoria, currentTorneio.id, setTorneios]);
+
+    setEditingMatch(null);
+    setResultForm({ sets: [{placarA: '', placarB: ''}], currentSetIndex: 0 });
+    toast.success('Resultado registrado com sucesso!');
+  }, [editingMatch, categoriaAtual, selectedCategoria, currentTorneio.id, setTorneios, resultForm]);
 
   // Single elimination generation function (original logic)
   const generateSingleEliminationBracket = (duplas: any[], matches: Match[], selectedCategoria: string, categoriaAtual: any) => {
@@ -565,115 +628,6 @@ export const ChaveamentoView: React.FC<ChaveamentoViewProps> = ({
       </div>
     );
   }, [renderMatch]);
-
-  const handleEditResult = useCallback((match: Match) => {
-    const bestOf = match.bestOf || 1;
-    
-    setEditingMatch(match.id);
-    
-    // Initialize sets based on existing scores or empty sets
-    const existingSets = match.scores || [];
-    const initSets = existingSets.length > 0 
-      ? existingSets.map(s => ({ placarA: s.a.toString(), placarB: s.b.toString() }))
-      : [{ placarA: '', placarB: '' }];
-    
-    setResultForm({
-      sets: initSets,
-      currentSetIndex: 0
-    });
-  }, []);
-
-  const handleSaveResult = useCallback(() => {
-    if (!editingMatch || !categoriaAtual || !selectedCategoria) return;
-
-    const currentMatch = categoriaAtual.chaveamento.matches.find(m => m.id === editingMatch);
-    if (!currentMatch) return;
-
-    const bestOf = currentMatch.bestOf || 1;
-    const winsToAdvance = Math.ceil(bestOf / 2);
-
-    // Validate all sets
-    const validSets: Array<{a: number, b: number}> = [];
-    for (const set of resultForm.sets) {
-      const placarA = parseInt(set.placarA);
-      const placarB = parseInt(set.placarB);
-
-      if (isNaN(placarA) || isNaN(placarB) || placarA < 0 || placarB < 0) {
-        toast.error('Por favor, insira placares válidos para todos os sets');
-        return;
-      }
-
-      if (placarA === placarB) {
-        toast.error('O placar não pode ser empate em nenhum set');
-        return;
-      }
-
-      validSets.push({ a: placarA, b: placarB });
-    }
-
-    // Count wins for each team
-    let winsA = 0;
-    let winsB = 0;
-    for (const set of validSets) {
-      if (set.a > set.b) winsA++;
-      else winsB++;
-    }
-
-    // Check if match is complete (someone reached winsToAdvance)
-    if (Math.max(winsA, winsB) < winsToAdvance) {
-      toast.error(`É necessário que uma equipe vença pelo menos ${winsToAdvance} set(s) para finalizar a partida`);
-      return;
-    }
-
-    // Calculate final scores (total points across all sets)
-    const totalA = validSets.reduce((sum, set) => sum + set.a, 0);
-    const totalB = validSets.reduce((sum, set) => sum + set.b, 0);
-
-    // Use the enhanced updateMatchResult that handles propagation
-    setTorneios(prev => torneioStateUtils.updateMatchResult(
-      prev,
-      currentTorneio.id,
-      selectedCategoria,
-      editingMatch,
-      { placarA: totalA, placarB: totalB, scores: validSets }
-    ));
-
-    setEditingMatch(null);
-    setResultForm({ sets: [{placarA: '', placarB: ''}], currentSetIndex: 0 });
-    toast.success('Resultado registrado com sucesso!');
-  }, [editingMatch, categoriaAtual, selectedCategoria, currentTorneio.id, setTorneios, resultForm]);
-
-  const addSet = useCallback(() => {
-    setResultForm(prev => ({
-      ...prev,
-      sets: [...prev.sets, { placarA: '', placarB: '' }],
-      currentSetIndex: prev.sets.length
-    }));
-  }, []);
-
-  const removeSet = useCallback((setIndex: number) => {
-    setResultForm(prev => ({
-      ...prev,
-      sets: prev.sets.filter((_, index) => index !== setIndex),
-      currentSetIndex: Math.min(prev.currentSetIndex, prev.sets.length - 2)
-    }));
-  }, []);
-
-  const updateSetScore = useCallback((setIndex: number, field: 'placarA' | 'placarB', value: string) => {
-    setResultForm(prev => ({
-      ...prev,
-      sets: prev.sets.map((set, index) => 
-        index === setIndex ? { ...set, [field]: value } : set
-      )
-    }));
-  }, []);
-
-  const getDuplaName = useCallback((duplaId?: string) => {
-    if (!duplaId || !categoriaAtual) return 'TBD';
-    const dupla = categoriaAtual.duplas.find(d => d.id === duplaId);
-    if (!dupla) return 'TBD';
-    return dupla.nome || `${dupla.jogadores[0].nome} / ${dupla.jogadores[1].nome}`;
-  }, [categoriaAtual]);
 
   const getStatusColor = (status: BracketState['status']) => {
     switch (status) {
