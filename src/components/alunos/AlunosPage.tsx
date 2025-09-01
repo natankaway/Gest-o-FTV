@@ -227,10 +227,20 @@ const StudentCard: React.FC<StudentCardProps> = ({
 };
 
 export const AlunosPage: React.FC = memo(() => {
-  const { dadosMockados, setAlunos, activeTabFilter, setActiveTabFilter } = useAppState();
-  const { alunos, planos } = dadosMockados;
+  const { dadosMockados, setAlunos, activeTabFilter, setActiveTabFilter, userLogado } = useAppState();
+  const { alunos, planos, unidades } = dadosMockados;
   const { addNotification } = useNotifications();
+  // Unidades permitidas baseadas no perfil do usuário
+const allowedUnits = useMemo(() => {
+  if (!userLogado) return [];
   
+  if (userLogado.perfil === 'admin') {
+    return unidades.map(u => u.nome);
+  } else if (userLogado.perfil === 'gestor' && (userLogado as any).unidades) {
+    return (userLogado as any).unidades as string[];
+  }
+  return [];
+}, [userLogado, unidades]); 
   // Estados existentes
   const [showModal, setShowModal] = useState(false);
   const [editingAluno, setEditingAluno] = useState<Aluno | null>(null);
@@ -327,70 +337,77 @@ export const AlunosPage: React.FC = memo(() => {
   };
 
   // Dados filtrados com busca inteligente
-  const filteredAlunos = useMemo(() => {
-    return alunos.filter(aluno => {
-      // Busca inteligente
-      if (filters.searchTerm) {
-        const searchFields = [
-          aluno.nome,
-          aluno.email,
-          aluno.telefone,
-          aluno.unidade,
-          aluno.objetivo || ''
-        ];
-        
-        const matchesSearch = searchFields.some(field => 
-          fuzzyMatch(field, filters.searchTerm)
-        );
-        
-        if (!matchesSearch) return false;
-      }
+const filteredAlunos = useMemo(() => {
+  // PRIMEIRO: Filtrar por unidades permitidas
+  const scopedAlunos = alunos.filter(aluno => {
+    if (!allowedUnits.includes(aluno.unidade || '')) {
+      return false;
+    }
+    return true;
+  });
+
+  // DEPOIS: Aplicar filtros de busca nos dados com escopo
+  return scopedAlunos.filter(aluno => {
+    // Busca inteligente
+    if (filters.searchTerm) {
+      const searchFields = [
+        aluno.nome,
+        aluno.email,
+        aluno.telefone,
+        aluno.unidade,
+        aluno.objetivo || ''
+      ];
       
-      // Filtros básicos
-      if (filters.status !== 'todos' && aluno.status !== filters.status) return false;
-      if (filters.unidade !== 'todas' && aluno.unidade !== filters.unidade) return false;
-      if (filters.tipoPlano !== 'todos' && aluno.tipoPlano !== filters.tipoPlano) return false;
-      if (filters.nivel !== 'todos' && aluno.nivel !== filters.nivel) return false;
+      const matchesSearch = searchFields.some(field => 
+        fuzzyMatch(field, filters.searchTerm)
+      );
       
-      // Filtro de data
-      if (filters.dateRange.start && filters.dateRange.end) {
-        const targetDate = new Date(
-          filters.dateRange.field === 'dataMatricula' ? aluno.dataMatricula : aluno.vencimento
-        );
-        const startDate = new Date(filters.dateRange.start);
-        const endDate = new Date(filters.dateRange.end);
-        
-        if (targetDate < startDate || targetDate > endDate) return false;
-      }
+      if (!matchesSearch) return false;
+    }
+    
+    // Filtros básicos
+    if (filters.status !== 'todos' && aluno.status !== filters.status) return false;
+    if (filters.unidade !== 'todas' && aluno.unidade !== filters.unidade) return false;
+    if (filters.tipoPlano !== 'todos' && aluno.tipoPlano !== filters.tipoPlano) return false;
+    if (filters.nivel !== 'todos' && aluno.nivel !== filters.nivel) return false;
+    
+    // Filtro de data
+    if (filters.dateRange.start && filters.dateRange.end) {
+      const targetDate = new Date(
+        filters.dateRange.field === 'dataMatricula' ? aluno.dataMatricula : aluno.vencimento
+      );
+      const startDate = new Date(filters.dateRange.start);
+      const endDate = new Date(filters.dateRange.end);
       
-      // Filtro de preço (apenas para mensalistas)
-      if (aluno.tipoPlano === 'mensalidade' && aluno.planoId) {
-        const plano = planos.find(p => p.id === aluno.planoId);
-        if (plano) {
-          if (plano.preco < filters.priceRange.min || plano.preco > filters.priceRange.max) {
-            return false;
-          }
+      if (targetDate < startDate || targetDate > endDate) return false;
+    }
+    
+    // Filtro de preço (apenas para mensalistas)
+    if (aluno.tipoPlano === 'mensalidade' && aluno.planoId) {
+      const plano = planos.find(p => p.id === aluno.planoId);
+      if (plano) {
+        if (plano.preco < filters.priceRange.min || plano.preco > filters.priceRange.max) {
+          return false;
         }
       }
+    }
+    
+    // Filtro de dias para vencimento
+    if (filters.daysToExpiration > 0 && aluno.tipoPlano === 'mensalidade') {
+      const vencimento = new Date(aluno.vencimento);
+      const hoje = new Date();
+      const diasRestantes = Math.ceil((vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
       
-      // Filtro de dias para vencimento
-      if (filters.daysToExpiration > 0 && aluno.tipoPlano === 'mensalidade') {
-        const vencimento = new Date(aluno.vencimento);
-        const hoje = new Date();
-        const diasRestantes = Math.ceil((vencimento.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
-        
-        if (diasRestantes > filters.daysToExpiration) return false;
-      }
-      
-      return true;
-    });
-  }, [alunos, filters, planos]);
-
+      if (diasRestantes > filters.daysToExpiration) return false;
+    }
+    
+    return true;
+  });
+}, [alunos, allowedUnits, filters, planos]); // IMPORTANTE: Adicionar allowedUnits nas dependências
   // Unidades disponíveis
-  const unidades = useMemo(() => {
-    const uniqueUnidades = [...new Set(alunos.map(a => a.unidade))];
-    return uniqueUnidades.filter(Boolean);
-  }, [alunos]);
+const unidadesDisponiveis = useMemo(() => {
+  return allowedUnits.filter(Boolean);
+}, [allowedUnits]);
 
   // Sugestões de busca
   const searchSuggestions = useMemo(() => {
@@ -859,6 +876,36 @@ export const AlunosPage: React.FC = memo(() => {
 
     if (!showAdvancedFilters) return null;
 
+// Verificação de acesso
+if (!userLogado || (userLogado.perfil !== 'admin' && userLogado.perfil !== 'gestor')) {
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+            Gestão de Alunos
+          </h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
+            Gerencie todos os alunos do centro de treinamento
+          </p>
+        </div>
+      </div>
+      <div className="min-h-[400px] flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="mx-auto h-12 w-12 text-red-500 dark:text-red-400 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            Acesso Negado
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400 max-w-md">
+            Você não tem permissão para acessar a gestão de alunos. 
+            Apenas administradores e gestores podem visualizar essas informações.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
     return (
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mb-6">
         <div className="flex items-center justify-between mb-6">
@@ -1295,8 +1342,11 @@ export const AlunosPage: React.FC = memo(() => {
             Gestão de Alunos
           </h1>
           <p className="mt-2 text-gray-600 dark:text-gray-400">
-            Gerencie todos os alunos do centro de treinamento
-          </p>
+  {userLogado.perfil === 'admin' 
+    ? 'Gerencie todos os alunos do centro de treinamento'
+    : `Gerencie os alunos das suas unidades: ${allowedUnits.join(', ')}`
+  }
+</p>
         </div>
         <div className="mt-4 sm:mt-0 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
           <Button
@@ -1528,9 +1578,9 @@ export const AlunosPage: React.FC = memo(() => {
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="todas">Todas as unidades</option>
-              {unidades.map(unidade => (
-                <option key={unidade} value={unidade}>{unidade}</option>
-              ))}
+              {unidadesDisponiveis.map(unidade => (
+  <option key={unidade} value={unidade}>{unidade}</option>
+))}
             </select>
           </div>
 

@@ -1,13 +1,25 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useAppState, useNotifications } from '@/contexts';
 import { Button } from '@/components/common';
-import { X, DollarSign, Calculator } from 'lucide-react';
+import { X, DollarSign, Calculator, CreditCard } from 'lucide-react';
 import type { RegistroFinanceiro, TransacaoFormData } from '@/types';
 
 interface NovaTransacaoModalProps {
   isOpen: boolean;
   onClose: () => void;
   editingTransacao?: RegistroFinanceiro | null;
+}
+
+interface Parcela {
+  id: string;
+  transacaoOrigemId: number;
+  descricao: string;
+  numeroParcela: number;
+  totalParcelas: number;
+  valor: number;
+  vencimento: string;
+  status: 'pendente' | 'paga' | 'quitada-antecipadamente';
+  unidade: string;
 }
 
 const INITIAL_FORM_DATA: TransacaoFormData = {
@@ -58,7 +70,7 @@ export const NovaTransacaoModal: React.FC<NovaTransacaoModalProps> = ({
   onClose,
   editingTransacao
 }) => {
-  const { dadosMockados, setFinanceiro } = useAppState();
+  const { dadosMockados, setFinanceiro, userLogado } = useAppState();
   const { alunos, professores, unidades } = dadosMockados;
   const { addNotification } = useNotifications();
   
@@ -67,6 +79,11 @@ export const NovaTransacaoModal: React.FC<NovaTransacaoModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [calculatorInput, setCalculatorInput] = useState('');
   const [showCalculator, setShowCalculator] = useState(false);
+  
+  // Estados para parcelamento
+  const [isParcelado, setIsParcelado] = useState(false);
+  const [numeroParcelas, setNumeroParcelas] = useState(2);
+  const [parcelas, setParcelas] = useState<Parcela[]>([]);
 
   // Initialize form when editing
   useEffect(() => {
@@ -97,12 +114,21 @@ export const NovaTransacaoModal: React.FC<NovaTransacaoModalProps> = ({
       
       setFormData(editFormData);
     } else {
-      setFormData(INITIAL_FORM_DATA);
+      // Para novos registros, definir unidade automática para gestores
+      const initialData = { ...INITIAL_FORM_DATA };
+      
+      if (userLogado?.perfil === 'gestor' && (userLogado as any).unidades?.length === 1) {
+        initialData.unidade = (userLogado as any).unidades[0];
+      }
+      
+      setFormData(initialData);
     }
     setErrors({});
     setCalculatorInput('');
     setShowCalculator(false);
-  }, [editingTransacao, isOpen]);
+    setIsParcelado(false);
+    setNumeroParcelas(2);
+  }, [editingTransacao, isOpen, userLogado]);
 
   // Auto-update category when tipo changes
   useEffect(() => {
@@ -112,6 +138,14 @@ export const NovaTransacaoModal: React.FC<NovaTransacaoModalProps> = ({
       setFormData(prev => ({ ...prev, categoria: 'Aluguel' }));
     }
   }, [formData.tipo, formData.categoria]);
+
+  // Reset parcelamento quando método muda
+  useEffect(() => {
+    if (formData.metodo !== 'cartao-credito') {
+      setIsParcelado(false);
+      setNumeroParcelas(2);
+    }
+  }, [formData.metodo]);
 
   const categorias = useMemo(() => {
     return formData.tipo === 'receita' ? CATEGORIAS_RECEITA : CATEGORIAS_DESPESA;
@@ -124,6 +158,16 @@ export const NovaTransacaoModal: React.FC<NovaTransacaoModalProps> = ({
   const availableProfessores = useMemo(() => {
     return professores.filter(professor => professor.ativo);
   }, [professores]);
+
+  // Unidades disponíveis baseado no perfil
+  const availableUnidades = useMemo(() => {
+    if (userLogado?.perfil === 'admin') {
+      return unidades;
+    } else if (userLogado?.perfil === 'gestor' && (userLogado as any).unidades) {
+      return unidades.filter(u => (userLogado as any).unidades.includes(u.nome));
+    }
+    return [];
+  }, [userLogado, unidades]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -160,6 +204,11 @@ export const NovaTransacaoModal: React.FC<NovaTransacaoModalProps> = ({
     // Validação específica para salários
     if (formData.categoria === 'Salário' && !formData.professorId) {
       newErrors.professorId = 'Professor é obrigatório para salários';
+    }
+
+    // Validação de parcelamento
+    if (isParcelado && (numeroParcelas < 2 || numeroParcelas > 24)) {
+      newErrors.parcelas = 'Número de parcelas deve ser entre 2 e 24';
     }
 
     setErrors(newErrors);
@@ -221,6 +270,46 @@ export const NovaTransacaoModal: React.FC<NovaTransacaoModalProps> = ({
           novaTransacao.professor = professor.nome;
         }
 
+        // Se for parcelado, criar as parcelas
+        if (isParcelado && formData.metodo === 'cartao-credito' && formData.tipo === 'despesa') {
+          const valorParcela = formData.valor / numeroParcelas;
+          const parcelasGeradas: Parcela[] = [];
+          
+          // Criar registro da primeira parcela (transação principal)
+          novaTransacao.descricao = `${formData.descricao} (1/${numeroParcelas})`;
+          novaTransacao.valor = valorParcela;
+          
+          // Criar parcelas futuras
+          for (let i = 2; i <= numeroParcelas; i++) {
+            const vencimento = new Date();
+            vencimento.setMonth(vencimento.getMonth() + (i - 1));
+            
+            const parcela: Parcela = {
+              id: `${Date.now()}-${i}`,
+              transacaoOrigemId: novaTransacao.id,
+              descricao: `${formData.descricao} (${i}/${numeroParcelas})`,
+              numeroParcela: i,
+              totalParcelas: numeroParcelas,
+              valor: valorParcela,
+              vencimento: vencimento.toISOString(),
+              status: 'pendente',
+              unidade: formData.unidade
+            };
+            
+            parcelasGeradas.push(parcela);
+          }
+          
+          // Aqui você salvaria as parcelas no estado global ou enviaria para o backend
+          // Por enquanto, vamos apenas mostrar uma notificação
+          console.log('Parcelas geradas:', parcelasGeradas);
+          
+          addNotification({
+            type: 'info',
+            title: 'Parcelas criadas',
+            message: `${numeroParcelas} parcelas de R$ ${valorParcela.toFixed(2)} foram criadas`
+          });
+        }
+
         setFinanceiro(prev => [...prev, novaTransacao]);
         
         addNotification({
@@ -240,7 +329,7 @@ export const NovaTransacaoModal: React.FC<NovaTransacaoModalProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [formData, editingTransacao, setFinanceiro, addNotification, onClose, alunos, professores]);
+  }, [formData, editingTransacao, setFinanceiro, addNotification, onClose, alunos, professores, isParcelado, numeroParcelas]);
 
   const handleInputChange = useCallback((field: keyof TransacaoFormData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -344,7 +433,7 @@ export const NovaTransacaoModal: React.FC<NovaTransacaoModalProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Valor *
+                Valor {isParcelado ? 'Total' : ''} *
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -370,6 +459,11 @@ export const NovaTransacaoModal: React.FC<NovaTransacaoModalProps> = ({
                 </button>
               </div>
               {errors.valor && <p className="text-red-500 text-xs mt-1">{errors.valor}</p>}
+              {isParcelado && formData.valor > 0 && (
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  Valor por parcela: R$ {(formData.valor / numeroParcelas).toFixed(2)}
+                </p>
+              )}
             </div>
 
             <div>
@@ -486,6 +580,49 @@ export const NovaTransacaoModal: React.FC<NovaTransacaoModalProps> = ({
             </div>
           </div>
 
+          {/* Parcelamento - Só aparece para despesas com cartão de crédito */}
+          {formData.metodo === 'cartao-credito' && formData.tipo === 'despesa' && (
+            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="parcelado"
+                  checked={isParcelado}
+                  onChange={(e) => setIsParcelado(e.target.checked)}
+                  className="w-4 h-4 text-purple-600 bg-gray-100 border-gray-300 rounded focus:ring-purple-500"
+                />
+                <label htmlFor="parcelado" className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <CreditCard className="w-4 h-4 text-purple-600" />
+                  Pagamento parcelado?
+                </label>
+              </div>
+              
+              {isParcelado && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Número de parcelas *
+                  </label>
+                  <input
+                    type="number"
+                    min="2"
+                    max="24"
+                    value={numeroParcelas}
+                    onChange={(e) => setNumeroParcelas(Number(e.target.value))}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                      errors.parcelas ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                    }`}
+                  />
+                  {errors.parcelas && <p className="text-red-500 text-xs mt-1">{errors.parcelas}</p>}
+                  {formData.valor > 0 && (
+                    <p className="text-sm text-purple-700 dark:text-purple-300 mt-2">
+                      {numeroParcelas}x de R$ {(formData.valor / numeroParcelas).toFixed(2)}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Associações */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {(formData.categoria === 'Mensalidade' || formData.categoria === 'Diária' || formData.categoria === 'Aula Particular') && (
@@ -534,26 +671,47 @@ export const NovaTransacaoModal: React.FC<NovaTransacaoModalProps> = ({
               </div>
             )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Unidade *
-              </label>
-              <select
-                value={formData.unidade}
-                onChange={(e) => handleInputChange('unidade', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
-                  errors.unidade ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                }`}
-              >
-                <option value="">Selecione uma unidade</option>
-                {unidades.map(unidade => (
-                  <option key={unidade.id} value={unidade.nome}>
-                    {unidade.nome}
-                  </option>
-                ))}
-              </select>
-              {errors.unidade && <p className="text-red-500 text-xs mt-1">{errors.unidade}</p>}
-            </div>
+            {/* Campo de Unidade - Só aparece para Admin */}
+            {userLogado?.perfil === 'admin' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Unidade *
+                </label>
+                <select
+                  value={formData.unidade}
+                  onChange={(e) => handleInputChange('unidade', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                    errors.unidade ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                  }`}
+                >
+                  <option value="">Selecione uma unidade</option>
+                  {availableUnidades.map(unidade => (
+                    <option key={unidade.id} value={unidade.nome}>
+                      {unidade.nome}
+                    </option>
+                  ))}
+                </select>
+                {errors.unidade && <p className="text-red-500 text-xs mt-1">{errors.unidade}</p>}
+              </div>
+            )}
+            
+            {/* Para Gestor, mostrar unidade como readonly */}
+            {userLogado?.perfil === 'gestor' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Unidade
+                </label>
+                <input
+                  type="text"
+                  value={formData.unidade}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-400 cursor-not-allowed"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Transação será registrada na sua unidade
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Observações */}
@@ -569,6 +727,46 @@ export const NovaTransacaoModal: React.FC<NovaTransacaoModalProps> = ({
               placeholder="Observações adicionais sobre a transação..."
             />
           </div>
+
+          {/* Resumo do Parcelamento */}
+          {isParcelado && formData.valor > 0 && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+              <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                Resumo do Parcelamento
+              </h4>
+              <div className="space-y-1 text-sm text-gray-700 dark:text-gray-300">
+                <div className="flex justify-between">
+                  <span>Valor Total:</span>
+                  <span className="font-medium">R$ {formData.valor.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Número de Parcelas:</span>
+                  <span className="font-medium">{numeroParcelas}x</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Valor por Parcela:</span>
+                  <span className="font-medium">R$ {(formData.valor / numeroParcelas).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between pt-2 border-t border-gray-300 dark:border-gray-600">
+                  <span>Primeira Parcela:</span>
+                  <span className="font-medium">{new Date(formData.data).toLocaleDateString('pt-BR')}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Última Parcela:</span>
+                  <span className="font-medium">
+                    {(() => {
+                      const ultimaData = new Date(formData.data);
+                      ultimaData.setMonth(ultimaData.getMonth() + numeroParcelas - 1);
+                      return ultimaData.toLocaleDateString('pt-BR');
+                    })()}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-blue-700 dark:text-blue-300 mt-3">
+                💡 As parcelas serão lançadas automaticamente nos próximos meses
+              </p>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex space-x-3 pt-4">

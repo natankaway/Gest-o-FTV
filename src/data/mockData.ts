@@ -23,72 +23,80 @@ export const mockData: MockData = {
     { id: 12, nome: 'Plano Avançado (Livre)', preco: 230.00, unidade: 'Barra' },
   ],
   
-  alunos: [
-    { 
-      id: 1, 
-      nome: 'João Silva', 
-      telefone: '(11) 99999-9999', 
-      email: 'joao@email.com', 
-      tipoPlano: 'plataforma',
-      plataformaParceira: 'Wellhub',
-      unidade: 'Centro',
-      status: 'ativo', 
-      vencimento: '2025-07-15', 
-      senha: '123456', 
-      nivel: 'intermediario', 
-      dataMatricula: '2024-01-15', 
-      objetivo: 'Competição',
-      ativo: true 
-    },
-    { 
-      id: 2, 
-      nome: 'Maria Santos', 
-      telefone: '(11) 88888-8888', 
-      email: 'maria@email.com', 
-      tipoPlano: 'mensalidade',
-      planoId: 1, 
-      unidade: 'Zona Sul',
-      status: 'ativo', 
-      vencimento: '2025-07-20', 
-      senha: '123456', 
-      nivel: 'iniciante', 
-      dataMatricula: '2024-03-20', 
-      objetivo: 'Lazer',
-      ativo: true 
-    },
-    { 
-      id: 3, 
-      nome: 'Pedro Costa', 
-      telefone: '(11) 77777-7777', 
-      email: 'pedro@email.com', 
-      tipoPlano: 'mensalidade',
-      planoId: 3, 
-      unidade: 'Zona Norte',
-      status: 'pendente', 
-      vencimento: '2025-07-10', 
-      senha: '123456', 
-      nivel: 'avancado', 
-      dataMatricula: '2023-11-10', 
-      objetivo: 'Fitness',
-      ativo: true 
-    },
-    { 
-      id: 4, 
-      nome: 'Ana Oliveira', 
-      telefone: '(11) 66666-6666', 
-      email: 'ana@email.com', 
-      tipoPlano: 'plataforma',
-      plataformaParceira: 'TotalPass',
-      unidade: 'Barra',
-      status: 'ativo', 
-      vencimento: '2025-08-01', 
-      senha: '123456', 
-      nivel: 'intermediario', 
-      dataMatricula: '2024-02-05', 
-      objetivo: 'Competição',
-      ativo: true 
-    }
-  ],
+  // Correção para o mockData.ts - apenas a seção de alunos
+
+alunos: [
+  { 
+    id: 1, 
+    nome: 'João Silva', 
+    telefone: '(11) 99999-9999', 
+    email: 'joao@email.com', 
+    tipoPlano: 'plataforma',
+    plataformaParceira: 'Wellhub',
+    unidade: 'Centro',
+    status: 'ativo', 
+    vencimento: '2025-07-15', 
+    senha: '123456', 
+    nivel: 'intermediario', 
+    dataMatricula: '2024-01-15', 
+    objetivo: 'Competição',
+    ativo: true 
+  },
+  { 
+    id: 2, 
+    nome: 'Maria Santos', 
+    telefone: '(11) 88888-8888', 
+    email: 'maria@email.com', 
+    tipoPlano: 'mensalidade',
+    planoId: 4, // CORRIGIDO: era 1, agora é 4 (Plano Básico Zona Sul - R$ 150,00)
+    unidade: 'Zona Sul',
+    status: 'ativo', 
+    vencimento: '2025-07-20', 
+    senha: '123456', 
+    nivel: 'iniciante', 
+    dataMatricula: '2024-03-20', 
+    objetivo: 'Lazer',
+    ativo: true 
+  },
+  { 
+    id: 3, 
+    nome: 'Pedro Costa', 
+    telefone: '(11) 77777-7777', 
+    email: 'pedro@email.com', 
+    tipoPlano: 'mensalidade',
+    planoId: 9, // CORRIGIDO: era 3, agora é 9 (Plano Avançado Zona Norte - R$ 170,00)
+    unidade: 'Zona Norte',
+    status: 'pendente', 
+    vencimento: '2025-07-10', 
+    senha: '123456', 
+    nivel: 'avancado', 
+    dataMatricula: '2023-11-10', 
+    objetivo: 'Fitness',
+    ativo: true 
+  },
+  { 
+    id: 4, 
+    nome: 'Ana Oliveira', 
+    telefone: '(11) 66666-6666', 
+    email: 'ana@email.com', 
+    tipoPlano: 'plataforma',
+    plataformaParceira: 'TotalPass',
+    unidade: 'Barra',
+    status: 'ativo', 
+    vencimento: '2025-08-01', 
+    senha: '123456', 
+    nivel: 'intermediario', 
+    dataMatricula: '2024-02-05', 
+    objetivo: 'Competição',
+    ativo: true 
+  }
+],
+
+// REFERÊNCIA DOS PLANOS POR UNIDADE:
+// Centro: IDs 1, 2, 3 (R$ 120, 150, 180)
+// Zona Sul: IDs 4, 5, 6 (R$ 150, 180, 220) 
+// Zona Norte: IDs 7, 8, 9 (R$ 110, 140, 170)
+// Barra: IDs 10, 11, 12 (R$ 160, 190, 230)
 
   professores: [
     { 
