@@ -21,6 +21,7 @@ import type {
   Treino,
   Exercicio,
   Torneio,
+  AulaExperimental,
   CartItem,
   TabKeys,
   ConfigCT
@@ -45,6 +46,7 @@ interface AppStateContextType extends AppState {
   setTreinos: React.Dispatch<React.SetStateAction<Treino[]>>;
   setExercicios: React.Dispatch<React.SetStateAction<Exercicio[]>>;
   setTorneios: React.Dispatch<React.SetStateAction<Torneio[]>>;
+  setAulasExperimentais: React.Dispatch<React.SetStateAction<AulaExperimental[]>>;
   setConfigCT: React.Dispatch<React.SetStateAction<ConfigCT>>;
   
   // Session state
@@ -99,6 +101,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const [treinos, setTreinos] = useLocalStorage<Treino[]>('treinos', mockData.treinos);
   const [exercicios, setExercicios] = useLocalStorage<Exercicio[]>('exercicios', mockData.exercicios);
   const [torneios, setTorneios] = useLocalStorage<Torneio[]>('torneios', mockData.torneios);
+  const [aulasExperimentais, setAulasExperimentais] = useLocalStorage<AulaExperimental[]>('aulasExperimentais', mockData.aulasExperimentais);
   const [configCT, setConfigCT] = useLocalStorage<ConfigCT>('configCT', mockData.configCT);
 
   // Session state (not persisted)
@@ -173,11 +176,12 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     treinos,
     exercicios,
     torneios,
+	aulasExperimentais,
     configCT
   }), [
     planos, alunos, professores, unidades, presencas,
     financeiro, produtos, plataformas, horarios, gestores, metas, metasGerais, alugueis,
-    agendamentos, treinos, exercicios, torneios, configCT
+    agendamentos, treinos, exercicios, torneios, aulasExperimentais, configCT
   ]);
 
   const value = useMemo(() => ({
@@ -204,6 +208,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setTreinos,
     setExercicios,
     setTorneios,
+	setAulasExperimentais,
     setConfigCT,
     setUserLogado,
     setUnidadeSelecionada,
@@ -244,6 +249,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setTreinos,
     setExercicios,
     setTorneios,
+	setAulasExperimentais,
     setConfigCT,
     activeTab,
     activeTabFilter,

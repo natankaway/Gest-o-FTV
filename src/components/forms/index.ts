@@ -7,3 +7,5 @@ export { NovoAgendamentoModal } from './NovoAgendamentoModal';
 export { NovaTransacaoModal } from './NovaTransacaoModal';
 export { NovoTreinoModal } from './NovoTreinoModal';
 export { NovoProdutoModal } from './NovoProdutoModal';
+export { DetalhesAulaExperimentalModal } from './DetalhesAulaExperimentalModal';
+export { ConversaoPlanoModal } from './ConversaoPlanoModal';

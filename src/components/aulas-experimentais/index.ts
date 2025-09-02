@@ -1,0 +1,1 @@
+export { AulasExperimentaisPage } from './AulasExperimentaisPage';

@@ -1594,6 +1594,7 @@ if (!userLogado || (userLogado.perfil !== 'admin' && userLogado.perfil !== 'gest
               <option value="todos">Todos os tipos</option>
               <option value="mensalidade">Mensalidade</option>
               <option value="plataforma">Plataforma</option>
+			  <option value="experimental">Experimental</option>
             </select>
           </div>
 

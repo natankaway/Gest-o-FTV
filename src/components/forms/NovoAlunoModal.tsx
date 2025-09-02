@@ -3,6 +3,7 @@ import { useAppState, useNotifications } from '@/contexts';
 import { Button } from '@/components/common';
 import { X, Upload, Plus, Minus, Eye, EyeOff } from 'lucide-react';
 import type { Aluno, AlunoFormData } from '@/types';
+import { GraduationCap } from 'lucide-react';
 
 interface NovoAlunoModalProps {
   isOpen: boolean;
@@ -455,11 +456,12 @@ export const NovoAlunoModal: React.FC<NovoAlunoModalProps> = ({
               </label>
               <select
                 value={formData.tipoPlano}
-                onChange={(e) => handleInputChange('tipoPlano', e.target.value as 'mensalidade' | 'plataforma')}
+onChange={(e) => handleInputChange('tipoPlano', e.target.value as 'mensalidade' | 'plataforma' | 'experimental')}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="mensalidade">Mensalidade</option>
                 <option value="plataforma">Plataforma Parceira</option>
+				<option value="experimental">Aula Experimental</option>
               </select>
             </div>
 
@@ -570,6 +572,24 @@ export const NovoAlunoModal: React.FC<NovoAlunoModalProps> = ({
               )}
             </div>
           )}
+
+  {formData.tipoPlano === 'experimental' ? (
+  // ← ADICIONAR ESTA NOVA SEÇÃO
+  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+    <div className="flex items-center mb-2">
+      <GraduationCap className="h-5 w-5 text-blue-600 mr-2" />
+      <h4 className="text-sm font-medium text-blue-900 dark:text-blue-300">
+        Aula Experimental Gratuita
+      </h4>
+    </div>
+    <p className="text-sm text-blue-700 dark:text-blue-300">
+      Este aluno terá direito a uma aula experimental gratuita. Após a aula, ele poderá ser convertido para um plano pago ou inativado.
+    </p>
+    <div className="mt-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/40 rounded px-2 py-1 inline-block">
+      ✓ Limite: 1 aula experimental por aluno
+    </div>
+  </div>
+) : null}
 
           {/* Additional Info */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

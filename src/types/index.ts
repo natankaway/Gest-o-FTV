@@ -11,7 +11,7 @@ export interface Usuario {
 }
 
 export interface Aluno extends Usuario {
-  tipoPlano: 'mensalidade' | 'plataforma';
+  tipoPlano: 'mensalidade' | 'plataforma' | 'experimental';
   planoId?: number;
   plataformaParceira?: string;
   unidade: string;
@@ -191,7 +191,35 @@ export interface MetaGeral {
   criadoEm?: string;
   atualizadoEm?: string;
 }
-
+export interface AulaExperimental {
+  id: number;
+  alunoId: number;
+  aluno: string; // Nome do aluno
+  telefone: string;
+  email: string;
+  dataAgendamento: string; // Data/hora agendada
+  status: 'agendada' | 'realizada' | 'nao-compareceu' | 'convertido' | 'inativo';
+  professorId?: number;
+  professor?: string;
+  unidade: string;
+  observacoes?: string;
+  dataRealizacao?: string; // Quando status = 'realizada'
+  dataConversao?: string; // Quando converteu para plano pago
+  planoConvertido?: {
+    tipo: 'mensalidade' | 'plataforma';
+    planoId?: number;
+    plataformaParceira?: string;
+  };
+  historico: {
+    data: string;
+    statusAnterior: string;
+    statusNovo: string;
+    observacao?: string;
+    usuarioResponsavel: string;
+  }[];
+  criadoEm: string;
+  atualizadoEm: string;
+}
 export interface Aluguel {
   id: number;
   cliente: string;
@@ -298,6 +326,7 @@ export interface MockData {
   treinos: Treino[];
   exercicios: Exercicio[];
   torneios: Torneio[];
+  aulasExperimentais: AulaExperimental[]; // ← ADICIONAR ESTA LINHA
   configCT: ConfigCT;
 }
 
@@ -323,6 +352,9 @@ export interface Notification {
 
 // Form types
 export interface AlunoFormData extends Omit<Aluno, 'id'> {}
+export interface AulaExperimentalFormData extends Omit<AulaExperimental, 'id' | 'aluno' | 'professor' | 'historico' | 'criadoEm' | 'atualizadoEm'> {
+  professorId?: number; // Tornar opcional
+}
 export interface ProfessorFormData extends Omit<Professor, 'id'> {}
 export interface UnidadeFormData extends Omit<Unidade, 'id'> {}
 export interface PlanoFormData extends Omit<Plano, 'id'> {}
@@ -420,7 +452,7 @@ export interface Torneio {
 }
 
 // Export utility types
-export type TabKeys = 'dashboard' | 'alunos' | 'professores' | 'gestores' | 'presencas' | 'agendamentos' | 'treinos' | 'planos' | 'unidades' | 'financeiro' | 'produtos' | 'alugueis' | 'configuracoes' | 'metas' | 'torneios';
+export type TabKeys = 'dashboard' | 'alunos' | 'professores' | 'gestores' | 'presencas' | 'agendamentos' | 'aulas-experimentais' | 'treinos' | 'planos' | 'unidades' | 'financeiro' | 'produtos' | 'alugueis' | 'configuracoes' | 'metas' | 'torneios';
 
 export interface Tab {
   key: TabKeys;
@@ -428,6 +460,12 @@ export interface Tab {
   icon: React.ComponentType;
   requiredRole?: User['perfil'][];
 }
-
+export interface ConversaoData {
+  tipoPlano: 'mensalidade' | 'plataforma';
+  planoId?: number;
+  plataformaParceira?: string;
+  dataVencimento?: string;
+  observacoes?: string;
+}
 // Export canvas types
 export * from './canvas';

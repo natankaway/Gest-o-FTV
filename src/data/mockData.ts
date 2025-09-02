@@ -1,5 +1,195 @@
 import type { MockData } from '@/types';
 
+const aulasExperimentaisMock = [
+  {
+    id: 1,
+    alunoId: 999, // ID fictício para novo aluno
+    aluno: 'Maria Silva Santos',
+    telefone: '(11) 99999-1234',
+    email: 'maria.silva@email.com',
+    dataAgendamento: '2025-09-05T09:00:00.000Z',
+    status: 'agendada' as const,
+    professorId: 1,
+    professor: 'Carlos Mendes',
+    unidade: 'Centro',
+    observacoes: 'Primeira aula experimental, interessada em iniciante',
+    historico: [
+      {
+        data: '2025-09-01T10:00:00.000Z',
+        statusAnterior: '',
+        statusNovo: 'agendada',
+        observacao: 'Aula experimental agendada via WhatsApp',
+        usuarioResponsavel: 'Recepcionista'
+      }
+    ],
+    criadoEm: '2025-09-01T10:00:00.000Z',
+    atualizadoEm: '2025-09-01T10:00:00.000Z'
+  },
+  {
+    id: 2,
+    alunoId: 998,
+    aluno: 'Carlos Eduardo Oliveira',
+    telefone: '(11) 98888-5678',
+    email: 'carlos.eduardo@gmail.com',
+    dataAgendamento: '2025-09-02T15:30:00.000Z',
+    status: 'realizada' as const,
+    professorId: 2,
+    professor: 'Lucas Ferreira',
+    unidade: 'Zona Sul',
+    observacoes: 'Aula realizada com sucesso, demonstrou interesse',
+    dataRealizacao: '2025-09-02T16:30:00.000Z',
+    historico: [
+      {
+        data: '2025-08-30T14:00:00.000Z',
+        statusAnterior: '',
+        statusNovo: 'agendada',
+        observacao: 'Agendada via telefone',
+        usuarioResponsavel: 'Gestor Zona Sul'
+      },
+      {
+        data: '2025-09-02T16:35:00.000Z',
+        statusAnterior: 'agendada',
+        statusNovo: 'realizada',
+        observacao: 'Aula completada, aluno gostou muito',
+        usuarioResponsavel: 'Prof. Lucas Ferreira'
+      }
+    ],
+    criadoEm: '2025-08-30T14:00:00.000Z',
+    atualizadoEm: '2025-09-02T16:35:00.000Z'
+  },
+  {
+    id: 3,
+    alunoId: 997,
+    aluno: 'Ana Paula Costa',
+    telefone: '(11) 97777-9012',
+    email: 'anapaula.costa@hotmail.com',
+    dataAgendamento: '2025-08-28T08:00:00.000Z',
+    status: 'nao-compareceu' as const,
+    professorId: 1,
+    professor: 'Carlos Mendes',
+    unidade: 'Centro',
+    observacoes: 'Não compareceu na data agendada',
+    historico: [
+      {
+        data: '2025-08-25T16:30:00.000Z',
+        statusAnterior: '',
+        statusNovo: 'agendada',
+        observacao: 'Agendada via Instagram',
+        usuarioResponsavel: 'Social Media'
+      },
+      {
+        data: '2025-08-28T08:15:00.000Z',
+        statusAnterior: 'agendada',
+        statusNovo: 'nao-compareceu',
+        observacao: 'Aluna não compareceu, sem justificativa',
+        usuarioResponsavel: 'Prof. Carlos Mendes'
+      }
+    ],
+    criadoEm: '2025-08-25T16:30:00.000Z',
+    atualizadoEm: '2025-08-28T08:15:00.000Z'
+  },
+  {
+    id: 4,
+    alunoId: 996,
+    aluno: 'Pedro Henrique Alves',
+    telefone: '(11) 96666-3456',
+    email: 'pedro.alves@empresa.com',
+    dataAgendamento: '2025-08-20T18:00:00.000Z',
+    status: 'convertido' as const,
+    professorId: 2,
+    professor: 'Lucas Ferreira',
+    unidade: 'Zona Sul',
+    observacoes: 'Convertido para Plano Básico',
+    dataRealizacao: '2025-08-20T19:00:00.000Z',
+    dataConversao: '2025-08-21T10:00:00.000Z',
+    planoConvertido: {
+      tipo: 'mensalidade' as const,
+      planoId: 4
+    },
+    historico: [
+      {
+        data: '2025-08-18T11:00:00.000Z',
+        statusAnterior: '',
+        statusNovo: 'agendada',
+        observacao: 'Indicação de amigo',
+        usuarioResponsavel: 'Gestor Zona Sul'
+      },
+      {
+        data: '2025-08-20T19:05:00.000Z',
+        statusAnterior: 'agendada',
+        statusNovo: 'realizada',
+        observacao: 'Excelente aula, muito interessado',
+        usuarioResponsavel: 'Prof. Lucas Ferreira'
+      },
+      {
+        data: '2025-08-21T10:00:00.000Z',
+        statusAnterior: 'realizada',
+        statusNovo: 'convertido',
+        observacao: 'Convertido para Plano Básico - R$ 150,00/mês',
+        usuarioResponsavel: 'Gestor Zona Sul'
+      }
+    ],
+    criadoEm: '2025-08-18T11:00:00.000Z',
+    atualizadoEm: '2025-08-21T10:00:00.000Z'
+  },
+  {
+    id: 5,
+    alunoId: 995,
+    aluno: 'Roberto Machado',
+    telefone: '(11) 94444-2468',
+    email: 'roberto.machado@gmail.com',
+    dataAgendamento: '2025-09-03T16:00:00.000Z',
+    status: 'agendada' as const,
+    professorId: 3,
+    professor: 'Ana Paula Costa',
+    unidade: 'Zona Norte',
+    observacoes: 'Interessado em aulas para iniciante',
+    historico: [
+      {
+        data: '2025-09-02T14:45:00.000Z',
+        statusAnterior: '',
+        statusNovo: 'agendada',
+        observacao: 'Agendamento via WhatsApp Business',
+        usuarioResponsavel: 'Gestor Zona Norte'
+      }
+    ],
+    criadoEm: '2025-09-02T14:45:00.000Z',
+    atualizadoEm: '2025-09-02T14:45:00.000Z'
+  },
+  {
+  id: 6,
+  alunoId: 5, // Roberto Silva Experimental
+  aluno: 'Roberto Silva Experimental',
+  telefone: '(11) 95555-5555',
+  email: 'roberto.experimental@email.com',
+  dataAgendamento: '2025-09-01T09:00:00.000Z',
+  status: 'realizada' as const, // STATUS REALIZADA para poder converter
+  professorId: 1,
+  professor: 'Carlos Mendes',
+  unidade: 'Centro',
+  observacoes: 'Aula experimental realizada com sucesso',
+  dataRealizacao: '2025-09-01T10:00:00.000Z', // Data que foi realizada
+  historico: [
+    {
+      data: '2025-08-30T10:00:00.000Z',
+      statusAnterior: '',
+      statusNovo: 'agendada',
+      observacao: 'Aula experimental agendada',
+      usuarioResponsavel: 'Sistema'
+    },
+    {
+      data: '2025-09-01T10:00:00.000Z',
+      statusAnterior: 'agendada',
+      statusNovo: 'realizada',
+      observacao: 'Aula realizada com sucesso, aluno demonstrou interesse',
+      usuarioResponsavel: 'Prof. Carlos Mendes'
+    }
+  ],
+  criadoEm: '2025-08-30T10:00:00.000Z',
+  atualizadoEm: '2025-09-01T10:00:00.000Z'
+}
+];
+
 export const mockData: MockData = {
   planos: [
     // Unidade Centro
@@ -89,8 +279,56 @@ alunos: [
     dataMatricula: '2024-02-05', 
     objetivo: 'Competição',
     ativo: true 
-  }
+  },
+  // ADICIONAR ao final do array de alunos:
+{ 
+  id: 5, 
+  nome: 'Roberto Silva Experimental', 
+  telefone: '(11) 95555-5555', 
+  email: 'roberto.experimental@email.com', 
+  tipoPlano: 'experimental', // NÃO tem plano ativo
+  unidade: 'Centro',
+  status: 'pendente', 
+  vencimento: '', 
+  senha: '123456', 
+  nivel: 'iniciante', 
+  dataMatricula: '2024-09-01', 
+  objetivo: 'Conhecer o esporte',
+  ativo: true 
+},
+{ 
+  id: 6, 
+  nome: 'Marina Costa Teste', 
+  telefone: '(11) 94444-4444', 
+  email: 'marina.teste@email.com', 
+  tipoPlano: 'experimental', // NÃO tem plano ativo
+  unidade: 'Zona Sul',
+  status: 'pendente', 
+  vencimento: '', 
+  senha: '123456', 
+  nivel: 'iniciante', 
+  dataMatricula: '2024-09-02', 
+  objetivo: 'Experimentar',
+  ativo: true 
+},
+{ 
+  id: 7, 
+  nome: 'Carlos Experimental Norte', 
+  telefone: '(11) 93333-3333', 
+  email: 'carlos.norte@email.com', 
+  tipoPlano: 'experimental', // NÃO tem plano ativo
+  unidade: 'Zona Norte',
+  status: 'pendente', 
+  vencimento: '', 
+  senha: '123456', 
+  nivel: 'iniciante', 
+  dataMatricula: '2024-09-03', 
+  objetivo: 'Testar aulas',
+  ativo: true 
+}
 ],
+
+
 
 // REFERÊNCIA DOS PLANOS POR UNIDADE:
 // Centro: IDs 1, 2, 3 (R$ 120, 150, 180)
@@ -408,6 +646,8 @@ alunos: [
   ],
 
   torneios: [],
+  
+  aulasExperimentais: aulasExperimentaisMock,
 
   configCT: {
     nomeCT: 'Gestão FTV',

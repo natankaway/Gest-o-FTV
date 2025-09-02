@@ -13,7 +13,8 @@ import {
   LogOut,
   ChevronDown,
   X,
-  Trophy
+  Trophy,
+  GraduationCap
 } from 'lucide-react';
 import type { TabKeys } from '@/types';
 
@@ -116,16 +117,19 @@ export const Sidebar: React.FC<SidebarProps> = memo(({
 
     // Operational section
     if (userRole === 'admin' || userRole === 'gestor' || userRole === 'professor') {
-      sections.push({
-        id: 'operacional',
-        title: "⚡ Operacional",
-        icon: Calendar,
-        items: [
-          { id: 'presencas', label: 'Presenças', icon: Calendar, roles: ['admin', 'gestor', 'professor'] },
-          { id: 'agendamentos' as TabKeys, label: 'Agendamentos', icon: Calendar, roles: ['admin', 'gestor'] }
-        ]
-      });
-    }
+  const operacionalItems: MenuItem[] = [
+    { id: 'presencas', label: 'Presenças', icon: Calendar, roles: ['admin', 'gestor', 'professor'] },
+    { id: 'agendamentos' as TabKeys, label: 'Agendamentos', icon: Calendar, roles: ['admin', 'gestor'] },
+    { id: 'aulas-experimentais' as TabKeys, label: 'Aulas Experimentais', icon: GraduationCap, roles: ['admin', 'gestor', 'professor'] } // ← ADICIONAR ESTA LINHA
+  ];
+  
+  sections.push({
+    id: 'operacional',
+    title: "⚡ Operacional",
+    icon: Calendar,
+    items: operacionalItems
+  });
+}
 
     // Training section
     if (userRole === 'admin' || userRole === 'professor' || userRole === 'gestor') {
