@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { useAppState, useNotifications } from '@/contexts';
 import { Button } from '@/components/common';
+import { AuloesMelhoradoTab } from './AuloesMelhoradoTab';
 import { 
   Plus, 
   Edit2, 
@@ -289,7 +290,7 @@ export const HorariosTab: React.FC = () => {
         diaSemana: 'segunda',
         horaInicio: '08:00',
         horaFim: '09:00',
-        capacidade: 8,
+        capacidade: undefined,
         ativo: true
       }
     );
@@ -355,18 +356,21 @@ export const HorariosTab: React.FC = () => {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">Capacidade *</label>
-            <input
-              type="number"
-              min="1"
-              max="50"
-              value={formData.capacidade}
-              onChange={(e) => setFormData(prev => ({ ...prev, capacidade: parseInt(e.target.value) || 1 }))}
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500"
-              required
-            />
-          </div>
+        <div>
+  <label className="block text-sm font-medium mb-2">Capacidade (Opcional)</label>
+  <input
+    type="number"
+    min="1"
+    max="50"
+    value={formData.capacidade || ''}
+    onChange={(e) => setFormData(prev => ({ 
+      ...prev, 
+      capacidade: e.target.value ? parseInt(e.target.value) : undefined 
+    }))}
+    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500"
+    placeholder="Deixe vazio para capacidade ilimitada"
+  />
+</div>
 
           <div>
             <label className="block text-sm font-medium mb-2">Nível (Opcional)</label>
@@ -602,7 +606,7 @@ export const HorariosTab: React.FC = () => {
                         <div className="flex items-center">
                           <Users className="h-4 w-4 text-gray-400 mr-2" />
                           <span className="text-sm text-gray-900 dark:text-white">
-                            {horario.capacidade}
+                            {horario.capacidade || 'Ilimitada'}
                           </span>
                         </div>
                       </td>
@@ -660,278 +664,10 @@ export const HorariosTab: React.FC = () => {
       )}
 
       {/* Seção Aulões */}
-      {activeSection === 'aulaoes' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-md font-medium text-gray-900 dark:text-white">
-              Aulões Programados
-            </h4>
-            <Button
-              onClick={() => setEditingAulao({
-                nome: '',
-                data: new Date().toISOString().split('T')[0],
-                horaInicio: '09:00',
-                horaFim: '11:00',
-                unidade: dadosMockados.unidades[0]?.nome || '',
-                capacidade: 20,
-                ativo: true
-              })}
-              leftIcon={<Plus className="h-4 w-4" />}
-            >
-              Novo Aulão
-            </Button>
-          </div>
-
-          {editingAulao && (
-            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-              <h4 className="text-lg font-medium mb-4">
-                {editingAulao.id ? 'Editar Aulão' : 'Novo Aulão'}
-              </h4>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-2">Nome do Aulão *</label>
-                  <input
-                    type="text"
-                    value={editingAulao.nome}
-                    onChange={(e) => setEditingAulao(prev => ({ ...prev!, nome: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500"
-                    placeholder="Ex: Aulão de Finais de Semana"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Data *</label>
-                  <input
-                    type="date"
-                    value={editingAulao.data}
-                    onChange={(e) => setEditingAulao(prev => ({ ...prev!, data: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Unidade *</label>
-                  <select
-                    value={editingAulao.unidade}
-                    onChange={(e) => setEditingAulao(prev => ({ ...prev!, unidade: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500"
-                    required
-                  >
-                    {dadosMockados.unidades.map(unidade => (
-                      <option key={unidade.id} value={unidade.nome}>
-                        {unidade.nome}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Hora Início *</label>
-                  <input
-                    type="time"
-                    value={editingAulao.horaInicio}
-                    onChange={(e) => setEditingAulao(prev => ({ ...prev!, horaInicio: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Hora Fim *</label>
-                  <input
-                    type="time"
-                    value={editingAulao.horaFim}
-                    onChange={(e) => setEditingAulao(prev => ({ ...prev!, horaFim: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Capacidade *</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={editingAulao.capacidade}
-                    onChange={(e) => setEditingAulao(prev => ({ ...prev!, capacidade: parseInt(e.target.value) || 1 }))}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Nível (Opcional)</label>
-                  <select
-                    value={editingAulao.nivelId || ''}
-                    onChange={(e) => setEditingAulao(prev => ({ ...prev!, nivelId: e.target.value ? parseInt(e.target.value) : undefined }))}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500"
-                  >
-                    <option value="">Todos os níveis</option>
-                    {niveisAula.filter(n => n.ativo).map(nivel => (
-                      <option key={nivel.id} value={nivel.id}>
-                        {nivel.nome}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-2">Valor Especial (R$)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={editingAulao.valorEspecial || ''}
-                    onChange={(e) => setEditingAulao(prev => ({ ...prev!, valorEspecial: e.target.value ? parseFloat(e.target.value) : undefined }))}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500"
-                    placeholder="Deixe vazio para usar valor padrão"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-2">Descrição</label>
-                  <textarea
-                    value={editingAulao.descricao || ''}
-                    onChange={(e) => setEditingAulao(prev => ({ ...prev!, descricao: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500"
-                    rows={3}
-                    placeholder="Descrição do aulão..."
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4 flex items-center">
-                <input
-                  type="checkbox"
-                  id="aulaoAtivo"
-                  checked={editingAulao.ativo}
-                  onChange={(e) => setEditingAulao(prev => ({ ...prev!, ativo: e.target.checked }))}
-                  className="mr-2"
-                />
-                <label htmlFor="aulaoAtivo" className="text-sm">Aulão ativo</label>
-              </div>
-
-              <div className="flex space-x-3 mt-6">
-                <Button
-                  onClick={() => handleSaveAulao(editingAulao)}
-                  disabled={!editingAulao.nome.trim() || !editingAulao.data}
-                  className="flex-1"
-                >
-                  Salvar
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => setEditingAulao(null)}
-                  className="flex-1"
-                >
-                  Cancelar
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {aulaoes.map(aulao => {
-              const nivel = aulao.nivelId ? niveisAula.find(n => n.id === aulao.nivelId) : null;
-              const dataFormatada = new Date(aulao.data).toLocaleDateString('pt-BR');
-              const isPassado = new Date(aulao.data) < new Date();
-              
-              return (
-                <div key={aulao.id} className={`bg-white dark:bg-gray-800 p-4 rounded-lg border ${
-                  isPassado ? 'opacity-75' : ''
-                }`}>
-                  <div className="flex items-center justify-between mb-3">
-                    <h5 className="font-medium text-gray-900 dark:text-white">{aulao.nome}</h5>
-                    <div className="flex space-x-1">
-                      <button
-                        onClick={() => setEditingAulao(aulao)}
-                        className="p-1 text-gray-400 hover:text-blue-600"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteAulao(aulao.id)}
-                        className="p-1 text-gray-400 hover:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center text-gray-600 dark:text-gray-400">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      {dataFormatada} {isPassado && '(Passado)'}
-                    </div>
-                    <div className="flex items-center text-gray-600 dark:text-gray-400">
-                      <Clock className="h-4 w-4 mr-2" />
-                      {aulao.horaInicio} - {aulao.horaFim}
-                    </div>
-                    <div className="flex items-center text-gray-600 dark:text-gray-400">
-                      <MapPin className="h-4 w-4 mr-2" />
-                      {aulao.unidade}
-                    </div>
-                    <div className="flex items-center text-gray-600 dark:text-gray-400">
-                      <Users className="h-4 w-4 mr-2" />
-                      Capacidade: {aulao.capacidade}
-                    </div>
-                    
-                    {nivel && (
-                      <div className="flex items-center">
-                        <div
-                          className="w-3 h-3 rounded-full mr-2"
-                          style={{ backgroundColor: nivel.cor }}
-                        />
-                        <span className="text-sm text-gray-900 dark:text-white">
-                          {nivel.nome}
-                        </span>
-                      </div>
-                    )}
-                    
-                    {aulao.valorEspecial && (
-                      <div className="text-green-600 dark:text-green-400 font-medium">
-                        R$ {aulao.valorEspecial.toFixed(2)}
-                      </div>
-                    )}
-                  </div>
-
-                  {aulao.descricao && (
-                    <p className="mt-3 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                      {aulao.descricao}
-                    </p>
-                  )}
-
-                  <div className="mt-3">
-                    <span className={`inline-block px-2 py-1 text-xs rounded-full ${
-                      aulao.ativo 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
-                    }`}>
-                      {aulao.ativo ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {aulaoes.length === 0 && (
-            <div className="text-center py-8">
-              <Calendar className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-                Nenhum aulão programado
-              </h3>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Comece criando seu primeiro aulão.
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+{/* Seção Aulões */}
+{activeSection === 'aulaoes' && (
+  <AuloesMelhoradoTab />
+)}
+  </div>
   );
 };

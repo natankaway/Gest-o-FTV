@@ -17,9 +17,23 @@ import {
   ChevronRight,
   CheckCircle,
   XCircle,
-  Target
+  Target,
+  RefreshCw,
+  Star
 } from 'lucide-react';
 import type { ListaPresenca, PreCheckin, PresencaConfirmada, HorarioFixo, AulaoConfig } from '@/types';
+
+// Helper function to get aulao info
+const getAulaoInfo = (lista: ListaPresenca) => {
+  // This function should be implemented based on your data structure
+  // For now, returning a mock object
+  return {
+    nome: 'Aulão Especial',
+    tipo: 'extra' as 'fixo-recorrente' | 'extra',
+    valorEspecial: 50,
+    descricao: 'Aula especial com foco em técnicas avançadas'
+  };
+};
 
 export const AgendamentosPresencaPage: React.FC = () => {
   const { dadosMockados, userLogado, setConfigCT } = useAppState();
@@ -236,152 +250,219 @@ export const AgendamentosPresencaPage: React.FC = () => {
           </div>
         ) : (
           listasDoDia.map(lista => {
-            const nivel = lista.nivelId ? niveisAula.find(n => n.id === lista.nivelId) : null;
-            const vagasOcupadas = lista.preCheckins.filter(p => !p.cancelado).length;
-            const vagasDisponiveis = lista.capacidade - vagasOcupadas;
+            const aulaoInfo = getAulaoInfo(lista);
+            const nivel = lista.nivelId ? 
+              dadosMockados.configCT.niveisAula?.find(n => n.id === lista.nivelId) : null;
+            
             const isPassado = new Date(`${lista.data}T${lista.horaFim}`) < new Date();
+            const vagasOcupadas = lista.preCheckins.filter(p => !p.cancelado).length;
+            const temCapacidadeLimitada = lista.capacidade && lista.capacidade > 0;
+            const vagasDisponiveis = temCapacidadeLimitada ? lista.capacidade - vagasOcupadas : Infinity;
             
             return (
-              <div key={lista.id} className={`bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden ${
-                isPassado ? 'opacity-75' : ''
-              }`}>
-                <div className="p-6">
-                  {/* Header da Lista */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <div className="flex items-center space-x-2">
-                        <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                        <span className="text-lg font-semibold text-gray-900 dark:text-white">
-                          {lista.horaInicio} - {lista.horaFim}
-                        </span>
-                        {lista.tipo === 'aulao' && (
-                          <span className="px-2 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300 text-xs font-medium rounded-full">
-                            AULÃO
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center space-x-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
-                        <div className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          {lista.unidade}
-                        </div>
-                        
-                        <div className="flex items-center">
-                          <Users className="h-4 w-4 mr-1" />
-                          {vagasOcupadas}/{lista.capacidade}
-                        </div>
-                        
-                        {nivel && (
-                          <div className="flex items-center">
-                            <div
-                              className="w-3 h-3 rounded-full mr-2"
-                              style={{ backgroundColor: nivel.cor }}
-                            />
-                            {nivel.nome}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+              <div 
+                key={lista.id}
+                className={`bg-white dark:bg-gray-800 rounded-lg border-l-4 p-4 shadow hover:shadow-md transition-all cursor-pointer ${
+                  isPassado ? 'opacity-75' : ''
+                } ${
+                  lista.tipo === 'aulao' 
+                    ? aulaoInfo?.tipo === 'fixo-recorrente'
+                      ? 'border-l-blue-500'
+                      : 'border-l-orange-500'
+                    : 'border-l-green-500'
+                }`}
+                onClick={() => setSelectedLista(lista)}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    {lista.tipo === 'aulao' ? (
+                      aulaoInfo?.tipo === 'fixo-recorrente' ? (
+                        <RefreshCw className="w-4 h-4 text-blue-600" />
+                      ) : (
+                        <Star className="w-4 h-4 text-orange-600" />
+                      )
+                    ) : (
+                      <Calendar className="w-4 w-4 text-green-600" />
+                    )}
                     
+                    <h4 className="font-semibold text-gray-900 dark:text-white">
+                      {lista.tipo === 'aulao' && aulaoInfo ? aulaoInfo.nome : 'Aula Regular'}
+                    </h4>
+                    
+                    {lista.tipo === 'aulao' && (
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        aulaoInfo?.tipo === 'fixo-recorrente'
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                          : 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                      }`}>
+                        {aulaoInfo?.tipo === 'fixo-recorrente' ? 'Fixo' : 'Extra'}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    lista.status === 'aberta' 
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                      : lista.status === 'confirmada'
+                      ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                  }`}>
+                    {lista.status.charAt(0).toUpperCase() + lista.status.slice(1)}
+                  </div>
+                </div>
+
+                {/* Informações principais */}
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-600 dark:text-gray-300">
+                      {lista.horaInicio} às {lista.horaFim}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-600 dark:text-gray-300">{lista.unidade}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4 text-gray-400" />
+                    <span className="text-gray-600 dark:text-gray-300">
+                      {temCapacidadeLimitada 
+                        ? `${vagasOcupadas}/${lista.capacidade} alunos`
+                        : `${vagasOcupadas} alunos (ilimitado)`
+                      }
+                    </span>
+                    
+                    {/* Barra de capacidade - só mostra se tiver limite */}
+                    {temCapacidadeLimitada && (
+                      <div className="flex-1 ml-2">
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full transition-all ${
+                              (vagasOcupadas / lista.capacidade) * 100 >= 90 ? 'bg-red-500' :
+                              (vagasOcupadas / lista.capacidade) * 100 >= 70 ? 'bg-yellow-500' : 'bg-green-500'
+                            }`}
+                            style={{ width: `${Math.min((vagasOcupadas / lista.capacidade) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {nivel && (
+                    <div className="flex items-center gap-2">
+                      <Target className="w-4 h-4 text-gray-400" />
+                      <span 
+                        className="px-2 py-1 rounded text-xs font-medium text-white"
+                        style={{ backgroundColor: nivel.cor }}
+                      >
+                        {nivel.nome}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Informações específicas do aulão */}
+                  {lista.tipo === 'aulao' && aulaoInfo && (
+                    <>
+                      {aulaoInfo.valorEspecial && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-green-600 dark:text-green-400 font-medium">
+                            R$ {aulaoInfo.valorEspecial.toFixed(2)}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {aulaoInfo.descricao && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                          {aulaoInfo.descricao}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Status e disponibilidade */}
+                <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
                     <div className="text-right">
                       <div className={`text-lg font-bold ${
-                        vagasDisponiveis > 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                        temCapacidadeLimitada && vagasDisponiveis <= 0 
+                          ? 'text-red-600 dark:text-red-400' 
+                          : 'text-green-600 dark:text-green-400'
                       }`}>
-                        {vagasDisponiveis > 0 ? `${vagasDisponiveis} vagas` : 'Lotado'}
+                        {temCapacidadeLimitada 
+                          ? (vagasDisponiveis > 0 ? `${vagasDisponiveis} vagas` : 'Lotado')
+                          : 'Vagas ilimitadas'
+                        }
                       </div>
                       {isPassado && (
                         <span className="text-xs text-gray-500">Aula finalizada</span>
                       )}
                     </div>
-                  </div>
-
-                  {/* Lista de Pré-Check-ins */}
-                  {lista.preCheckins.filter(p => !p.cancelado).length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                        Alunos confirmados ({lista.preCheckins.filter(p => !p.cancelado).length}):
-                      </h4>
-                      <div className="space-y-2">
-                        {lista.preCheckins
-                          .filter(p => !p.cancelado)
-                          .slice(0, 3)
-                          .map(checkin => (
-                            <div key={checkin.id} className="flex items-center justify-between text-sm">
-                              <span className="text-gray-900 dark:text-white">{checkin.aluno}</span>
-                              <span className="text-gray-500 dark:text-gray-400">
-                                {new Date(checkin.horarioCheckin).toLocaleTimeString('pt-BR', { 
-                                  hour: '2-digit', 
-                                  minute: '2-digit' 
-                                })}
-                              </span>
-                            </div>
-                          ))}
-                        {lista.preCheckins.filter(p => !p.cancelado).length > 3 && (
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            +{lista.preCheckins.filter(p => !p.cancelado).length - 3} outros...
-                          </div>
-                        )}
-                      </div>
+                    
+                    <div className="text-xs text-gray-500">
+                      {lista.preCheckins.length} pré-checkins
                     </div>
+                  </div>
+                </div>
+
+                {/* Ações */}
+                <div className="mt-3 flex space-x-3">
+                  {userLogado?.perfil === 'aluno' ? (
+                    // Ações para alunos
+                    !isPassado && (
+                      <Button
+                        onClick={() => handlePreCheckin(lista.id, userLogado.id)}
+                        disabled={temCapacidadeLimitada && vagasDisponiveis <= 0}
+                        className="flex-1"
+                      >
+                        {temCapacidadeLimitada && vagasDisponiveis <= 0 ? 'Lista Cheia' : 'Fazer Check-in'}
+                      </Button>
+                    )
+                  ) : (
+                    // Ações para professores/gestores/admins
+                    <>
+                      <Button
+                        variant="secondary"
+                        onClick={() => setSelectedLista(lista)}
+                        leftIcon={<Eye className="h-4 w-4" />}
+                        className="flex-1"
+                      >
+                        Ver Lista Completa
+                      </Button>
+                      
+                      {!isPassado && (
+                        <Button
+                          onClick={() => {
+                            setSelectedLista(lista);
+                            setShowAddAluno(true);
+                          }}
+                          leftIcon={<Plus className="h-4 w-4" />}
+                          className="flex-1"
+                        >
+                          Adicionar Aluno
+                        </Button>
+                      )}
+                    </>
                   )}
+                </div>
 
-                  {/* Ações */}
-                  <div className="flex space-x-3">
-                    {userLogado?.perfil === 'aluno' ? (
-                      // Ações para alunos
-                      !isPassado && (
-                        <Button
-                          onClick={() => handlePreCheckin(lista.id, userLogado.id)}
-                          disabled={vagasDisponiveis <= 0}
-                          className="flex-1"
-                        >
-                          {vagasDisponiveis > 0 ? 'Fazer Check-in' : 'Lista Cheia'}
-                        </Button>
-                      )
-                    ) : (
-                      // Ações para professores/gestores/admins
-                      <>
-                        <Button
-                          variant="secondary"
-                          onClick={() => setSelectedLista(lista)}
-                          leftIcon={<Eye className="h-4 w-4" />}
-                          className="flex-1"
-                        >
-                          Ver Lista Completa
-                        </Button>
-                        
-                        {!isPassado && (
-                          <Button
-                            onClick={() => {
-                              setSelectedLista(lista);
-                              setShowAddAluno(true);
-                            }}
-                            leftIcon={<Plus className="h-4 w-4" />}
-                            className="flex-1"
-                          >
-                            Adicionar Aluno
-                          </Button>
-                        )}
-                      </>
-                    )}
-                  </div>
-
-                  {/* Status da Lista */}
-                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600 dark:text-gray-400">Status:</span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        lista.status === 'aberta' 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                          : lista.status === 'confirmada'
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
-                      }`}>
-                        {lista.status === 'aberta' ? 'Aberta para Check-in' : 
-                         lista.status === 'confirmada' ? 'Presenças Confirmadas' : 'Finalizada'}
-                      </span>
-                    </div>
+                {/* Status da Lista */}
+                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600 dark:text-gray-400">Status:</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      lista.status === 'aberta' 
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+                        : lista.status === 'confirmada'
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
+                    }`}>
+                      {lista.status === 'aberta' ? 'Aberta para Check-in' : 
+                       lista.status === 'confirmada' ? 'Presenças Confirmadas' : 'Finalizada'}
+                    </span>
                   </div>
                 </div>
               </div>

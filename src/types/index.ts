@@ -85,6 +85,7 @@ export interface ConfigCT {
   niveisAula?: NivelAula[];
   horariosFixos?: HorarioFixo[];
   aulaoes?: AulaoConfig[];
+  aulaoesMelhorados?: AulaoConfigMelhorado[]; // ADICIONA ESTA LINHA
   configuracaoPresenca?: {
     permiteCheckinSemLimite: boolean;
     lembreteAutomatico: boolean;
@@ -491,7 +492,7 @@ export interface HorarioFixo {
   diaSemana: 'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta' | 'sabado' | 'domingo';
   horaInicio: string;
   horaFim: string;
-  capacidade: number;
+  capacidade?: number;
   nivelId?: number;
   ativo: boolean;
 }
@@ -503,13 +504,45 @@ export interface AulaoConfig {
   horaInicio: string;
   horaFim: string;
   unidade: string;
-  capacidade: number;
+  capacidade?: number;
   nivelId?: number;
   valorEspecial?: number;
   descricao?: string;
   ativo: boolean;
 }
+export interface AulaoConfigMelhorado {
+  id: number;
+  nome: string;
+  unidade: string;
+  horaInicio: string;
+  horaFim: string;
+  capacidade?: number;
+  nivelId?: number;
+  valorEspecial?: number;
+  descricao?: string;
+  ativo: boolean;
+  
+  // NOVA FUNCIONALIDADE: Tipo de aulão
+  tipo: 'fixo-recorrente' | 'extra-pontual';
+  
+  // Para aulões fixos (todo sábado, toda segunda, etc)
+  diaSemana?: 'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta' | 'sabado' | 'domingo';
+  dataInicio?: string; // Quando começar a repetir
+  dataFim?: string; // Quando parar (opcional)
+  
+  // Para aulões extras (data específica)
+  dataEspecifica?: string; // ISO string
+  
+  // Configurações extras
+  configuracao: {
+    permiteReposicao?: boolean;
+    observacoes?: string;
+  };
+}
 
+export interface AulaoFormDataMelhorado extends Omit<AulaoConfigMelhorado, 'id'> {
+  id?: number;
+}
 export interface ListaPresenca {
   id: number;
   data: string;

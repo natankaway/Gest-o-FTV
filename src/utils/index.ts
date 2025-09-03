@@ -1,5 +1,5 @@
 import toast from 'react-hot-toast';
-
+import type { AulaoConfigMelhorado, ListaPresencaGerada } from '@/types';
 // Debounce utility
 export const debounce = <T extends (...args: any[]) => any>(
   func: T,
@@ -11,7 +11,107 @@ export const debounce = <T extends (...args: any[]) => any>(
     timeoutId = setTimeout(() => func.apply(null, args), delay);
   };
 };
+export class AulaoUtils {
+  /**
+   * Verifica se um aulão está ativo em uma data específica
+   */
+  static isAulaoAtivoNaData(aulao: AulaoConfigMelhorado, data: Date): boolean {
+    if (!aulao.ativo) return false;
 
+    if (aulao.tipo === 'extra-pontual') {
+      if (!aulao.dataEspecifica) return false;
+      const dataAulao = new Date(aulao.dataEspecifica);
+      return dataAulao.toDateString() === data.toDateString();
+    }
+
+    if (aulao.tipo === 'fixo-recorrente') {
+      if (!aulao.diaSemana) return false;
+      
+      const diasSemana = {
+        'domingo': 0, 'segunda': 1, 'terca': 2, 'quarta': 3,
+        'quinta': 4, 'sexta': 5, 'sabado': 6
+      };
+      
+      if (data.getDay() !== diasSemana[aulao.diaSemana]) {
+        return false;
+      }
+
+      // Verifica período de vigência
+      const dataInicioAulao = aulao.dataInicio ? new Date(aulao.dataInicio) : new Date('2000-01-01');
+      const dataFimAulao = aulao.dataFim ? new Date(aulao.dataFim) : new Date('2099-12-31');
+      
+      return data >= dataInicioAulao && data <= dataFimAulao;
+    }
+
+    return false;
+  }
+
+  /**
+   * Gera lista de presença automática para um aulão em uma data
+   */
+  static gerarListaPresenca(aulao: AulaoConfigMelhorado, data: Date): any {
+    if (!this.isAulaoAtivoNaData(aulao, data)) {
+      return null;
+    }
+
+    const dataStr = data.toISOString().split('T')[0];
+    
+    return {
+      data: dataStr,
+      horaInicio: aulao.horaInicio,
+      horaFim: aulao.horaFim,
+      unidade: aulao.unidade,
+      tipo: 'aulao' as const,
+      nivelId: aulao.nivelId,
+      capacidade: aulao.capacidade,
+      status: 'aberta' as const,
+      preCheckins: [],
+      presencasConfirmadas: [],
+      origemTipo: aulao.tipo === 'fixo-recorrente' ? 'aulao-fixo' : 'aulao-extra',
+      origemConfigId: aulao.id,
+      criadaEm: new Date().toISOString(),
+      atualizadaEm: new Date().toISOString()
+    };
+  }
+
+  /**
+   * Valida dados de um aulão antes de salvar
+   */
+  static validarAulao(aulao: any): string[] {
+    const erros: string[] = [];
+
+    if (!aulao.nome?.trim()) {
+      erros.push('Nome do aulão é obrigatório');
+    }
+
+    if (!aulao.unidade) {
+      erros.push('Unidade é obrigatória');
+    }
+
+    if (!aulao.horaInicio || !aulao.horaFim) {
+      erros.push('Horários são obrigatórios');
+    }
+
+    if (aulao.horaInicio && aulao.horaFim && aulao.horaInicio >= aulao.horaFim) {
+      erros.push('Hora de início deve ser anterior à hora de fim');
+    }
+
+    if (!aulao.capacidade || aulao.capacidade <= 0) {
+      erros.push('Capacidade deve ser maior que zero');
+    }
+
+    // Validações específicas por tipo
+    if (aulao.tipo === 'fixo-recorrente' && !aulao.diaSemana) {
+      erros.push('Dia da semana é obrigatório para aulões fixos');
+    }
+
+    if (aulao.tipo === 'extra-pontual' && !aulao.dataEspecifica) {
+      erros.push('Data específica é obrigatória para aulões extras');
+    }
+
+    return erros;
+  }
+}
 // CSV conversion and export utilities
 export const convertToCSV = (data: Record<string, any>[]): string => {
   if (!data.length) return '';

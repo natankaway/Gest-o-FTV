@@ -709,7 +709,7 @@ alunos: [
       diaSemana: 'segunda',
       horaInicio: '18:00',
       horaFim: '19:00',
-      capacidade: 12,
+      capacidade: undefined,
       nivelId: 3,
       ativo: true
     },
@@ -736,6 +736,44 @@ alunos: [
       valorEspecial: 50.00,
       descricao: 'Aulão especial com técnicas avançadas',
       ativo: true
+    }
+  ],
+  
+  aulaoesMelhorados: [
+    {
+      id: 1,
+      nome: "Aulão de Sábado",
+      tipo: "fixo-recorrente",
+      diaSemana: "sabado",
+      dataInicio: "2024-01-01",
+      unidade: "Centro",
+      horaInicio: "08:00",
+      horaFim: "10:00",
+      capacidade: 30,
+      valorEspecial: 50,
+      descricao: "Aulão semanal para todos os níveis",
+      ativo: true,
+      configuracao: {
+        permiteReposicao: true,
+        observacoes: "Trazer água e toalha"
+      }
+    },
+    {
+      id: 2,
+      nome: "Aulão Especial de Natal",
+      tipo: "extra-pontual",
+      dataEspecifica: "2024-12-25",
+      unidade: "Centro",
+      horaInicio: "09:00",
+      horaFim: "12:00",
+      capacidade: 50,
+      valorEspecial: 80,
+      descricao: "Aulão especial de Natal",
+      ativo: true,
+      configuracao: {
+        permiteReposicao: false,
+        observacoes: "Evento especial"
+      }
     }
   ],
   
