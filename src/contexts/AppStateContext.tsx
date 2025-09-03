@@ -51,6 +51,7 @@ interface AppStateContextType extends AppState {
   setExercicios: React.Dispatch<React.SetStateAction<Exercicio[]>>;
   setTorneios: React.Dispatch<React.SetStateAction<Torneio[]>>;
   setAulasExperimentais: React.Dispatch<React.SetStateAction<AulaExperimental[]>>;
+  setListasPresenca: React.Dispatch<React.SetStateAction<ListaPresenca[]>>;
   setConfigCT: React.Dispatch<React.SetStateAction<ConfigCT>>;
   
   // Session state
@@ -215,6 +216,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setExercicios,
     setTorneios,
 	setAulasExperimentais,
+	setListasPresenca,
     setConfigCT,
     setUserLogado,
     setUnidadeSelecionada,
@@ -256,6 +258,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setExercicios,
     setTorneios,
 	setAulasExperimentais,
+	setListasPresenca,
     setConfigCT,
     activeTab,
     activeTabFilter,

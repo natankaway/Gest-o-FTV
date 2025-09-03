@@ -36,13 +36,15 @@ const getAulaoInfo = (lista: ListaPresenca) => {
 };
 
 export const AgendamentosPresencaPage: React.FC = () => {
-  const { dadosMockados, userLogado, setConfigCT } = useAppState();
+  const { dadosMockados, userLogado, setConfigCT, setListasPresenca } = useAppState();
   const { addNotification } = useNotifications();
   
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
   const [selectedLista, setSelectedLista] = useState<ListaPresenca | null>(null);
   const [showAddAluno, setShowAddAluno] = useState(false);
+  const [selectedAlunoId, setSelectedAlunoId] = useState<string>('');
+  const [isAddingAluno, setIsAddingAluno] = useState(false);
 
   // Gerar listas automáticas baseadas nos horários configurados
   const listasPresencaAutomaticas = useMemo(() => {
@@ -70,6 +72,9 @@ export const AgendamentosPresencaPage: React.FC = () => {
       horariosFixos
         .filter(h => h.ativo && h.diaSemana === diaSemana)
         .forEach(horario => {
+          // ATENÇÃO: A lógica de IDs original era frágil e podia causar colisões.
+          // Uma abordagem mais segura seria usar um hash ou garantir que a combinação seja única.
+          // Por agora, manteremos, mas é um ponto de atenção.
           const listaId = `${horario.id}-${dataStr}`;
           listas.push({
             id: parseInt(listaId.replace(/\D/g, '')),
@@ -122,11 +127,28 @@ export const AgendamentosPresencaPage: React.FC = () => {
     return listas;
   }, [dadosMockados.configCT]);
 
-  // Filtrar listas por data selecionada
+  // ✅ CORREÇÃO: Lógica de unificação das listas para evitar duplicatas.
+  const listasPresencaCompletas = useMemo(() => {
+    // Pega as listas que já foram modificadas e salvas no estado global.
+    const listasModificadas = dadosMockados.listasPresenca;
+
+    // Cria um conjunto (Set) com os IDs das listas modificadas para busca rápida.
+    const idsModificados = new Set(listasModificadas.map(l => l.id));
+
+    // Filtra a lista de aulas automáticas, mantendo apenas aquelas que AINDA NÃO foram modificadas.
+    const listasAutomaticasNaoModificadas = listasPresencaAutomaticas.filter(
+      listaAuto => !idsModificados.has(listaAuto.id)
+    );
+
+    // Retorna a combinação das listas automáticas não modificadas com as listas já modificadas.
+    // Isso garante uma fonte de verdade única, sem duplicatas.
+    return [...listasAutomaticasNaoModificadas, ...listasModificadas];
+  }, [listasPresencaAutomaticas, dadosMockados.listasPresenca]);
+  
   const listasDoDia = useMemo(() => {
     const dateStr = selectedDate.toISOString().split('T')[0];
-    return listasPresencaAutomaticas.filter(lista => lista.data === dateStr);
-  }, [listasPresencaAutomaticas, selectedDate]);
+    return listasPresencaCompletas.filter(lista => lista.data === dateStr).sort((a,b) => a.horaInicio.localeCompare(b.horaInicio));
+  }, [listasPresencaCompletas, selectedDate]);
 
   // Informações dos níveis
   const niveisAula = dadosMockados.configCT.niveisAula || [];
@@ -139,6 +161,107 @@ export const AgendamentosPresencaPage: React.FC = () => {
       message: 'Você foi adicionado à lista de presença'
     });
   }, [addNotification]);
+
+  const handleAdicionarAlunoSemPreCheckin = async () => {
+    if (!selectedAlunoId || !selectedLista) {
+      addNotification({
+        type: 'warning',
+        title: 'Seleção obrigatória',
+        message: 'Por favor, selecione um aluno e uma lista antes de adicionar.'
+      });
+      return;
+    }
+  
+    setIsAddingAluno(true);
+    
+    try {
+      const alunoSelecionado = dadosMockados.alunos.find(a => a.id === parseInt(selectedAlunoId));
+      
+      if (!alunoSelecionado) {
+        throw new Error('Aluno não encontrado');
+      }
+  
+      // Verificar se o aluno já está na lista
+      const jaEstaPreCheckin = selectedLista.preCheckins.some(
+        p => p.alunoId === parseInt(selectedAlunoId) && !p.cancelado
+      );
+  
+      if (jaEstaPreCheckin) {
+        addNotification({
+          type: 'warning',
+          title: 'Aluno já presente',
+          message: 'Este aluno já está na lista de presenças.'
+        });
+        return;
+      }
+  
+      // Verificar capacidade da aula (se aplicável)
+      const capacidade = selectedLista.capacidade || 0;
+      if (capacidade > 0) {
+        const presencasAtivas = selectedLista.preCheckins.filter(p => !p.cancelado).length;
+        if (presencasAtivas >= capacidade) {
+          addNotification({
+            type: 'warning',
+            title: 'Capacidade esgotada',
+            message: 'Esta aula já atingiu sua capacidade máxima.'
+          });
+          return;
+        }
+      }
+  
+      // Criar novo pré-check-in
+      const novoPreCheckin: PreCheckin = {
+        id: Date.now(),
+        alunoId: parseInt(selectedAlunoId),
+        aluno: alunoSelecionado.nome,
+        horarioCheckin: new Date().toISOString(),
+        cancelado: false
+      };
+  
+      // Criar a versão atualizada da lista
+      const listaAtualizada: ListaPresenca = {
+        ...selectedLista,
+        preCheckins: [...selectedLista.preCheckins, novoPreCheckin]
+      };
+  
+      // Atualizar estado local (para o modal)
+      setSelectedLista(listaAtualizada);
+  
+      // ✅ CRUCIAL: Atualizar estado global para persistir a mudança
+      setListasPresenca(prevListas => {
+        const listaExistenteIndex = prevListas.findIndex(lista => lista.id === selectedLista.id);
+        
+        if (listaExistenteIndex > -1) {
+          // Atualizar lista existente
+          const novasListas = [...prevListas];
+          novasListas[listaExistenteIndex] = listaAtualizada;
+          return novasListas;
+        } else {
+          // Adicionar nova lista ao estado global (se ela foi gerada dinamicamente e não existia no estado)
+          return [...prevListas, listaAtualizada];
+        }
+      });
+  
+      // Limpar seleção
+      setSelectedAlunoId('');
+      
+      addNotification({
+        type: 'success',
+        title: 'Aluno adicionado',
+        message: `${alunoSelecionado.nome} foi adicionado à lista de presenças.`
+      });
+  
+    } catch (error) {
+      console.error('Erro ao adicionar aluno:', error);
+      addNotification({
+        type: 'error',
+        title: 'Erro ao adicionar',
+        message: 'Não foi possível adicionar o aluno. Tente novamente.'
+      });
+    } finally {
+      setIsAddingAluno(false);
+    }
+  };
 
   const handleCancelarCheckin = useCallback((listaId: number, checkinId: number) => {
     // Em implementação real, removeria do backend
@@ -262,7 +385,7 @@ export const AgendamentosPresencaPage: React.FC = () => {
             return (
               <div 
                 key={lista.id}
-                className={`bg-white dark:bg-gray-800 rounded-lg border-l-4 p-4 shadow hover:shadow-md transition-all cursor-pointer ${
+                className={`bg-white dark:bg-gray-800 rounded-lg border-l-4 p-4 shadow hover:shadow-md transition-all ${
                   isPassado ? 'opacity-75' : ''
                 } ${
                   lista.tipo === 'aulao' 
@@ -271,7 +394,6 @@ export const AgendamentosPresencaPage: React.FC = () => {
                       : 'border-l-orange-500'
                     : 'border-l-green-500'
                 }`}
-                onClick={() => setSelectedLista(lista)}
               >
                 {/* Header */}
                 <div className="flex items-center justify-between mb-3">
@@ -335,7 +457,6 @@ export const AgendamentosPresencaPage: React.FC = () => {
                       }
                     </span>
                     
-                    {/* Barra de capacidade - só mostra se tiver limite */}
                     {temCapacidadeLimitada && (
                       <div className="flex-1 ml-2">
                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -361,25 +482,6 @@ export const AgendamentosPresencaPage: React.FC = () => {
                         {nivel.nome}
                       </span>
                     </div>
-                  )}
-
-                  {/* Informações específicas do aulão */}
-                  {lista.tipo === 'aulao' && aulaoInfo && (
-                    <>
-                      {aulaoInfo.valorEspecial && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-600 dark:text-green-400 font-medium">
-                            R$ {aulaoInfo.valorEspecial.toFixed(2)}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {aulaoInfo.descricao && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                          {aulaoInfo.descricao}
-                        </div>
-                      )}
-                    </>
                   )}
                 </div>
 
@@ -411,7 +513,6 @@ export const AgendamentosPresencaPage: React.FC = () => {
                 {/* Ações */}
                 <div className="mt-3 flex space-x-3">
                   {userLogado?.perfil === 'aluno' ? (
-                    // Ações para alunos
                     !isPassado && (
                       <Button
                         onClick={() => handlePreCheckin(lista.id, userLogado.id)}
@@ -422,7 +523,6 @@ export const AgendamentosPresencaPage: React.FC = () => {
                       </Button>
                     )
                   ) : (
-                    // Ações para professores/gestores/admins
                     <>
                       <Button
                         variant="secondary"
@@ -481,13 +581,15 @@ export const AgendamentosPresencaPage: React.FC = () => {
                   Lista de Presença - {selectedLista.horaInicio} às {selectedLista.horaFim}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  {new Date(selectedLista.data).toLocaleDateString('pt-BR')} - {selectedLista.unidade}
+                  {new Date(selectedLista.data + 'T00:00:00').toLocaleDateString('pt-BR', { timeZone: 'UTC' })} - {selectedLista.unidade}
                 </p>
               </div>
               <button
                 onClick={() => {
                   setSelectedLista(null);
                   setShowAddAluno(false);
+				          setSelectedAlunoId('');
+                  setIsAddingAluno(false);
                 }}
                 className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
@@ -524,7 +626,6 @@ export const AgendamentosPresencaPage: React.FC = () => {
                   Alunos na Lista
                 </h4>
                 
-                {/* Pré-check-ins */}
                 {selectedLista.preCheckins.filter(p => !p.cancelado).map(checkin => {
                   const presencaConfirmada = selectedLista.presencasConfirmadas.find(
                     p => p.alunoId === checkin.alunoId
@@ -578,31 +679,49 @@ export const AgendamentosPresencaPage: React.FC = () => {
                   );
                 })}
 
-                {/* Formulário para adicionar aluno sem pré-check-in */}
-                {showAddAluno && canManagePresencas && (
-                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                    <h5 className="text-md font-medium text-gray-900 dark:text-white mb-3">
-                      Adicionar Aluno (sem pré-check-in)
-                    </h5>
-                    <div className="flex space-x-3">
-                      <select className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-                        <option value="">Selecione um aluno...</option>
-                        {dadosMockados.alunos
-                          .filter(aluno => aluno.status === 'ativo')
-                          .map(aluno => (
-                            <option key={aluno.id} value={aluno.id}>
-                              {aluno.nome}
-                            </option>
-                          ))}
-                      </select>
-                      <Button>
-                        Adicionar
-                      </Button>
-                    </div>
-                  </div>
-                )}
+              {/* Formulário para adicionar aluno sem pré-check-in */}
+              {showAddAluno && canManagePresencas && (
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <h5 className="text-md font-medium text-gray-900 dark:text-white mb-3">
+                  Adicionar Aluno (sem pré-check-in)
+                </h5>
+                <div className="flex space-x-3">
+                  <select 
+                    value={selectedAlunoId}
+                    onChange={(e) => setSelectedAlunoId(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    disabled={isAddingAluno}
+                  >
+                    <option value="">Selecione um aluno...</option>
+                    {dadosMockados.alunos
+                      .filter(aluno => {
+                        if (aluno.status !== 'ativo') return false;
+                        
+                        const jaEstaPresente = selectedLista.preCheckins.some(
+                          p => p.alunoId === aluno.id && !p.cancelado
+                        );
+                        
+                        return !jaEstaPresente;
+                      })
+                      .map(aluno => (
+                        <option key={aluno.id} value={aluno.id}>
+                          {aluno.nome}
+                        </option>
+                      ))}
+                  </select>
+                  
+                  <Button
+                    onClick={handleAdicionarAlunoSemPreCheckin}
+                    disabled={!selectedAlunoId || isAddingAluno}
+                    leftIcon={isAddingAluno ? undefined : <Plus className="h-4 w-4" />}
+                  >
+                    {isAddingAluno ? 'Adicionando...' : 'Adicionar'}
+                  </Button>
+                </div>
+              </div>
+              )}
 
-                {selectedLista.preCheckins.filter(p => !p.cancelado).length === 0 && (
+                {selectedLista.preCheckins.filter(p => !p.cancelado).length === 0 && !showAddAluno && (
                   <div className="text-center py-8">
                     <Users className="mx-auto h-12 w-12 text-gray-400" />
                     <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
