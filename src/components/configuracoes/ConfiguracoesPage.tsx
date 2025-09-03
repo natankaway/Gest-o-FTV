@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useAppState } from '@/contexts';
-import { Settings, Building } from 'lucide-react';
+import { Settings, Building, Clock } from 'lucide-react';
 import { GeralTab } from './GeralTab';
 import { UnidadesTab } from './UnidadesTab';
+import { HorariosTab } from './HorariosTab';
 
 export const ConfiguracoesPage: React.FC = () => {
   const { userLogado } = useAppState();
-  const [activeTab, setActiveTab] = useState<'geral' | 'unidades'>('geral');
+  const [activeTab, setActiveTab] = useState<'geral' | 'unidades' | 'horarios'>('geral');
 
   // Check if user is admin
   if (userLogado?.perfil !== 'admin') {
@@ -74,12 +75,28 @@ export const ConfiguracoesPage: React.FC = () => {
                 <span>Unidades</span>
               </div>
             </button>
+			
+			<button
+              onClick={() => setActiveTab('horarios')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'horarios'
+                  ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+              }`}
+            >
+              <div className="flex items-center space-x-2">
+                <Clock className="h-4 w-4" />
+                <span>Horários & Aulas</span>
+              </div>
+            </button>
+			
           </nav>
         </div>
 
         <div className="p-6">
           {activeTab === 'geral' && <GeralTab />}
           {activeTab === 'unidades' && <UnidadesTab />}
+          {activeTab === 'horarios' && <HorariosTab />}
         </div>
       </div>
     </div>

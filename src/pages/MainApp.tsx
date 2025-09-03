@@ -10,7 +10,7 @@ import { PresencasPage } from '@/components/presencas';
 import { PlanosPage } from '@/components/planos';
 import { ProdutosPage } from '@/components/produtos';
 import { FinanceiroPage } from '@/components/financeiro';
-import { AgendamentosPage } from '@/components/agendamentos';
+import { AgendamentosPresencaPage } from '@/components/agendamentos/AgendamentosPresencaPage';
 import { TreinosPage } from '@/components/treinos';
 import { TorneiosPage } from '@/components/torneios';
 import { ConfiguracoesPage } from '@/components/configuracoes';
@@ -44,7 +44,7 @@ export const MainApp: React.FC = () => {
       case 'presencas':
         return <PresencasPage />;
       case 'agendamentos':
-        return <AgendamentosPage />;
+  return <AgendamentosPresencaPage />;
 		case 'aulas-experimentais': // ← ADICIONAR ESTE CASE
       return <AulasExperimentaisPage />;
       case 'treinos':

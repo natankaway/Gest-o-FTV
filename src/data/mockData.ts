@@ -349,6 +349,7 @@ alunos: [
         duas: 22,
         tres: 20
       },
+	  valorAulao: 120, // ← ADICIONE ESTA LINHA
       especialidades: ['Futevôlei de Praia', 'Técnicas de Defesa', 'Treinamento Avançado'],
       experiencia: '5-10',
       observacoes: 'Professor experiente, especialista em defesa',
@@ -362,6 +363,7 @@ alunos: [
       senha: '123456',
       tipoPagamento: 'fixo',
       valorFixo: 45,
+	  valorAulao: 80, // ← ADICIONE ESTA LINHA
       especialidades: ['Fundamentos Básicos', 'Treinamento Iniciantes'],
       experiencia: '1-3',
       observacoes: 'Ótimo com iniciantes, muito didático',
@@ -379,6 +381,7 @@ alunos: [
         duas: 25,
         tres: 22
       },
+	  valorAulao: 150, // ← ADICIONE ESTA LINHA
       especialidades: ['Técnicas de Ataque', 'Competições', 'Condicionamento Físico'],
       experiencia: '10+',
       observacoes: 'Ex-atleta profissional, especialista em alto rendimento',
@@ -647,20 +650,100 @@ alunos: [
 
   torneios: [],
   
+  
   aulasExperimentais: aulasExperimentaisMock,
 
   configCT: {
-    nomeCT: 'Gestão FTV',
-    contato: {
-      email: 'contato@futevolei.com',
-      telefone: '(11) 3000-0000'
+  nomeCT: 'Gestão FTV',
+  contato: {
+    email: 'contato@futevolei.com',
+    telefone: '(11) 3000-0000'
+  },
+  horarioFuncionamentoPadrao: {
+    inicio: '06:00',
+    fim: '22:00'
+  },
+  branding: {
+    logoUrl: ''
+  },
+  
+  // ======= ADICIONAR ESTAS CONFIGURAÇÕES =======
+  niveisAula: [
+    {
+      id: 1,
+      nome: 'Iniciante',
+      descricao: 'Para quem está começando no futevôlei',
+      cor: '#10B981',
+      ativo: true
     },
-    horarioFuncionamentoPadrao: {
-      inicio: '06:00',
-      fim: '22:00'
+    {
+      id: 2,
+      nome: 'Intermediário', 
+      descricao: 'Para praticantes com experiência básica',
+      cor: '#F59E0B',
+      ativo: true
     },
-    branding: {
-      logoUrl: ''
+    {
+      id: 3,
+      nome: 'Avançado',
+      descricao: 'Para jogadores experientes', 
+      cor: '#EF4444',
+      ativo: true
     }
+  ],
+  
+  horariosFixos: [
+    {
+      id: 1,
+      unidade: 'Centro',
+      diaSemana: 'segunda',
+      horaInicio: '08:00',
+      horaFim: '09:00',
+      capacidade: 8,
+      nivelId: 1,
+      ativo: true
+    },
+    {
+      id: 2,
+      unidade: 'Centro', 
+      diaSemana: 'segunda',
+      horaInicio: '18:00',
+      horaFim: '19:00',
+      capacidade: 12,
+      nivelId: 3,
+      ativo: true
+    },
+    {
+      id: 3,
+      unidade: 'Zona Sul',
+      diaSemana: 'terca',
+      horaInicio: '19:00', 
+      horaFim: '20:00',
+      capacidade: 10,
+      ativo: true
+    }
+  ],
+  
+  aulaoes: [
+    {
+      id: 1,
+      nome: 'Aulão de Final de Semana',
+      data: '2025-09-06',
+      horaInicio: '10:00',
+      horaFim: '12:00', 
+      unidade: 'Centro',
+      capacidade: 30,
+      valorEspecial: 50.00,
+      descricao: 'Aulão especial com técnicas avançadas',
+      ativo: true
+    }
+  ],
+  
+  configuracaoPresenca: {
+    permiteCheckinSemLimite: true,
+    lembreteAutomatico: true,
+    horarioLembreteMinutos: 30
   }
+},
+listasPresenca: []
 };

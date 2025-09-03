@@ -22,6 +22,10 @@ import type {
   Exercicio,
   Torneio,
   AulaExperimental,
+  ListaPresenca,
+  NivelAula,
+  HorarioFixo,
+  AulaoConfig,
   CartItem,
   TabKeys,
   ConfigCT
@@ -102,6 +106,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const [exercicios, setExercicios] = useLocalStorage<Exercicio[]>('exercicios', mockData.exercicios);
   const [torneios, setTorneios] = useLocalStorage<Torneio[]>('torneios', mockData.torneios);
   const [aulasExperimentais, setAulasExperimentais] = useLocalStorage<AulaExperimental[]>('aulasExperimentais', mockData.aulasExperimentais);
+  const [listasPresenca, setListasPresenca] = useLocalStorage<ListaPresenca[]>('listasPresenca', mockData.listasPresenca);
   const [configCT, setConfigCT] = useLocalStorage<ConfigCT>('configCT', mockData.configCT);
 
   // Session state (not persisted)
@@ -177,11 +182,12 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     exercicios,
     torneios,
 	aulasExperimentais,
+	listasPresenca,
     configCT
   }), [
     planos, alunos, professores, unidades, presencas,
     financeiro, produtos, plataformas, horarios, gestores, metas, metasGerais, alugueis,
-    agendamentos, treinos, exercicios, torneios, aulasExperimentais, configCT
+    agendamentos, treinos, exercicios, torneios, aulasExperimentais, listasPresenca, configCT
   ]);
 
   const value = useMemo(() => ({

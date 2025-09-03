@@ -43,6 +43,7 @@ interface ExportConfig {
     tipoPagamento: boolean;
     valorFixo: boolean;
     valoresVariaveis: boolean;
+	valorAulao: boolean;
     especialidades: boolean;
   };
   format: 'csv' | 'excel';
@@ -69,32 +70,30 @@ const ProfessorCard: React.FC<ProfessorCardProps> = ({
         avgValue: professor.valorFixo || 0
       };
     } else {
-      const valores = professor.valoresVariaveis || (professor as any).valoresHoras;
-      let uma, duas, tres;
-      
-      if (valores) {
-        if (valores.uma !== undefined) {
-          uma = valores.uma;
-          duas = valores.duas;
-          tres = valores.tres;
-        } else if (valores.umaHora !== undefined) {
-          uma = valores.umaHora;
-          duas = valores.duasHoras;
-          tres = valores.tresOuMaisHoras;
-        }
-      }
-      
-      const avgValue = (uma && duas && tres) ? (uma + duas + tres) / 3 : 0;
+    // ← SUBSTITUA ESTA PARTE TODA:
+    const valores = professor.valoresHoras; // ← SIMPLIFIQUE PARA APENAS ISTO
+    
+    if (valores) {
+      const avgValue = (valores.umaHora + valores.duasHoras + valores.tresOuMaisHoras) / 3;
       
       return {
-        text: `R$ ${uma || 0} / ${duas || 0} / ${tres || 0}`,
+        text: `R$ ${valores.umaHora || 0} / ${valores.duasHoras || 0} / ${valores.tresOuMaisHoras || 0}`,
         type: 'Variável por Horas',
         color: 'text-green-600 dark:text-green-400',
         badge: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
         avgValue
       };
     }
-  };
+    
+    return {
+      text: 'R$ 0 / 0 / 0',
+      type: 'Variável por Horas',
+      color: 'text-green-600 dark:text-green-400',
+      badge: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+      avgValue: 0
+    };
+  }
+};
 
   const getExperienceInfo = () => {
     const exp = professor.experiencia;
@@ -208,6 +207,24 @@ const ProfessorCard: React.FC<ProfessorCardProps> = ({
           {paymentInfo.type}
         </span>
       </div>
+	  
+	  {/* ======= NOVA SEÇÃO - VALOR AULÃO ======= */}
+{professor.valorAulao && (
+  <div className="mb-4 border-t border-gray-200 dark:border-gray-700 pt-3">
+    <div className="flex items-center justify-between">
+      <div className="flex items-center space-x-1">
+        <span className="text-sm">🎯</span>
+        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          Aulão:
+        </span>
+      </div>
+      <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">
+        R$ {professor.valorAulao.toFixed(2)}
+      </span>
+    </div>
+  </div>
+)}
+{/* ======= FIM NOVA SEÇÃO ======= */}
 
       <div className="flex space-x-2">
         <Button
@@ -423,6 +440,7 @@ export const ProfessoresPage: React.FC = memo(() => {
       tipoPagamento: true,
       valorFixo: true,
       valoresVariaveis: true,
+	  valorAulao: true,
       especialidades: true
     },
     format: 'csv',
@@ -661,25 +679,21 @@ export const ProfessoresPage: React.FC = memo(() => {
           row['Valor Fixo'] = professor.valorFixo ? `R$ ${professor.valorFixo.toFixed(2)}` : '';
         }
         
-        if (config.includeFields.valoresVariaveis && professor.tipoPagamento === 'variavel') {
-          const valores = professor.valoresVariaveis || (professor as any).valoresHoras;
+        if (config.includeFields.valoresVariaveis && professor.tipoPagamento === 'horas-variaveis') { 
+          const valores = professor.valoresHoras;
           let uma, duas, tres;
           
           if (valores) {
-            if (valores.uma !== undefined) {
-              uma = valores.uma;
-              duas = valores.duas;
-              tres = valores.tres;
-            } else if (valores.umaHora !== undefined) {
-              uma = valores.umaHora;
-              duas = valores.duasHoras;
-              tres = valores.tresOuMaisHoras;
-            }
-          }
-          
-          row['Valores Variáveis'] = `1h: R$ ${uma || 0} | 2h: R$ ${duas || 0} | 3h+: R$ ${tres || 0}`;
-        }
+    row['Valores Variáveis'] = `1h: R$ ${valores.umaHora || 0} | 2h: R$ ${valores.duasHoras || 0} | 3h+: R$ ${valores.tresOuMaisHoras || 0}`;
+  }
+}
         
+		// ======= NOVA EXPORTAÇÃO - VALOR AULÃO =======
+if (config.includeFields.valorAulao) {
+  row['Valor Aulão'] = professor.valorAulao ? `R$ ${professor.valorAulao.toFixed(2)}` : 'Não definido';
+}
+// ======= FIM NOVA EXPORTAÇÃO =======
+
         if (config.includeFields.especialidades) {
           row['Especialidades'] = professor.especialidades.join('; ');
         }
@@ -727,6 +741,7 @@ export const ProfessoresPage: React.FC = memo(() => {
       tipoPagamento: 'Tipo de Pagamento',
       valorFixo: 'Valor Fixo',
       valoresVariaveis: 'Valores Variáveis',
+	  valorAulao: 'Valor Aulão',
       especialidades: 'Especialidades'
     };
     return labels[field] || field;
@@ -897,7 +912,7 @@ export const ProfessoresPage: React.FC = memo(() => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Por Horas</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {professores.filter(p => p.tipoPagamento === 'variavel').length}
+                {professores.filter(p => p.tipoPagamento === 'horas-variaveis').length}
               </p>
             </div>
           </div>
@@ -1057,8 +1072,8 @@ export const ProfessoresPage: React.FC = memo(() => {
             </span>
             <span className="text-sm text-gray-500 dark:text-gray-400">•</span>
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Variável: {filteredProfessores.filter(p => p.tipoPagamento === 'variavel').length}
-            </span>
+  Variável: {filteredProfessores.filter(p => p.tipoPagamento === 'horas-variaveis').length}
+</span>
           </div>
         </div>
       )}

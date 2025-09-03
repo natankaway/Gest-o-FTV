@@ -22,6 +22,7 @@ const INITIAL_FORM_DATA: ProfessorFormData = {
     duasHoras: 0,
     tresOuMaisHoras: 0
   },
+  valorAulao: undefined,
   especialidades: [],
   experiencia: '1-3',
   observacoes: '',
@@ -64,6 +65,7 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
         tipoPagamento: editingProfessor.tipoPagamento,
         valorFixo: editingProfessor.valorFixo || 0,
         valoresHoras: editingProfessor.valoresHoras || { umaHora: 0, duasHoras: 0, tresOuMaisHoras: 0 },
+		valorAulao: editingProfessor.valorAulao,
         especialidades: editingProfessor.especialidades,
         experiencia: editingProfessor.experiencia,
         observacoes: editingProfessor.observacoes || '',
@@ -202,9 +204,20 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       const professorData: Professor = {
-        id: editingProfessor ? editingProfessor.id : Date.now(),
-        ...formData
-      };
+  id: editingProfessor?.id || generateId(),
+  nome: formData.nome,
+  telefone: formData.telefone,
+  email: formData.email,
+  senha: formData.senha,
+  tipoPagamento: formData.tipoPagamento,
+  valorFixo: formData.tipoPagamento === 'fixo' ? formData.valorFixo : undefined,
+  valoresHoras: formData.tipoPagamento === 'horas-variaveis' ? formData.valoresHoras : undefined,
+  valorAulao: formData.valorAulao, // ← ADICIONE ESTA LINHA
+  especialidades: formData.especialidades,
+  experiencia: formData.experiencia,
+  observacoes: formData.observacoes,
+  ativo: formData.ativo ?? true
+};
 
       if (editingProfessor) {
         // Update existing professor
@@ -520,6 +533,42 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
             </div>
           )}
         </div>
+		
+		{/* ======= NOVA SEÇÃO - ADICIONE AQUI ======= */}
+<div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+  <div className="flex items-center space-x-2 mb-3">
+    <span className="text-lg">🎯</span>
+    <h5 className="text-md font-medium text-gray-900 dark:text-white">
+      Pagamento Especial - Aulão
+    </h5>
+  </div>
+  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+    Valor diferenciado que o professor recebe ao participar de aulões (eventos especiais).
+  </p>
+  
+  <div className="max-w-xs">
+    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      Valor por Aulão (R$)
+      <span className="text-gray-500 text-xs ml-1">(opcional)</span>
+    </label>
+    <input
+      type="number"
+      step="0.01"
+      min="0"
+      value={formData.valorAulao || ''}
+      onChange={(e) => handleInputChange('valorAulao', e.target.value ? parseFloat(e.target.value) : undefined)}
+      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+        errors.valorAulao ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+      }`}
+      placeholder="Ex: 80.00"
+    />
+    {errors.valorAulao && <p className="text-red-500 text-xs mt-1">{errors.valorAulao}</p>}
+    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+      Deixe em branco se o professor não participará de aulões
+    </p>
+  </div>
+</div>
+{/* ======= FIM NOVA SEÇÃO ======= */}
 
         {/* Observações */}
         <div>

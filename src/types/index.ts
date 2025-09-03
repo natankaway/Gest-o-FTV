@@ -32,6 +32,7 @@ export interface Professor extends Usuario {
     duasHoras: number;
     tresOuMaisHoras: number;
   };
+  valorAulao?: number;
   especialidades: string[];
   experiencia: '1-3' | '3-5' | '5-10' | '10+';
   observacoes?: string;
@@ -80,6 +81,14 @@ export interface ConfigCT {
   };
   branding?: {
     logoUrl?: string;
+  };
+  niveisAula?: NivelAula[];
+  horariosFixos?: HorarioFixo[];
+  aulaoes?: AulaoConfig[];
+  configuracaoPresenca?: {
+    permiteCheckinSemLimite: boolean;
+    lembreteAutomatico: boolean;
+    horarioLembreteMinutos: number;
   };
 }
 
@@ -326,7 +335,8 @@ export interface MockData {
   treinos: Treino[];
   exercicios: Exercicio[];
   torneios: Torneio[];
-  aulasExperimentais: AulaExperimental[]; // ← ADICIONAR ESTA LINHA
+  aulasExperimentais: AulaExperimental[];
+listasPresenca: ListaPresenca[];  // ← ADICIONAR ESTA LINHA
   configCT: ConfigCT;
 }
 
@@ -465,6 +475,78 @@ export interface ConversaoData {
   planoId?: number;
   plataformaParceira?: string;
   dataVencimento?: string;
+  observacoes?: string;
+}
+export interface NivelAula {
+  id: number;
+  nome: string;
+  descricao?: string;
+  cor: string;
+  ativo: boolean;
+}
+
+export interface HorarioFixo {
+  id: number;
+  unidade: string;
+  diaSemana: 'segunda' | 'terca' | 'quarta' | 'quinta' | 'sexta' | 'sabado' | 'domingo';
+  horaInicio: string;
+  horaFim: string;
+  capacidade: number;
+  nivelId?: number;
+  ativo: boolean;
+}
+
+export interface AulaoConfig {
+  id: number;
+  nome: string;
+  data: string;
+  horaInicio: string;
+  horaFim: string;
+  unidade: string;
+  capacidade: number;
+  nivelId?: number;
+  valorEspecial?: number;
+  descricao?: string;
+  ativo: boolean;
+}
+
+export interface ListaPresenca {
+  id: number;
+  data: string;
+  horaInicio: string;
+  horaFim: string;
+  unidade: string;
+  tipo: 'aula-regular' | 'aulao';
+  nivelId?: number;
+  capacidade: number;
+  status: 'aberta' | 'confirmada' | 'finalizada';
+  preCheckins: PreCheckin[];
+  presencasConfirmadas: PresencaConfirmada[];
+  horarioFixoId?: number;
+  aulaoId?: number;
+  criadaEm: string;
+  atualizadaEm: string;
+}
+
+export interface PreCheckin {
+  id: number;
+  alunoId: number;
+  aluno: string;
+  horarioCheckin: string;
+  cancelado?: boolean;
+  motivoCancelamento?: string;
+  horarioCancelamento?: string;
+}
+
+export interface PresencaConfirmada {
+  id: number;
+  alunoId: number;
+  aluno: string;
+  tipo: 'pre-checkin-confirmado' | 'adicionado-pelo-professor';
+  status: 'presente' | 'falta';
+  professorId?: number;
+  professor?: string;
+  horarioConfirmacao: string;
   observacoes?: string;
 }
 // Export canvas types
