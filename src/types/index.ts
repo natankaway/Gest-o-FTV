@@ -36,6 +36,9 @@ export interface Professor extends Usuario {
   especialidades: string[];
   experiencia: '1-3' | '3-5' | '5-10' | '10+';
   observacoes?: string;
+  // 🆕 NOVOS CAMPOS ADICIONADOS:
+  unidades: string[]; // Array de unidades onde o professor atua
+  unidadePrincipal?: string; // Unidade principal (opcional)
 }
 
 export interface RegistroHorasProfessor {

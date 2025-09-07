@@ -262,7 +262,21 @@ const registrosHorasProfessoresMock: RegistroHorasProfessor[] = [
     observacoes: 'Aulas da quinta-feira',
     registradoPor: 2,
     registradoEm: '2024-12-05T18:30:00.000Z'
-  }
+  },
+  
+  {
+  id: 7,
+  data: '2024-12-06',
+  professorId: 4,
+  professorNome: 'Roberto Lima',
+  unidade: 'Barra',
+  horasTrabalhadas: 3,
+  tipoAtividade: 'aula-regular',
+  observacoes: 'Aulas de beach tennis',
+  registradoPor: 4,
+  registradoEm: '2024-12-06T17:00:00.000Z'
+}
+  
 ];
 
 export const mockData: MockData = {
@@ -411,58 +425,85 @@ alunos: [
 // Zona Norte: IDs 7, 8, 9 (R$ 110, 140, 170)
 // Barra: IDs 10, 11, 12 (R$ 160, 190, 230)
 
-  professores: [
-    { 
-      id: 1, 
-      nome: 'Carlos Mendes', 
-      telefone: '(11) 91111-1111', 
-      email: 'carlos@email.com', 
-      senha: '123456',
-      tipoPagamento: 'variavel',
-      valoresVariaveis: {
-        uma: 25,
-        duas: 22,
-        tres: 20
-      },
-	  valorAulao: 120, // ← ADICIONE ESTA LINHA
-      especialidades: ['Futevôlei de Praia', 'Técnicas de Defesa', 'Treinamento Avançado'],
-      experiencia: '5-10',
-      observacoes: 'Professor experiente, especialista em defesa',
-      ativo: true
+professores: [
+  { 
+    id: 1, 
+    nome: 'Carlos Mendes', 
+    telefone: '(11) 91111-1111', 
+    email: 'carlos@email.com', 
+    senha: '123456',
+    tipoPagamento: 'horas-variaveis', // ✅ CORRIGIDO
+    valoresHoras: { // ✅ CORRIGIDO - era valoresVariaveis
+      umaHora: 25,
+      duasHoras: 22,
+      tresOuMaisHoras: 20
     },
-    { 
-      id: 2, 
-      nome: 'Lucas Ferreira', 
-      telefone: '(11) 92222-2222', 
-      email: 'lucas@email.com', 
-      senha: '123456',
-      tipoPagamento: 'fixo',
-      valorFixo: 45,
-	  valorAulao: 80, // ← ADICIONE ESTA LINHA
-      especialidades: ['Fundamentos Básicos', 'Treinamento Iniciantes'],
-      experiencia: '1-3',
-      observacoes: 'Ótimo com iniciantes, muito didático',
-      ativo: true
+    valorAulao: 120,
+    especialidades: ['Futevôlei de Praia', 'Técnicas de Defesa', 'Treinamento Avançado'],
+    experiencia: '5-10',
+    observacoes: 'Professor experiente, especialista em defesa',
+    ativo: true,
+    // 🆕 NOVOS CAMPOS:
+    unidades: ['Centro', 'Zona Sul'],
+    unidadePrincipal: 'Centro'
+  },
+  { 
+    id: 2, 
+    nome: 'Lucas Ferreira', 
+    telefone: '(11) 92222-2222', 
+    email: 'lucas@email.com', 
+    senha: '123456',
+    tipoPagamento: 'fixo',
+    valorFixo: 3500, // ✅ CORRIGIDO - valor mensal, não por aula
+    valorAulao: 80,
+    especialidades: ['Fundamentos Básicos', 'Treinamento Iniciantes'],
+    experiencia: '1-3',
+    observacoes: 'Ótimo com iniciantes, muito didático',
+    ativo: true,
+    // 🆕 NOVOS CAMPOS:
+    unidades: ['Zona Sul'],
+    unidadePrincipal: 'Zona Sul'
+  },
+  { 
+    id: 3, 
+    nome: 'Ana Paula Costa', 
+    telefone: '(11) 93333-3333', 
+    email: 'anapaula@email.com', 
+    senha: '123456',
+    tipoPagamento: 'horas-variaveis', // ✅ CORRIGIDO
+    valoresHoras: { // ✅ CORRIGIDO
+      umaHora: 30,
+      duasHoras: 25,
+      tresOuMaisHoras: 22
     },
-    { 
-      id: 3, 
-      nome: 'Ana Paula Costa', 
-      telefone: '(11) 93333-3333', 
-      email: 'anapaula@email.com', 
-      senha: '123456',
-      tipoPagamento: 'variavel',
-      valoresVariaveis: {
-        uma: 30,
-        duas: 25,
-        tres: 22
-      },
-	  valorAulao: 150, // ← ADICIONE ESTA LINHA
-      especialidades: ['Técnicas de Ataque', 'Competições', 'Condicionamento Físico'],
-      experiencia: '10+',
-      observacoes: 'Ex-atleta profissional, especialista em alto rendimento',
-      ativo: true
-    }
-  ],
+    valorAulao: 150,
+    especialidades: ['Técnicas de Ataque', 'Competições', 'Condicionamento Físico'],
+    experiencia: '10+',
+    observacoes: 'Ex-atleta profissional, especialista em alto rendimento',
+    ativo: true,
+    // 🆕 NOVOS CAMPOS:
+    unidades: ['Zona Norte', 'Barra'],
+    unidadePrincipal: 'Zona Norte'
+  },
+  // 🆕 ADICIONAR MAIS UM PROFESSOR PARA TESTAR:
+  { 
+    id: 4, 
+    nome: 'Roberto Lima', 
+    telefone: '(11) 94444-4444', 
+    email: 'roberto@email.com', 
+    senha: '123456',
+    tipoPagamento: 'fixo',
+    valorFixo: 2800,
+    valorAulao: 100,
+    especialidades: ['Beach Tennis', 'Futevôlei'],
+    experiencia: '3-5',
+    observacoes: 'Professor versátil, atua em múltiplas modalidades',
+    ativo: false, // Professor inativo para testar filtros
+    // 🆕 NOVOS CAMPOS:
+    unidades: ['Barra'],
+    unidadePrincipal: 'Barra'
+  }
+],
 
   unidades: [
     { 

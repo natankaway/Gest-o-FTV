@@ -21,7 +21,12 @@ import {
   Archive,
   Calculator,
   Settings,
-  X
+  X,
+  Building2,
+  MapPin,
+  Filter,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import type { Professor } from '@/types';
 
@@ -43,8 +48,9 @@ interface ExportConfig {
     tipoPagamento: boolean;
     valorFixo: boolean;
     valoresVariaveis: boolean;
-	valorAulao: boolean;
+    valorAulao: boolean;
     especialidades: boolean;
+    unidades: boolean;
   };
   format: 'csv' | 'excel';
   encoding: 'utf-8' | 'latin1';
@@ -63,37 +69,36 @@ const ProfessorCard: React.FC<ProfessorCardProps> = ({
   const getPaymentInfo = () => {
     if (professor.tipoPagamento === 'fixo') {
       return {
-        text: `R$ ${professor.valorFixo?.toFixed(2)}/aula`,
+        text: `R$ ${professor.valorFixo?.toFixed(2)}/mês`,
         type: 'Fixo',
         color: 'text-blue-600 dark:text-blue-400',
         badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
         avgValue: professor.valorFixo || 0
       };
     } else {
-    // ← SUBSTITUA ESTA PARTE TODA:
-    const valores = professor.valoresHoras; // ← SIMPLIFIQUE PARA APENAS ISTO
-    
-    if (valores) {
-      const avgValue = (valores.umaHora + valores.duasHoras + valores.tresOuMaisHoras) / 3;
+      const valores = professor.valoresHoras;
+      
+      if (valores) {
+        const avgValue = (valores.umaHora + valores.duasHoras + valores.tresOuMaisHoras) / 3;
+        
+        return {
+          text: `R$ ${valores.umaHora || 0} / ${valores.duasHoras || 0} / ${valores.tresOuMaisHoras || 0}`,
+          type: 'Variável por Horas',
+          color: 'text-green-600 dark:text-green-400',
+          badge: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+          avgValue
+        };
+      }
       
       return {
-        text: `R$ ${valores.umaHora || 0} / ${valores.duasHoras || 0} / ${valores.tresOuMaisHoras || 0}`,
+        text: 'R$ 0 / 0 / 0',
         type: 'Variável por Horas',
         color: 'text-green-600 dark:text-green-400',
         badge: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
-        avgValue
+        avgValue: 0
       };
     }
-    
-    return {
-      text: 'R$ 0 / 0 / 0',
-      type: 'Variável por Horas',
-      color: 'text-green-600 dark:text-green-400',
-      badge: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
-      avgValue: 0
-    };
-  }
-};
+  };
 
   const getExperienceInfo = () => {
     const exp = professor.experiencia;
@@ -161,6 +166,43 @@ const ProfessorCard: React.FC<ProfessorCardProps> = ({
         </div>
       </div>
 
+      {/* Seção de Unidades de Atuação */}
+      <div className="mb-4">
+        <div className="flex items-center space-x-1 mb-2">
+          <Building2 className="h-4 w-4 text-gray-400" />
+          <span className="text-sm font-medium text-gray-900 dark:text-white">Unidades de Atuação</span>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {professor.unidades && professor.unidades.length > 0 ? (
+            professor.unidades.map((unidade, index) => (
+              <span
+                key={index}
+                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  professor.unidadePrincipal === unidade
+                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border border-blue-300'
+                    : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                }`}
+              >
+                {professor.unidadePrincipal === unidade && (
+                  <Star className="w-3 h-3 mr-1 fill-current" />
+                )}
+                {unidade}
+              </span>
+            ))
+          ) : (
+            <span className="text-xs text-gray-500 dark:text-gray-400 italic">
+              Nenhuma unidade definida
+            </span>
+          )}
+        </div>
+        {professor.unidadePrincipal && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <MapPin className="w-3 h-3 inline mr-1" />
+            Principal: {professor.unidadePrincipal}
+          </p>
+        )}
+      </div>
+
       <div className="mb-4">
         <div className="flex items-center space-x-1 mb-2">
           <Star className="h-4 w-4 text-gray-400" />
@@ -207,24 +249,23 @@ const ProfessorCard: React.FC<ProfessorCardProps> = ({
           {paymentInfo.type}
         </span>
       </div>
-	  
-	  {/* ======= NOVA SEÇÃO - VALOR AULÃO ======= */}
-{professor.valorAulao && (
-  <div className="mb-4 border-t border-gray-200 dark:border-gray-700 pt-3">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center space-x-1">
-        <span className="text-sm">🎯</span>
-        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-          Aulão:
-        </span>
-      </div>
-      <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">
-        R$ {professor.valorAulao.toFixed(2)}
-      </span>
-    </div>
-  </div>
-)}
-{/* ======= FIM NOVA SEÇÃO ======= */}
+
+      {/* Seção de Valor Aulão */}
+      {professor.valorAulao && professor.valorAulao > 0 && (
+        <div className="mb-4 border-t border-gray-200 dark:border-gray-700 pt-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-1">
+              <span className="text-sm">🎯</span>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Aulão:
+              </span>
+            </div>
+            <span className="text-sm font-semibold text-orange-600 dark:text-orange-400">
+              R$ {professor.valorAulao.toFixed(2)}
+            </span>
+          </div>
+        </div>
+      )}
 
       <div className="flex space-x-2">
         <Button
@@ -413,8 +454,8 @@ const ExportModal: React.FC<{
 };
 
 export const ProfessoresPage: React.FC = memo(() => {
-  const { dadosMockados, setProfessores } = useAppState();
-  const { professores } = dadosMockados;
+  const { dadosMockados, setProfessores, userLogado } = useAppState();
+  const { professores, unidades } = dadosMockados;
   const { addNotification } = useNotifications();
   
   const [showModal, setShowModal] = useState(false);
@@ -422,12 +463,14 @@ export const ProfessoresPage: React.FC = memo(() => {
   const [selectedProfessores, setSelectedProfessores] = useState<number[]>([]);
   const [localSearchTerm, setLocalSearchTerm] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
   const [filters, setFilters] = useState({
     searchTerm: '',
     status: 'todos',
     experiencia: 'todas',
-    tipoPagamento: 'todos'
+    tipoPagamento: 'todos',
+    unidade: 'todas'
   });
 
   const [exportConfig, setExportConfig] = useState<ExportConfig>({
@@ -440,8 +483,9 @@ export const ProfessoresPage: React.FC = memo(() => {
       tipoPagamento: true,
       valorFixo: true,
       valoresVariaveis: true,
-	  valorAulao: true,
-      especialidades: true
+      valorAulao: true,
+      especialidades: true,
+      unidades: true
     },
     format: 'csv',
     encoding: 'utf-8',
@@ -449,6 +493,21 @@ export const ProfessoresPage: React.FC = memo(() => {
     includeHeader: true,
     dateFormat: 'dd/mm/yyyy'
   });
+
+  // Unidades disponíveis baseadas no perfil do usuário
+  const unidadesDisponiveis = useMemo(() => {
+    const unidadesAtivas = unidades.filter(u => u.ativa);
+    
+    if (userLogado?.perfil === 'admin') {
+      return unidadesAtivas;
+    } else if (userLogado?.perfil === 'gestor') {
+      return unidadesAtivas.filter(u => 
+        userLogado.unidades?.includes(u.nome) || userLogado.unidade === u.nome
+      );
+    }
+    
+    return unidadesAtivas;
+  }, [unidades, userLogado]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -474,13 +533,24 @@ export const ProfessoresPage: React.FC = memo(() => {
   };
 
   const filteredProfessores = useMemo(() => {
-    return professores.filter(professor => {
+    let professoresFiltered = professores;
+
+    // Filtrar por perfil do usuário
+    if (userLogado?.perfil === 'gestor') {
+      const unidadesGerenciadas = userLogado.unidades || [userLogado.unidade].filter(Boolean);
+      professoresFiltered = professores.filter(professor => 
+        professor.unidades?.some(unidade => unidadesGerenciadas.includes(unidade))
+      );
+    }
+
+    return professoresFiltered.filter(professor => {
       if (filters.searchTerm) {
         const searchFields = [
           professor.nome,
           professor.email,
           professor.telefone,
-          ...professor.especialidades
+          ...professor.especialidades,
+          ...(professor.unidades || [])
         ];
         
         const matchesSearch = searchFields.some(field => 
@@ -498,13 +568,25 @@ export const ProfessoresPage: React.FC = memo(() => {
       
       if (filters.experiencia !== 'todas' && professor.experiencia !== filters.experiencia) return false;
       if (filters.tipoPagamento !== 'todos' && professor.tipoPagamento !== filters.tipoPagamento) return false;
+      if (filters.unidade !== 'todas' && !professor.unidades?.includes(filters.unidade)) return false;
       
       return true;
     });
-  }, [professores, filters]);
+  }, [professores, filters, userLogado]);
 
   const handleFilterChange = useCallback((key: string, value: any) => {
     setFilters(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  const clearAllFilters = useCallback(() => {
+    setFilters({
+      searchTerm: '',
+      status: 'todos',
+      experiencia: 'todas',
+      tipoPagamento: 'todos',
+      unidade: 'todas'
+    });
+    setLocalSearchTerm('');
   }, []);
 
   const handleSelectAll = useCallback((checked: boolean) => {
@@ -681,21 +763,25 @@ export const ProfessoresPage: React.FC = memo(() => {
         
         if (config.includeFields.valoresVariaveis && professor.tipoPagamento === 'horas-variaveis') { 
           const valores = professor.valoresHoras;
-          let uma, duas, tres;
           
           if (valores) {
-    row['Valores Variáveis'] = `1h: R$ ${valores.umaHora || 0} | 2h: R$ ${valores.duasHoras || 0} | 3h+: R$ ${valores.tresOuMaisHoras || 0}`;
-  }
-}
+            row['Valores Variáveis'] = `1h: R$ ${valores.umaHora || 0} | 2h: R$ ${valores.duasHoras || 0} | 3h+: R$ ${valores.tresOuMaisHoras || 0}`;
+          }
+        }
         
-		// ======= NOVA EXPORTAÇÃO - VALOR AULÃO =======
-if (config.includeFields.valorAulao) {
-  row['Valor Aulão'] = professor.valorAulao ? `R$ ${professor.valorAulao.toFixed(2)}` : 'Não definido';
-}
-// ======= FIM NOVA EXPORTAÇÃO =======
+        if (config.includeFields.valorAulao) {
+          row['Valor Aulão'] = professor.valorAulao ? `R$ ${professor.valorAulao.toFixed(2)}` : 'Não definido';
+        }
 
         if (config.includeFields.especialidades) {
           row['Especialidades'] = professor.especialidades.join('; ');
+        }
+
+        if (config.includeFields.unidades) {
+          row['Unidades'] = professor.unidades ? professor.unidades.join('; ') : 'Nenhuma';
+          if (professor.unidadePrincipal) {
+            row['Unidade Principal'] = professor.unidadePrincipal;
+          }
         }
 
         return row;
@@ -741,8 +827,9 @@ if (config.includeFields.valorAulao) {
       tipoPagamento: 'Tipo de Pagamento',
       valorFixo: 'Valor Fixo',
       valoresVariaveis: 'Valores Variáveis',
-	  valorAulao: 'Valor Aulão',
-      especialidades: 'Especialidades'
+      valorAulao: 'Valor Aulão',
+      especialidades: 'Especialidades',
+      unidades: 'Unidades'
     };
     return labels[field] || field;
   };
@@ -831,6 +918,12 @@ if (config.includeFields.valorAulao) {
     );
   };
 
+  const hasActiveFilters = filters.status !== 'todos' || 
+                          filters.experiencia !== 'todas' || 
+                          filters.tipoPagamento !== 'todos' ||
+                          filters.unidade !== 'todas' ||
+                          filters.searchTerm !== '';
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -871,6 +964,7 @@ if (config.includeFields.valorAulao) {
         </div>
       </div>
 
+      {/* Cards de estatísticas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
           <div className="flex items-center">
@@ -945,94 +1039,145 @@ if (config.includeFields.valorAulao) {
 
       <BulkActionsBar />
 
+      {/* Seção de filtros */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="relative lg:col-span-2">
+        <div className="flex flex-col space-y-4">
+          {/* Barra de busca principal */}
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             <input
               type="text"
-              placeholder="Buscar por nome, email, telefone ou especialidade..."
+              placeholder="Buscar por nome, email, telefone, especialidade ou unidade..."
               value={localSearchTerm}
               onChange={(e) => setLocalSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               autoComplete="off"
               spellCheck="false"
             />
             
             {localSearchTerm && localSearchTerm !== filters.searchTerm && (
-              <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
               </div>
             )}
           </div>
 
-          <div>
-            <select
-              value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          {/* Botão para mostrar/ocultar filtros */}
+          <div className="flex items-center justify-between">
+            <Button
+              variant="secondary"
+              onClick={() => setShowFilters(!showFilters)}
+              leftIcon={<Filter className="h-4 w-4" />}
+              rightIcon={showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              className="text-sm"
             >
-              <option value="todos">Todos os status</option>
-              <option value="ativo">Ativo</option>
-              <option value="inativo">Inativo</option>
-            </select>
+              Filtros Avançados {hasActiveFilters && '(*)'}
+            </Button>
+
+            {hasActiveFilters && (
+              <Button
+                variant="secondary"
+                onClick={clearAllFilters}
+                className="text-sm text-red-600 hover:text-red-700"
+              >
+                Limpar Filtros
+              </Button>
+            )}
           </div>
 
-          <div>
-            <select
-              value={filters.experiencia}
-              onChange={(e) => handleFilterChange('experiencia', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            >
-              <option value="todas">Toda experiência</option>
-              <option value="1-3">1-3 anos</option>
-              <option value="3-5">3-5 anos</option>
-              <option value="5-10">5-10 anos</option>
-              <option value="10+">10+ anos</option>
-            </select>
-          </div>
+          {/* Filtros expandidos */}
+          {showFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                <select
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="todos">Todos os status</option>
+                  <option value="ativo">Ativo</option>
+                  <option value="inativo">Inativo</option>
+                </select>
+              </div>
 
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="selectAllProfessores"
-              checked={selectedProfessores.length === filteredProfessores.length && filteredProfessores.length > 0}
-              onChange={(e) => handleSelectAll(e.target.checked)}
-              className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-            />
-            <label htmlFor="selectAllProfessores" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Selecionar todos ({filteredProfessores.length})
-            </label>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Experiência</label>
+                <select
+                  value={filters.experiencia}
+                  onChange={(e) => handleFilterChange('experiencia', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="todas">Toda experiência</option>
+                  <option value="1-3">1-3 anos</option>
+                  <option value="3-5">3-5 anos</option>
+                  <option value="5-10">5-10 anos</option>
+                  <option value="10+">10+ anos</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo de Pagamento</label>
+                <select
+                  value={filters.tipoPagamento}
+                  onChange={(e) => handleFilterChange('tipoPagamento', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="todos">Todos os tipos</option>
+                  <option value="fixo">Fixo</option>
+                  <option value="horas-variaveis">Variável por Horas</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Unidade</label>
+                <select
+                  value={filters.unidade}
+                  onChange={(e) => handleFilterChange('unidade', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  <option value="todas">Todas as unidades</option>
+                  {unidadesDisponiveis.map(unidade => (
+                    <option key={unidade.id} value={unidade.nome}>
+                      {unidade.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Seleção em massa */}
+          <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="selectAllProfessores"
+                checked={selectedProfessores.length === filteredProfessores.length && filteredProfessores.length > 0}
+                onChange={(e) => handleSelectAll(e.target.checked)}
+                className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+              />
+              <label htmlFor="selectAllProfessores" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Selecionar todos ({filteredProfessores.length})
+              </label>
+            </div>
+
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Mostrando {filteredProfessores.length} de {professores.length} professores
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Mostrando {filteredProfessores.length} de {professores.length} professores
-        </p>
-        {localSearchTerm && (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => {
-              setLocalSearchTerm('');
-              setFilters(prev => ({ ...prev, searchTerm: '' }));
-            }}
-          >
-            Limpar busca
-          </Button>
-        )}
-      </div>
-
+      {/* Lista de professores */}
       {filteredProfessores.length === 0 ? (
         <div className="text-center py-12">
           <Users className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">Nenhum professor encontrado</h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {localSearchTerm ? 'Tente ajustar os filtros de busca.' : 'Comece adicionando um novo professor.'}
+            {localSearchTerm || hasActiveFilters ? 'Tente ajustar os filtros de busca.' : 'Comece adicionando um novo professor.'}
           </p>
-          {!localSearchTerm && (
+          {!localSearchTerm && !hasActiveFilters && (
             <div className="mt-6">
               <Button onClick={handleAddNew} leftIcon={<Plus className="h-4 w-4" />}>
                 Adicionar Primeiro Professor
@@ -1072,12 +1217,13 @@ if (config.includeFields.valorAulao) {
             </span>
             <span className="text-sm text-gray-500 dark:text-gray-400">•</span>
             <span className="text-sm text-gray-500 dark:text-gray-400">
-  Variável: {filteredProfessores.filter(p => p.tipoPagamento === 'horas-variaveis').length}
-</span>
+              Variável: {filteredProfessores.filter(p => p.tipoPagamento === 'horas-variaveis').length}
+            </span>
           </div>
         </div>
       )}
 
+      {/* Modais */}
       <ExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}

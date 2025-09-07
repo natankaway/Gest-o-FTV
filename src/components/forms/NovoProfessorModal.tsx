@@ -1,7 +1,11 @@
-import React, { useState, useCallback, useEffect } from 'react';
+// src/components/forms/NovoProfessorModal.tsx - VERSÃO ATUALIZADA
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAppState, useNotifications } from '@/contexts';
 import { Modal, Button, Input } from '@/components/common';
-import { X, Plus, Eye, EyeOff } from 'lucide-react';
+import { 
+  X, Eye, EyeOff, Plus, Save, User, Mail, Phone, Lock, 
+  DollarSign, Clock, Briefcase, FileText, Building2, MapPin
+} from 'lucide-react';
 import type { Professor, ProfessorFormData } from '@/types';
 
 interface NovoProfessorModalProps {
@@ -10,78 +14,138 @@ interface NovoProfessorModalProps {
   editingProfessor?: Professor | null;
 }
 
-const INITIAL_FORM_DATA: ProfessorFormData = {
-  nome: '',
-  email: '',
-  telefone: '',
-  senha: '',
-  tipoPagamento: 'fixo',
-  valorFixo: 0,
-  valoresHoras: {
-    umaHora: 0,
-    duasHoras: 0,
-    tresOuMaisHoras: 0
-  },
-  valorAulao: undefined,
-  especialidades: [],
-  experiencia: '1-3',
-  observacoes: '',
-  ativo: true
-};
-
-const ESPECIALIDADES_OPTIONS = [
-  'Futevôlei Técnico',
-  'Futevôlei Físico',
-  'Futevôlei Tático',
-  'Treino Funcional',
-  'Preparação Física',
-  'Análise de Jogo',
-  'Coaching Mental',
-  'Recuperação e Lesões'
-];
+interface FormErrors {
+  nome?: string;
+  telefone?: string;
+  email?: string;
+  senha?: string;
+  especialidades?: string;
+  valorFixo?: string;
+  valorUmaHora?: string;
+  valorDuasHoras?: string;
+  valorTresHoras?: string;
+  valorAulao?: string;
+  unidades?: string;
+}
 
 export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
   isOpen,
   onClose,
   editingProfessor
 }) => {
-  const { setProfessores } = useAppState();
+  const { dadosMockados, setProfessores, userLogado } = useAppState();
   const { addNotification } = useNotifications();
-  
-  const [formData, setFormData] = useState<ProfessorFormData>(INITIAL_FORM_DATA);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [novaEspecialidade, setNovaEspecialidade] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
 
-  // Initialize form when editing
+  const [formData, setFormData] = useState<ProfessorFormData>({
+    nome: '',
+    telefone: '',
+    email: '',
+    senha: '',
+    tipoPagamento: 'fixo',
+    valorFixo: 0,
+    valoresHoras: {
+      umaHora: 0,
+      duasHoras: 0,
+      tresOuMaisHoras: 0
+    },
+    valorAulao: 0,
+    especialidades: [],
+    experiencia: '1-3',
+    observacoes: '',
+    ativo: true,
+    unidades: [], // 🆕 NOVO CAMPO
+    unidadePrincipal: '' // 🆕 NOVO CAMPO
+  });
+
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [novaEspecialidade, setNovaEspecialidade] = useState('');
+
+  // Especialidades disponíveis
+  const especialidadesDisponiveis = [
+    'Futevôlei', 'Beach Tennis', 'Vôlei de Praia', 'Futebol', 
+    'Educação Física', 'Preparação Física', 'Técnica Individual'
+  ];
+
+  // Unidades disponíveis baseadas no perfil do usuário
+  const unidadesDisponiveis = useMemo(() => {
+    const unidades = dadosMockados.unidades.filter(u => u.ativa);
+    
+    if (userLogado?.perfil === 'admin') {
+      return unidades;
+    } else if (userLogado?.perfil === 'gestor') {
+      // Gestor só pode cadastrar professor nas unidades que gerencia
+      return unidades.filter(u => 
+        userLogado.unidades?.includes(u.nome) || userLogado.unidade === u.nome
+      );
+    }
+    
+    return [];
+  }, [dadosMockados.unidades, userLogado]);
+
+  // Carregar dados quando editando
   useEffect(() => {
     if (editingProfessor) {
       setFormData({
         nome: editingProfessor.nome,
-        email: editingProfessor.email,
         telefone: editingProfessor.telefone,
+        email: editingProfessor.email,
         senha: editingProfessor.senha,
         tipoPagamento: editingProfessor.tipoPagamento,
         valorFixo: editingProfessor.valorFixo || 0,
-        valoresHoras: editingProfessor.valoresHoras || { umaHora: 0, duasHoras: 0, tresOuMaisHoras: 0 },
-		valorAulao: editingProfessor.valorAulao,
+        valoresHoras: editingProfessor.valoresHoras || {
+          umaHora: 0,
+          duasHoras: 0,
+          tresOuMaisHoras: 0
+        },
+        valorAulao: editingProfessor.valorAulao || 0,
         especialidades: editingProfessor.especialidades,
         experiencia: editingProfessor.experiencia,
         observacoes: editingProfessor.observacoes || '',
-        ativo: editingProfessor.ativo ?? true
+        ativo: editingProfessor.ativo ?? true,
+        unidades: editingProfessor.unidades || [], // 🆕 CARREGAR UNIDADES
+        unidadePrincipal: editingProfessor.unidadePrincipal || '' // 🆕 CARREGAR UNIDADE PRINCIPAL
       });
     } else {
-      setFormData(INITIAL_FORM_DATA);
+      // Resetar formulário para novo professor
+      setFormData({
+        nome: '',
+        telefone: '',
+        email: '',
+        senha: '',
+        tipoPagamento: 'fixo',
+        valorFixo: 0,
+        valoresHoras: {
+          umaHora: 0,
+          duasHoras: 0,
+          tresOuMaisHoras: 0
+        },
+        valorAulao: 0,
+        especialidades: [],
+        experiencia: '1-3',
+        observacoes: '',
+        ativo: true,
+        unidades: [], // 🆕 RESETAR UNIDADES
+        unidadePrincipal: '' // 🆕 RESETAR UNIDADE PRINCIPAL
+      });
     }
     setErrors({});
+    setShowPassword(false);
+    setNovaEspecialidade('');
   }, [editingProfessor, isOpen]);
 
-  const validateForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
+  const generateId = () => Math.floor(Math.random() * 1000000);
+
+  const validateForm = useCallback((): boolean => {
+    const newErrors: FormErrors = {};
 
     if (!formData.nome.trim()) {
       newErrors.nome = 'Nome é obrigatório';
+    }
+
+    if (!formData.telefone.trim()) {
+      newErrors.telefone = 'Telefone é obrigatório';
     }
 
     if (!formData.email.trim()) {
@@ -90,48 +154,50 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
       newErrors.email = 'Email inválido';
     }
 
-    if (!formData.telefone.trim()) {
-      newErrors.telefone = 'Telefone é obrigatório';
-    }
-
     if (!formData.senha.trim()) {
       newErrors.senha = 'Senha é obrigatória';
-    } else if (formData.senha.length < 8) {
-      newErrors.senha = 'Senha deve ter pelo menos 8 caracteres';
-    }
-
-    if (formData.tipoPagamento === 'fixo' && (!formData.valorFixo || formData.valorFixo <= 0)) {
-      newErrors.valorFixo = 'Valor fixo deve ser maior que zero';
-    }
-
-    if (formData.tipoPagamento === 'horas-variaveis') {
-      if (!formData.valoresHoras?.umaHora || formData.valoresHoras.umaHora <= 0) {
-        newErrors.valorUmaHora = 'Valor para 1 hora deve ser maior que zero';
-      }
-      if (!formData.valoresHoras?.duasHoras || formData.valoresHoras.duasHoras <= 0) {
-        newErrors.valorDuasHoras = 'Valor para 2 horas deve ser maior que zero';
-      }
-      if (!formData.valoresHoras?.tresOuMaisHoras || formData.valoresHoras.tresOuMaisHoras <= 0) {
-        newErrors.valorTresHoras = 'Valor para 3+ horas deve ser maior que zero';
-      }
+    } else if (formData.senha.length < 6) {
+      newErrors.senha = 'Senha deve ter pelo menos 6 caracteres';
     }
 
     if (formData.especialidades.length === 0) {
       newErrors.especialidades = 'Selecione pelo menos uma especialidade';
     }
 
+    // 🆕 VALIDAÇÃO DE UNIDADES
+    if (formData.unidades.length === 0) {
+      newErrors.unidades = 'Selecione pelo menos uma unidade';
+    }
+
+    // Validações de valores conforme tipo de pagamento
+    if (formData.tipoPagamento === 'fixo') {
+      if (!formData.valorFixo || formData.valorFixo <= 0) {
+        newErrors.valorFixo = 'Valor fixo deve ser maior que zero';
+      }
+    } else if (formData.tipoPagamento === 'horas-variaveis') {
+      if (!formData.valoresHoras.umaHora || formData.valoresHoras.umaHora <= 0) {
+        newErrors.valorUmaHora = 'Valor para 1 hora deve ser maior que zero';
+      }
+      if (!formData.valoresHoras.duasHoras || formData.valoresHoras.duasHoras <= 0) {
+        newErrors.valorDuasHoras = 'Valor para 2 horas deve ser maior que zero';
+      }
+      if (!formData.valoresHoras.tresOuMaisHoras || formData.valoresHoras.tresOuMaisHoras <= 0) {
+        newErrors.valorTresHoras = 'Valor para 3+ horas deve ser maior que zero';
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [formData]);
 
-  const handleInputChange = useCallback((field: keyof ProfessorFormData, value: any) => {
+  const handleInputChange = useCallback((field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
-    
-    // Clear error when user starts typing
-    if (errors[field]) {
+
+    // Limpar erro do campo
+    if (errors[field as keyof FormErrors]) {
       setErrors(prev => ({
         ...prev,
         [field]: ''
@@ -139,16 +205,15 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
     }
   }, [errors]);
 
-  const handleValorHorasChange = useCallback((tipo: 'umaHora' | 'duasHoras' | 'tresOuMaisHoras', value: number) => {
+  const handleValoresHorasChange = useCallback((tipo: 'umaHora' | 'duasHoras' | 'tresOuMaisHoras', valor: string) => {
     setFormData(prev => ({
       ...prev,
       valoresHoras: {
-        ...prev.valoresHoras!,
-        [tipo]: value
+        ...prev.valoresHoras,
+        [tipo]: parseFloat(valor) || 0
       }
     }));
-    
-    // Clear error when user starts typing
+
     const errorKey = tipo === 'umaHora' ? 'valorUmaHora' : 
                      tipo === 'duasHoras' ? 'valorDuasHoras' : 'valorTresHoras';
     if (errors[errorKey]) {
@@ -159,6 +224,35 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
     }
   }, [errors]);
 
+  // 🆕 HANDLERS PARA UNIDADES
+  const handleUnidadeToggle = useCallback((unidadeNome: string) => {
+    setFormData(prev => {
+      const unidades = prev.unidades.includes(unidadeNome)
+        ? prev.unidades.filter(u => u !== unidadeNome)
+        : [...prev.unidades, unidadeNome];
+      
+      // Se removeu a unidade principal, limpar
+      let unidadePrincipal = prev.unidadePrincipal;
+      if (!unidades.includes(unidadePrincipal)) {
+        unidadePrincipal = '';
+      }
+      
+      return {
+        ...prev,
+        unidades,
+        unidadePrincipal
+      };
+    });
+
+    // Limpar erro de unidades
+    if (errors.unidades) {
+      setErrors(prev => ({
+        ...prev,
+        unidades: ''
+      }));
+    }
+  }, [errors.unidades]);
+
   const adicionarEspecialidade = useCallback((especialidade: string) => {
     if (!formData.especialidades.includes(especialidade)) {
       setFormData(prev => ({
@@ -166,7 +260,6 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
         especialidades: [...prev.especialidades, especialidade]
       }));
       
-      // Clear error when adding especialidade
       if (errors.especialidades) {
         setErrors(prev => ({
           ...prev,
@@ -200,27 +293,27 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
     setIsSubmitting(true);
 
     try {
-      // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       const professorData: Professor = {
-  id: editingProfessor?.id || generateId(),
-  nome: formData.nome,
-  telefone: formData.telefone,
-  email: formData.email,
-  senha: formData.senha,
-  tipoPagamento: formData.tipoPagamento,
-  valorFixo: formData.tipoPagamento === 'fixo' ? formData.valorFixo : undefined,
-  valoresHoras: formData.tipoPagamento === 'horas-variaveis' ? formData.valoresHoras : undefined,
-  valorAulao: formData.valorAulao, // ← ADICIONE ESTA LINHA
-  especialidades: formData.especialidades,
-  experiencia: formData.experiencia,
-  observacoes: formData.observacoes,
-  ativo: formData.ativo ?? true
-};
+        id: editingProfessor?.id || generateId(),
+        nome: formData.nome,
+        telefone: formData.telefone,
+        email: formData.email,
+        senha: formData.senha,
+        tipoPagamento: formData.tipoPagamento,
+        valorFixo: formData.tipoPagamento === 'fixo' ? formData.valorFixo : undefined,
+        valoresHoras: formData.tipoPagamento === 'horas-variaveis' ? formData.valoresHoras : undefined,
+        valorAulao: formData.valorAulao,
+        especialidades: formData.especialidades,
+        experiencia: formData.experiencia,
+        observacoes: formData.observacoes,
+        ativo: formData.ativo ?? true,
+        unidades: formData.unidades, // 🆕 SALVAR UNIDADES
+        unidadePrincipal: formData.unidadePrincipal // 🆕 SALVAR UNIDADE PRINCIPAL
+      };
 
       if (editingProfessor) {
-        // Update existing professor
         setProfessores(prev => prev.map(p => p.id === editingProfessor.id ? professorData : p));
         addNotification({
           type: 'success',
@@ -228,7 +321,6 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
           message: 'Os dados do professor foram atualizados com sucesso!'
         });
       } else {
-        // Add new professor
         setProfessores(prev => [...prev, professorData]);
         addNotification({
           type: 'success',
@@ -249,12 +341,14 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
     }
   }, [formData, editingProfessor, validateForm, setProfessores, addNotification, onClose]);
 
+  if (!isOpen) return null;
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title={editingProfessor ? 'Editar Professor' : 'Novo Professor'}
-      size="lg"
+      size="xl"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Dados Pessoais */}
@@ -270,6 +364,7 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
               onChange={(e) => handleInputChange('nome', e.target.value)}
               error={errors.nome}
               required
+              leftIcon={<User className="h-4 w-4" />}
             />
             
             <Input
@@ -279,6 +374,7 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
               onChange={(e) => handleInputChange('email', e.target.value)}
               error={errors.email}
               required
+              leftIcon={<Mail className="h-4 w-4" />}
             />
           </div>
 
@@ -289,23 +385,23 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
               onChange={(e) => handleInputChange('telefone', e.target.value)}
               error={errors.telefone}
               required
+              leftIcon={<Phone className="h-4 w-4" />}
             />
             
-            {/* Campo Senha */}
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Senha *
               </label>
               <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={formData.senha}
                   onChange={(e) => handleInputChange('senha', e.target.value)}
-                  className={`w-full px-3 py-2 pr-10 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                  className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
                     errors.senha ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
-                  placeholder="Mínimo 8 caracteres"
-                  required
+                  placeholder="Senha do professor"
                 />
                 <button
                   type="button"
@@ -315,26 +411,68 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.senha && <p className="text-red-500 text-xs mt-1">{errors.senha}</p>}
+              {errors.senha && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.senha}</p>
+              )}
             </div>
           </div>
+        </div>
 
+        {/* 🆕 SEÇÃO DE UNIDADES */}
+        <div className="space-y-4">
+          <h4 className="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center">
+            <Building2 className="h-5 w-5 mr-2" />
+            Unidades de Atuação
+          </h4>
+          
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Experiência *
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Selecione as unidades onde o professor irá atuar *
             </label>
-            <select
-              value={formData.experiencia}
-              onChange={(e) => handleInputChange('experiencia', e.target.value as Professor['experiencia'])}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              required
-            >
-              <option value="1-3">1-3 anos</option>
-              <option value="3-5">3-5 anos</option>
-              <option value="5-10">5-10 anos</option>
-              <option value="10+">10+ anos</option>
-            </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {unidadesDisponiveis.map((unidade) => (
+                <label key={unidade.id} className="flex items-center space-x-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.unidades.includes(unidade.nome)}
+                    onChange={() => handleUnidadeToggle(unidade.nome)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                  />
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-300">
+                    {unidade.nome}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {errors.unidades && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.unidades}</p>
+            )}
           </div>
+
+          {/* Unidade Principal */}
+          {formData.unidades.length > 1 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <MapPin className="h-4 w-4 inline mr-1" />
+                Unidade Principal (opcional)
+              </label>
+              <select
+                value={formData.unidadePrincipal}
+                onChange={(e) => handleInputChange('unidadePrincipal', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Selecione a unidade principal</option>
+                {formData.unidades.map((unidadeNome) => (
+                  <option key={unidadeNome} value={unidadeNome}>
+                    {unidadeNome}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                A unidade principal será usada como padrão em relatórios e agendamentos
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Especialidades */}
@@ -343,35 +481,36 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
             Especialidades
           </h4>
           
-          {errors.especialidades && (
-            <p className="text-sm text-red-600 dark:text-red-400">{errors.especialidades}</p>
-          )}
-          
-          <div className="space-y-3">
-            <div className="flex flex-wrap gap-2">
-              {ESPECIALIDADES_OPTIONS.map((especialidade) => (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+              Especialidades disponíveis
+            </label>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {especialidadesDisponiveis.map((esp) => (
                 <button
-                  key={especialidade}
+                  key={esp}
                   type="button"
-                  onClick={() => adicionarEspecialidade(especialidade)}
-                  disabled={formData.especialidades.includes(especialidade)}
-                  className={`px-3 py-1 text-sm rounded-full border transition-colors ${
-                    formData.especialidades.includes(especialidade)
-                      ? 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-600'
-                      : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600'
+                  onClick={() => adicionarEspecialidade(esp)}
+                  disabled={formData.especialidades.includes(esp)}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                    formData.especialidades.includes(esp)
+                      ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 cursor-not-allowed'
+                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900'
                   }`}
                 >
-                  {especialidade}
+                  {esp}
                 </button>
               ))}
             </div>
             
-            <div className="flex gap-2">
-              <Input
-                placeholder="Nova especialidade"
+            <div className="flex space-x-2">
+              <input
+                type="text"
                 value={novaEspecialidade}
                 onChange={(e) => setNovaEspecialidade(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), adicionarNovaEspecialidade())}
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder="Digite uma nova especialidade"
               />
               <Button
                 type="button"
@@ -384,19 +523,21 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
             </div>
             
             {formData.especialidades.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Especialidades selecionadas:</p>
+              <div className="mt-3">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Especialidades selecionadas
+                </label>
                 <div className="flex flex-wrap gap-2">
-                  {formData.especialidades.map((especialidade) => (
+                  {formData.especialidades.map((esp) => (
                     <span
-                      key={especialidade}
-                      className="inline-flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-full dark:bg-blue-900/20 dark:text-blue-300"
+                      key={esp}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                     >
-                      {especialidade}
+                      {esp}
                       <button
                         type="button"
-                        onClick={() => removerEspecialidade(especialidade)}
-                        className="ml-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+                        onClick={() => removerEspecialidade(esp)}
+                        className="ml-2 text-blue-600 hover:text-blue-800"
                       >
                         <X className="h-3 w-3" />
                       </button>
@@ -405,215 +546,221 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
                 </div>
               </div>
             )}
+            
+            {errors.especialidades && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.especialidades}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Informações Profissionais */}
+        <div className="space-y-4">
+          <h4 className="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+            Informações Profissionais
+          </h4>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Experiência
+            </label>
+            <select
+              value={formData.experiencia}
+              onChange={(e) => handleInputChange('experiencia', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            >
+              <option value="1-3">1 a 3 anos</option>
+              <option value="3-5">3 a 5 anos</option>
+              <option value="5-10">5 a 10 anos</option>
+              <option value="10+">Mais de 10 anos</option>
+            </select>
           </div>
         </div>
 
         {/* Pagamento */}
         <div className="space-y-4">
-          <h4 className="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">
+          <h4 className="text-lg font-medium text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2 flex items-center">
+            <DollarSign className="h-5 w-5 mr-2" />
             Configuração de Pagamento
           </h4>
           
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Tipo de Pagamento *
+              Tipo de Pagamento
             </label>
-            <select
-              value={formData.tipoPagamento}
-              onChange={(e) => handleInputChange('tipoPagamento', e.target.value as Professor['tipoPagamento'])}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              required
-            >
-              <option value="fixo">Valor Fixo por Aula</option>
-              <option value="horas-variaveis">Pagamento por Horas Variável</option>
-            </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="tipoPagamento"
+                  value="fixo"
+                  checked={formData.tipoPagamento === 'fixo'}
+                  onChange={(e) => handleInputChange('tipoPagamento', e.target.value)}
+                  className="w-4 h-4 text-blue-600"
+                />
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-300">
+                  Valor Fixo Mensal
+                </span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="tipoPagamento"
+                  value="horas-variaveis"
+                  checked={formData.tipoPagamento === 'horas-variaveis'}
+                  onChange={(e) => handleInputChange('tipoPagamento', e.target.value)}
+                  className="w-4 h-4 text-blue-600"
+                />
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-300">
+                  Por Horas Variáveis
+                </span>
+              </label>
+            </div>
           </div>
 
-          {formData.tipoPagamento === 'fixo' ? (
+          {formData.tipoPagamento === 'fixo' && (
             <Input
-              label="Valor por aula (R$)"
+              label="Valor Fixo Mensal (R$)"
               type="number"
-              step="0.01"
               min="0"
+              step="0.01"
               value={formData.valorFixo}
               onChange={(e) => handleInputChange('valorFixo', parseFloat(e.target.value) || 0)}
               error={errors.valorFixo}
-              required
+              leftIcon={<DollarSign className="h-4 w-4" />}
             />
-          ) : (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Defina o valor total que o professor receberá por cada faixa de horas trabalhadas no dia:
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    1 hora/dia (R$) *
-                  </label>
+          )}
+
+          {formData.tipoPagamento === 'horas-variaveis' && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  1 Hora (R$)
+                </label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="number"
-                    step="0.01"
                     min="0"
-                    value={formData.valoresHoras?.umaHora || 0}
-                    onChange={(e) => handleValorHorasChange('umaHora', parseFloat(e.target.value) || 0)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                    step="0.01"
+                    value={formData.valoresHoras.umaHora}
+                    onChange={(e) => handleValoresHorasChange('umaHora', e.target.value)}
+                    className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
                       errors.valorUmaHora ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                     }`}
-                    placeholder="Ex: 20.00"
-                    required
+                    placeholder="0,00"
                   />
-                  {errors.valorUmaHora && <p className="text-red-500 text-xs mt-1">{errors.valorUmaHora}</p>}
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    2 horas/dia (R$) *
-                  </label>
+                {errors.valorUmaHora && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.valorUmaHora}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  2 Horas (R$)
+                </label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="number"
-                    step="0.01"
                     min="0"
-                    value={formData.valoresHoras?.duasHoras || 0}
-                    onChange={(e) => handleValorHorasChange('duasHoras', parseFloat(e.target.value) || 0)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                    step="0.01"
+                    value={formData.valoresHoras.duasHoras}
+                    onChange={(e) => handleValoresHorasChange('duasHoras', e.target.value)}
+                    className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
                       errors.valorDuasHoras ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                     }`}
-                    placeholder="Ex: 30.00"
-                    required
+                    placeholder="0,00"
                   />
-                  {errors.valorDuasHoras && <p className="text-red-500 text-xs mt-1">{errors.valorDuasHoras}</p>}
                 </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    3+ horas/dia (R$) *
-                  </label>
+                {errors.valorDuasHoras && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.valorDuasHoras}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  3+ Horas (R$)
+                </label>
+                <div className="relative">
+                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="number"
-                    step="0.01"
                     min="0"
-                    value={formData.valoresHoras?.tresOuMaisHoras || 0}
-                    onChange={(e) => handleValorHorasChange('tresOuMaisHoras', parseFloat(e.target.value) || 0)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
+                    step="0.01"
+                    value={formData.valoresHoras.tresOuMaisHoras}
+                    onChange={(e) => handleValoresHorasChange('tresOuMaisHoras', e.target.value)}
+                    className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
                       errors.valorTresHoras ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                     }`}
-                    placeholder="Ex: 45.00"
-                    required
+                    placeholder="0,00"
                   />
-                  {errors.valorTresHoras && <p className="text-red-500 text-xs mt-1">{errors.valorTresHoras}</p>}
                 </div>
+                {errors.valorTresHoras && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.valorTresHoras}</p>
+                )}
               </div>
-              
-              {/* Preview dos valores por hora */}
-              {formData.valoresHoras && (formData.valoresHoras.umaHora > 0 || formData.valoresHoras.duasHoras > 0 || formData.valoresHoras.tresOuMaisHoras > 0) && (
-                <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg">
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Preview - Valor por hora:</p>
-                  <div className="grid grid-cols-3 gap-4 text-sm">
-                    {formData.valoresHoras.umaHora > 0 && (
-                      <div>
-                        <span className="text-gray-600 dark:text-gray-400">1h: </span>
-                        <span className="font-medium">R$ {formData.valoresHoras.umaHora.toFixed(2)}/h</span>
-                      </div>
-                    )}
-                    {formData.valoresHoras.duasHoras > 0 && (
-                      <div>
-                        <span className="text-gray-600 dark:text-gray-400">2h: </span>
-                        <span className="font-medium">R$ {(formData.valoresHoras.duasHoras / 2).toFixed(2)}/h</span>
-                      </div>
-                    )}
-                    {formData.valoresHoras.tresOuMaisHoras > 0 && (
-                      <div>
-                        <span className="text-gray-600 dark:text-gray-400">3h+: </span>
-                        <span className="font-medium">R$ {(formData.valoresHoras.tresOuMaisHoras / 3).toFixed(2)}/h</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           )}
+
+          <Input
+            label="Valor para Aulão (R$)"
+            type="number"
+            min="0"
+            step="0.01"
+            value={formData.valorAulao}
+            onChange={(e) => handleInputChange('valorAulao', parseFloat(e.target.value) || 0)}
+            error={errors.valorAulao}
+            leftIcon={<DollarSign className="h-4 w-4" />}
+            placeholder="Valor especial para aulões"
+          />
         </div>
-		
-		{/* ======= NOVA SEÇÃO - ADICIONE AQUI ======= */}
-<div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-  <div className="flex items-center space-x-2 mb-3">
-    <span className="text-lg">🎯</span>
-    <h5 className="text-md font-medium text-gray-900 dark:text-white">
-      Pagamento Especial - Aulão
-    </h5>
-  </div>
-  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-    Valor diferenciado que o professor recebe ao participar de aulões (eventos especiais).
-  </p>
-  
-  <div className="max-w-xs">
-    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-      Valor por Aulão (R$)
-      <span className="text-gray-500 text-xs ml-1">(opcional)</span>
-    </label>
-    <input
-      type="number"
-      step="0.01"
-      min="0"
-      value={formData.valorAulao || ''}
-      onChange={(e) => handleInputChange('valorAulao', e.target.value ? parseFloat(e.target.value) : undefined)}
-      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white ${
-        errors.valorAulao ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-      }`}
-      placeholder="Ex: 80.00"
-    />
-    {errors.valorAulao && <p className="text-red-500 text-xs mt-1">{errors.valorAulao}</p>}
-    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-      Deixe em branco se o professor não participará de aulões
-    </p>
-  </div>
-</div>
-{/* ======= FIM NOVA SEÇÃO ======= */}
 
         {/* Observações */}
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <FileText className="h-4 w-4 inline mr-1" />
             Observações
           </label>
           <textarea
             value={formData.observacoes}
             onChange={(e) => handleInputChange('observacoes', e.target.value)}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             placeholder="Informações adicionais sobre o professor..."
           />
         </div>
 
         {/* Status */}
-        <div className="flex items-center">
+        <div className="flex items-center space-x-2">
           <input
             type="checkbox"
             id="ativo"
             checked={formData.ativo}
             onChange={(e) => handleInputChange('ativo', e.target.checked)}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
           />
-          <label htmlFor="ativo" className="ml-2 block text-sm text-gray-900 dark:text-white">
+          <label htmlFor="ativo" className="text-sm font-medium text-gray-700 dark:text-gray-300">
             Professor ativo
           </label>
         </div>
 
-        {/* Buttons */}
-        <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+        {/* Actions */}
+        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
           <Button
             type="button"
             variant="secondary"
             onClick={onClose}
-            className="w-full sm:w-auto"
+            disabled={isSubmitting}
           >
             Cancelar
           </Button>
           <Button
             type="submit"
             loading={isSubmitting}
-            className="w-full sm:w-auto"
+            leftIcon={<Save className="h-4 w-4" />}
           >
-            {editingProfessor ? 'Atualizar Professor' : 'Cadastrar Professor'}
+            {editingProfessor ? 'Atualizar' : 'Cadastrar'} Professor
           </Button>
         </div>
       </form>
