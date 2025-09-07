@@ -9,3 +9,4 @@ export { NovoTreinoModal } from './NovoTreinoModal';
 export { NovoProdutoModal } from './NovoProdutoModal';
 export { DetalhesAulaExperimentalModal } from './DetalhesAulaExperimentalModal';
 export { ConversaoPlanoModal } from './ConversaoPlanoModal';
+export { NovoRegistroHorasModal } from './NovoRegistroHorasModal';

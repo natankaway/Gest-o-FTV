@@ -38,6 +38,21 @@ export interface Professor extends Usuario {
   observacoes?: string;
 }
 
+export interface RegistroHorasProfessor {
+  id: number;
+  data: string; // formato YYYY-MM-DD
+  professorId: number;
+  professorNome: string; // para histórico
+  unidade: string;
+  horasTrabalhadas: number;
+  tipoAtividade: 'aula-regular' | 'aulao' | 'administrativo' | 'substituicao';
+  observacoes?: string;
+  registradoPor: number; // ID do usuário que fez o lançamento
+  registradoEm: string; // timestamp ISO
+  editadoPor?: number;
+  editadoEm?: string;
+}
+
 export interface Gestor extends Usuario {
   cargo: string;
   unidades: string[];
@@ -338,6 +353,7 @@ export interface MockData {
   torneios: Torneio[];
   aulasExperimentais: AulaExperimental[];
 listasPresenca: ListaPresenca[];  // ← ADICIONAR ESTA LINHA
+registrosHorasProfessores: RegistroHorasProfessor[];
   configCT: ConfigCT;
 }
 
@@ -367,6 +383,8 @@ export interface AulaExperimentalFormData extends Omit<AulaExperimental, 'id' | 
   professorId?: number; // Tornar opcional
 }
 export interface ProfessorFormData extends Omit<Professor, 'id'> {}
+export interface RegistroHorasFormData extends Omit<RegistroHorasProfessor, 'id' | 'professorNome' | 'registradoPor' | 'registradoEm' | 'editadoPor' | 'editadoEm'> {}
+
 export interface UnidadeFormData extends Omit<Unidade, 'id'> {}
 export interface PlanoFormData extends Omit<Plano, 'id'> {}
 export interface ProdutoFormData extends Omit<Produto, 'id'> {}
@@ -463,7 +481,7 @@ export interface Torneio {
 }
 
 // Export utility types
-export type TabKeys = 'dashboard' | 'alunos' | 'professores' | 'gestores' | 'presencas' | 'agendamentos' | 'aulas-experimentais' | 'treinos' | 'planos' | 'unidades' | 'financeiro' | 'produtos' | 'alugueis' | 'configuracoes' | 'metas' | 'torneios';
+export type TabKeys = 'dashboard' | 'alunos' | 'professores' | 'gestores' | 'presencas' | 'agendamentos' | 'aulas-experimentais' | 'treinos' | 'planos' | 'unidades' | 'financeiro' | 'produtos' | 'alugueis' | 'configuracoes' | 'metas' | 'torneios' | 'horas-professores';
 
 export interface Tab {
   key: TabKeys;

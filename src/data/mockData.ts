@@ -190,6 +190,81 @@ const aulasExperimentaisMock = [
 }
 ];
 
+const registrosHorasProfessoresMock: RegistroHorasProfessor[] = [
+  {
+    id: 1,
+    data: '2024-12-01',
+    professorId: 1,
+    professorNome: 'Carlos Mendes',
+    unidade: 'Centro',
+    horasTrabalhadas: 4,
+    tipoAtividade: 'aula-regular',
+    observacoes: 'Aulas regulares da manhã',
+    registradoPor: 2,
+    registradoEm: '2024-12-01T18:00:00.000Z'
+  },
+  {
+    id: 2,
+    data: '2024-12-01',
+    professorId: 2,
+    professorNome: 'Ana Silva',
+    unidade: 'Centro',
+    horasTrabalhadas: 6,
+    tipoAtividade: 'aula-regular',
+    observacoes: 'Turno completo tarde/noite',
+    registradoPor: 2,
+    registradoEm: '2024-12-01T18:15:00.000Z'
+  },
+  {
+    id: 3,
+    data: '2024-12-02',
+    professorId: 1,
+    professorNome: 'Carlos Mendes',
+    unidade: 'Centro',
+    horasTrabalhadas: 2,
+    tipoAtividade: 'aulao',
+    observacoes: 'Aulão especial de sábado',
+    registradoPor: 2,
+    registradoEm: '2024-12-02T19:00:00.000Z'
+  },
+  {
+    id: 4,
+    data: '2024-12-03',
+    professorId: 4,
+    professorNome: 'Roberto Lima',
+    unidade: 'Praia',
+    horasTrabalhadas: 3,
+    tipoAtividade: 'substituicao',
+    observacoes: 'Substituição do professor titular',
+    registradoPor: 3,
+    registradoEm: '2024-12-03T17:30:00.000Z'
+  },
+  {
+    id: 5,
+    data: '2024-12-04',
+    professorId: 2,
+    professorNome: 'Ana Silva',
+    unidade: 'Centro',
+    horasTrabalhadas: 1,
+    tipoAtividade: 'administrativo',
+    observacoes: 'Reunião de planejamento mensal',
+    registradoPor: 2,
+    registradoEm: '2024-12-04T15:00:00.000Z'
+  },
+  {
+    id: 6,
+    data: '2024-12-05',
+    professorId: 1,
+    professorNome: 'Carlos Mendes',
+    unidade: 'Centro',
+    horasTrabalhadas: 5,
+    tipoAtividade: 'aula-regular',
+    observacoes: 'Aulas da quinta-feira',
+    registradoPor: 2,
+    registradoEm: '2024-12-05T18:30:00.000Z'
+  }
+];
+
 export const mockData: MockData = {
   planos: [
     // Unidade Centro
@@ -652,6 +727,7 @@ alunos: [
   
   
   aulasExperimentais: aulasExperimentaisMock,
+  registrosHorasProfessores: registrosHorasProfessoresMock, // ← ADICIONAR ESTA LINHA
 
   configCT: {
   nomeCT: 'Gestão FTV',

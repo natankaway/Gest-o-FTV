@@ -17,6 +17,7 @@ import { ConfiguracoesPage } from '@/components/configuracoes';
 import { MetasPage } from '@/components/metas';
 import { ErrorBoundary } from '@/components/common';
 import { AulasExperimentaisPage } from '@/components/aulas-experimentais';
+import { HorasProfessoresPage } from '@/components/horas-professores/HorasProfessoresPage';
 
 export const MainApp: React.FC = () => {
   const { userLogado, activeTab } = useAppState();
@@ -47,6 +48,8 @@ export const MainApp: React.FC = () => {
   return <AgendamentosPresencaPage />;
 		case 'aulas-experimentais': // ← ADICIONAR ESTE CASE
       return <AulasExperimentaisPage />;
+	  case 'horas-professores': // ← ADICIONAR ESTE CASE
+      return <HorasProfessoresPage />;
       case 'treinos':
         return <TreinosPage />;
       case 'torneios':

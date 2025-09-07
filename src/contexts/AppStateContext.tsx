@@ -23,6 +23,7 @@ import type {
   Torneio,
   AulaExperimental,
   ListaPresenca,
+  RegistroHorasProfessor,
   NivelAula,
   HorarioFixo,
   AulaoConfig,
@@ -52,6 +53,7 @@ interface AppStateContextType extends AppState {
   setTorneios: React.Dispatch<React.SetStateAction<Torneio[]>>;
   setAulasExperimentais: React.Dispatch<React.SetStateAction<AulaExperimental[]>>;
   setListasPresenca: React.Dispatch<React.SetStateAction<ListaPresenca[]>>;
+  setRegistrosHorasProfessores: React.Dispatch<React.SetStateAction<RegistroHorasProfessor[]>>; 
   setConfigCT: React.Dispatch<React.SetStateAction<ConfigCT>>;
   
   // Session state
@@ -106,6 +108,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const [treinos, setTreinos] = useLocalStorage<Treino[]>('treinos', mockData.treinos);
   const [exercicios, setExercicios] = useLocalStorage<Exercicio[]>('exercicios', mockData.exercicios);
   const [torneios, setTorneios] = useLocalStorage<Torneio[]>('torneios', mockData.torneios);
+  const [registrosHorasProfessores, setRegistrosHorasProfessores] = useLocalStorage<RegistroHorasProfessor[]>('registrosHorasProfessores', mockData.registrosHorasProfessores);
   const [aulasExperimentais, setAulasExperimentais] = useLocalStorage<AulaExperimental[]>('aulasExperimentais', mockData.aulasExperimentais);
   const [listasPresenca, setListasPresenca] = useLocalStorage<ListaPresenca[]>('listasPresenca', mockData.listasPresenca);
   const [configCT, setConfigCT] = useLocalStorage<ConfigCT>('configCT', mockData.configCT);
@@ -183,12 +186,13 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     exercicios,
     torneios,
 	aulasExperimentais,
+	registrosHorasProfessores,
 	listasPresenca,
     configCT
   }), [
     planos, alunos, professores, unidades, presencas,
     financeiro, produtos, plataformas, horarios, gestores, metas, metasGerais, alugueis,
-    agendamentos, treinos, exercicios, torneios, aulasExperimentais, listasPresenca, configCT
+    agendamentos, treinos, exercicios, torneios, aulasExperimentais, registrosHorasProfessores, listasPresenca, configCT
   ]);
 
   const value = useMemo(() => ({
@@ -217,6 +221,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setTorneios,
 	setAulasExperimentais,
 	setListasPresenca,
+	setRegistrosHorasProfessores,
     setConfigCT,
     setUserLogado,
     setUnidadeSelecionada,
@@ -259,6 +264,7 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     setTorneios,
 	setAulasExperimentais,
 	setListasPresenca,
+	setRegistrosHorasProfessores,
     setConfigCT,
     activeTab,
     activeTabFilter,

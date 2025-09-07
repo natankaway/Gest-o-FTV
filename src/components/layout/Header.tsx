@@ -37,20 +37,21 @@ export const Header: React.FC<HeaderProps> = memo(({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const getPageTitle = useCallback(() => {
-    const titles: Partial<Record<TabKeys, string>> = {
-      dashboard: userLogado?.perfil === 'aluno' ? 'Meu Painel' : 'Dashboard',
-      alunos: 'Alunos',
-      professores: 'Professores',
-      presencas: 'Presenças',
-      treinos: 'Treinos',
-      planos: 'Planos',
-      produtos: 'Produtos',
-      financeiro: 'Financeiro',
-      unidades: 'Unidades'
-    };
-    return titles[activeTab] || activeTab;
-  }, [activeTab, userLogado?.perfil]);
+const getPageTitle = useCallback(() => {
+  const titles: Partial<Record<TabKeys, string>> = {
+    dashboard: userLogado?.perfil === 'aluno' ? 'Meu Painel' : 'Dashboard',
+    alunos: 'Alunos',
+    professores: 'Professores',
+    presencas: 'Presenças',
+    treinos: 'Treinos',
+    planos: 'Planos',
+    produtos: 'Produtos',
+    financeiro: 'Financeiro',
+    unidades: 'Unidades',
+    'horas-professores': userLogado?.perfil === 'professor' ? 'Minhas Horas' : 'Horas Professores' // ← ADICIONAR ESTA LINHA
+  };
+  return titles[activeTab] || activeTab;
+}, [activeTab, userLogado?.perfil]);
 
   const cartItemCount = cart.reduce((total, item) => total + item.quantidade, 0);
   const unreadNotifications = notifications.filter(n => !n.read).length;
