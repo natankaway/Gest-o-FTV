@@ -160,33 +160,38 @@ export const NovoRegistroHorasModal: React.FC<NovoRegistroHorasModalProps> = ({
   }, [errors]);
 
   // Calcular valor estimado
-  const valorEstimado = useMemo(() => {
-    if (!formData.professorId) return 0;
+ // Calcular valor estimado
+const valorEstimado = useMemo(() => {
+  if (!formData.professorId) return 0;
 
-    const professor = dadosMockados.professores.find(p => p.id === formData.professorId);
-    if (!professor) return 0;
+  const professor = dadosMockados.professores.find(p => p.id === formData.professorId);
+  if (!professor) return 0;
 
-    if (professor.tipoPagamento === 'fixo') {
-      return professor.valorFixo || 0;
-    } else if (professor.tipoPagamento === 'horas-variaveis' && professor.valoresHoras) {
-      const horas = formData.horasTrabalhadas;
-      
-      if (horas <= 1) {
-        return professor.valoresHoras.umaHora || 0;
-      } else if (horas <= 2) {
-        return professor.valoresHoras.duasHoras || 0;
-      } else {
-        return professor.valoresHoras.tresOuMaisHoras || 0;
-      }
-    }
+  // Para aulão, usar valor específico se disponível (prioridade)
+  if (formData.tipoAtividade === 'aulao' && professor.valorAulao) {
+    return professor.valorAulao;
+  }
 
-    // Para aulão, usar valor específico se disponível
-    if (formData.tipoAtividade === 'aulao' && professor.valorAulao) {
-      return professor.valorAulao;
-    }
-
+  if (professor.tipoPagamento === 'fixo') {
+    // CORREÇÃO: Salário fixo não mostra valor estimado por sessão
     return 0;
-  }, [formData.professorId, formData.horasTrabalhadas, formData.tipoAtividade, dadosMockados.professores]);
+  } else if (professor.tipoPagamento === 'hora-fixa') {
+    // CORREÇÃO: Adicionar cálculo para hora fixa
+    return formData.horasTrabalhadas * (professor.valorHoraFixa || 0);
+  } else if (professor.tipoPagamento === 'horas-variaveis' && professor.valoresHoras) {
+    const horas = formData.horasTrabalhadas;
+    
+    if (horas <= 1) {
+      return professor.valoresHoras.umaHora || 0;
+    } else if (horas <= 2) {
+      return professor.valoresHoras.duasHoras || 0;
+    } else {
+      return professor.valoresHoras.tresOuMaisHoras || 0;
+    }
+  }
+
+  return 0;
+}, [formData.professorId, formData.horasTrabalhadas, formData.tipoAtividade, dadosMockados.professores]);
 
   // Submissão do formulário
   const handleSubmit = useCallback(async (e: React.FormEvent) => {

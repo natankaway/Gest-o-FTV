@@ -50,31 +50,34 @@ const RegistroCard: React.FC<RegistroCardProps> = ({
   };
 
   const calcularValor = () => {
-    if (!professor) return 0;
+  if (!professor) return 0;
 
-    if (professor.tipoPagamento === 'fixo') {
-      // Para pagamento fixo, só mostra o valor base
-      return professor.valorFixo || 0;
-    } else if (professor.tipoPagamento === 'horas-variaveis' && professor.valoresHoras) {
-      const horas = registro.horasTrabalhadas;
-      
-      // Aplicar lógica de faixas de horas
-      if (horas <= 1) {
-        return professor.valoresHoras.umaHora || 0;
-      } else if (horas <= 2) {
-        return professor.valoresHoras.duasHoras || 0;
-      } else {
-        return professor.valoresHoras.tresOuMaisHoras || 0;
-      }
-    }
+  // Para aulão, usar valor específico se disponível (prioridade)
+  if (registro.tipoAtividade === 'aulao' && professor.valorAulao) {
+    return professor.valorAulao;
+  }
 
-    // Para aulão, usar valor específico se disponível
-    if (registro.tipoAtividade === 'aulao' && professor.valorAulao) {
-      return professor.valorAulao;
-    }
-
+  if (professor.tipoPagamento === 'fixo') {
+    // CORREÇÃO: Salário fixo não gera valor estimado por sessão
     return 0;
-  };
+  } else if (professor.tipoPagamento === 'hora-fixa') {
+    // CORREÇÃO: Adicionar cálculo para hora fixa
+    return registro.horasTrabalhadas * (professor.valorHoraFixa || 0);
+  } else if (professor.tipoPagamento === 'horas-variaveis' && professor.valoresHoras) {
+    const horas = registro.horasTrabalhadas;
+    
+    // Aplicar lógica de faixas de horas
+    if (horas <= 1) {
+      return professor.valoresHoras.umaHora || 0;
+    } else if (horas <= 2) {
+      return professor.valoresHoras.duasHoras || 0;
+    } else {
+      return professor.valoresHoras.tresOuMaisHoras || 0;
+    }
+  }
+
+  return 0;
+};
 
   const tipoInfo = getTipoInfo();
   const valorEstimado = calcularValor();
@@ -272,29 +275,34 @@ export const HorasProfessoresPage: React.FC = memo(() => {
     const professoresAtivos = new Set(registros.map(r => r.professorId)).size;
     
     // Calcular valor total estimado
-    const valorTotal = registros.reduce((sum, registro) => {
-      const professor = dadosMockados.professores.find(p => p.id === registro.professorId);
-      if (!professor) return sum;
+   const valorTotal = registros.reduce((sum, registro) => {
+  const professor = dadosMockados.professores.find(p => p.id === registro.professorId);
+  if (!professor) return sum;
 
-      if (professor.tipoPagamento === 'fixo') {
-        return sum + (professor.valorFixo || 0);
-      } else if (professor.tipoPagamento === 'horas-variaveis' && professor.valoresHoras) {
-        const horas = registro.horasTrabalhadas;
-        if (horas <= 1) {
-          return sum + (professor.valoresHoras.umaHora || 0);
-        } else if (horas <= 2) {
-          return sum + (professor.valoresHoras.duasHoras || 0);
-        } else {
-          return sum + (professor.valoresHoras.tresOuMaisHoras || 0);
-        }
-      }
+  // Para aulão, usar valor específico se disponível (prioridade)
+  if (registro.tipoAtividade === 'aulao' && professor.valorAulao) {
+    return sum + professor.valorAulao;
+  }
 
-      if (registro.tipoAtividade === 'aulao' && professor.valorAulao) {
-        return sum + professor.valorAulao;
-      }
+  if (professor.tipoPagamento === 'fixo') {
+    // CORREÇÃO: Salário fixo não soma ao total de sessões
+    return sum;
+  } else if (professor.tipoPagamento === 'hora-fixa') {
+    // CORREÇÃO: Adicionar cálculo para hora fixa
+    return sum + (registro.horasTrabalhadas * (professor.valorHoraFixa || 0));
+  } else if (professor.tipoPagamento === 'horas-variaveis' && professor.valoresHoras) {
+    const horas = registro.horasTrabalhadas;
+    if (horas <= 1) {
+      return sum + (professor.valoresHoras.umaHora || 0);
+    } else if (horas <= 2) {
+      return sum + (professor.valoresHoras.duasHoras || 0);
+    } else {
+      return sum + (professor.valoresHoras.tresOuMaisHoras || 0);
+    }
+  }
 
-      return sum;
-    }, 0);
+  return sum;
+}, 0);
 
     return { totalRegistros, totalHoras, professoresAtivos, valorTotal };
   }, [filteredRegistros, dadosMockados.professores]);

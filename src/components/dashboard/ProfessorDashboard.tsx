@@ -97,6 +97,15 @@ export const ProfessorDashboard: React.FC = memo(() => {
     let valorEstimadoMes = 0;
     if (professorData.tipoPagamento === 'fixo') {
       valorEstimadoMes = professorData.valorFixo || 0;
+	  
+	  } else if (professorData.tipoPagamento === 'hora-fixa') {
+  // NOVO: Pagamento por hora fixa
+  const horasMes = registrosHorasProfessores
+    .filter(r => r.professorId === professorData.id && new Date(r.data) >= inicioMes)
+    .reduce((total, r) => total + r.horasTrabalhadas, 0);
+  
+  valorEstimadoMes = horasMes * (professorData.valorHoraFixa || 0);
+	  
     } else if (professorData.tipoPagamento === 'horas-variaveis' && professorData.valoresHoras) {
       // Calcular baseado nas horas trabalhadas
       const registrosMes = registrosHorasProfessores.filter(r => 

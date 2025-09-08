@@ -4,7 +4,7 @@ import { useAppState, useNotifications } from '@/contexts';
 import { Modal, Button, Input } from '@/components/common';
 import { 
   X, Eye, EyeOff, Plus, Save, User, Mail, Phone, Lock, 
-  DollarSign, Clock, Briefcase, FileText, Building2, MapPin
+  DollarSign, Clock, Briefcase, FileText, Building2, MapPin, Star, Info
 } from 'lucide-react';
 import type { Professor, ProfessorFormData } from '@/types';
 
@@ -21,6 +21,7 @@ interface FormErrors {
   senha?: string;
   especialidades?: string;
   valorFixo?: string;
+  valorHoraFixa?: string;
   valorUmaHora?: string;
   valorDuasHoras?: string;
   valorTresHoras?: string;
@@ -43,6 +44,7 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
     senha: '',
     tipoPagamento: 'fixo',
     valorFixo: 0,
+	valorHoraFixa: 0,
     valoresHoras: {
       umaHora: 0,
       duasHoras: 0,
@@ -94,6 +96,7 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
         senha: editingProfessor.senha,
         tipoPagamento: editingProfessor.tipoPagamento,
         valorFixo: editingProfessor.valorFixo || 0,
+		 valorHoraFixa: editingProfessor.valorHoraFixa || 0,
         valoresHoras: editingProfessor.valoresHoras || {
           umaHora: 0,
           duasHoras: 0,
@@ -116,6 +119,7 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
         senha: '',
         tipoPagamento: 'fixo',
         valorFixo: 0,
+		valorHoraFixa: 0,
         valoresHoras: {
           umaHora: 0,
           duasHoras: 0,
@@ -174,6 +178,11 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
       if (!formData.valorFixo || formData.valorFixo <= 0) {
         newErrors.valorFixo = 'Valor fixo deve ser maior que zero';
       }
+	  } else if (formData.tipoPagamento === 'hora-fixa') {
+  // 🆕 ADICIONAR ESTA VALIDAÇÃO
+  if (!formData.valorHoraFixa || formData.valorHoraFixa <= 0) {
+    newErrors.valorHoraFixa = 'Valor por hora fixa deve ser maior que zero';
+  }
     } else if (formData.tipoPagamento === 'horas-variaveis') {
       if (!formData.valoresHoras.umaHora || formData.valoresHoras.umaHora <= 0) {
         newErrors.valorUmaHora = 'Valor para 1 hora deve ser maior que zero';
@@ -303,6 +312,7 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
         senha: formData.senha,
         tipoPagamento: formData.tipoPagamento,
         valorFixo: formData.tipoPagamento === 'fixo' ? formData.valorFixo : undefined,
+		valorHoraFixa: formData.tipoPagamento === 'hora-fixa' ? formData.valorHoraFixa : undefined,
         valoresHoras: formData.tipoPagamento === 'horas-variaveis' ? formData.valoresHoras : undefined,
         valorAulao: formData.valorAulao,
         especialidades: formData.especialidades,
@@ -601,6 +611,19 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
                   Valor Fixo Mensal
                 </span>
               </label>
+			  <label className="flex items-center space-x-2 cursor-pointer">
+    <input
+      type="radio"
+      name="tipoPagamento"
+      value="hora-fixa"
+      checked={formData.tipoPagamento === 'hora-fixa'}
+      onChange={(e) => handleInputChange('tipoPagamento', e.target.value)}
+      className="w-4 h-4 text-blue-600"
+    />
+    <span className="text-sm font-medium text-gray-900 dark:text-gray-300">
+      Hora Fixa
+    </span>
+  </label>
               <label className="flex items-center space-x-2 cursor-pointer">
                 <input
                   type="radio"
@@ -629,6 +652,19 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
               leftIcon={<DollarSign className="h-4 w-4" />}
             />
           )}
+		  {formData.tipoPagamento === 'hora-fixa' && (
+  <Input
+    label="Valor por Hora Fixa (R$)"
+    type="number"
+    min="0"
+    step="0.01"
+    value={formData.valorHoraFixa}
+    onChange={(e) => handleInputChange('valorHoraFixa', parseFloat(e.target.value) || 0)}
+    error={errors.valorHoraFixa}
+    leftIcon={<Clock className="h-4 w-4" />}
+    placeholder="Ex: 35.00"
+  />
+)}
 
           {formData.tipoPagamento === 'horas-variaveis' && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -676,6 +712,9 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
                 {errors.valorDuasHoras && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.valorDuasHoras}</p>
                 )}
+				<p className="text-xs text-green-600 dark:text-green-400 mt-1">
+  💡 Valor por hora: R$ {formData.valoresHoras.duasHoras > 0 ? (formData.valoresHoras.duasHoras / 2).toFixed(2) : '0,00'}
+</p>
               </div>
 
               <div>
@@ -699,6 +738,9 @@ export const NovoProfessorModal: React.FC<NovoProfessorModalProps> = ({
                 {errors.valorTresHoras && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.valorTresHoras}</p>
                 )}
+				<p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+  💡 Valor por hora: R$ {formData.valoresHoras.tresOuMaisHoras > 0 ? (formData.valoresHoras.tresOuMaisHoras / 3).toFixed(2) : '0,00'}
+</p>
               </div>
             </div>
           )}

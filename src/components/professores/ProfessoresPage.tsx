@@ -75,6 +75,16 @@ const ProfessorCard: React.FC<ProfessorCardProps> = ({
         badge: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
         avgValue: professor.valorFixo || 0
       };
+	  } else if (professor.tipoPagamento === 'hora-fixa') {
+    // 🆕 NOVO: Suporte para hora fixa
+    return {
+      text: `R$ ${(professor.valorHoraFixa || 0).toFixed(2)}/hora`,
+      type: 'Hora Fixa',
+      color: 'text-purple-600 dark:text-purple-400',
+      badge: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300',
+      avgValue: professor.valorHoraFixa || 0
+    };
+	  
     } else {
       const valores = professor.valoresHoras;
       
@@ -238,8 +248,8 @@ const ProfessorCard: React.FC<ProfessorCardProps> = ({
           <div className="flex items-center space-x-1">
             <Calculator className="h-3 w-3 text-gray-400" />
             <span className="text-xs text-gray-500 dark:text-gray-400">
-              Média: R$ {paymentInfo.avgValue.toFixed(0)}
-            </span>
+  {professor.tipoPagamento === 'hora-fixa' ? 'Por hora' : 'Média'}: R$ {paymentInfo.avgValue.toFixed(0)}
+</span>
           </div>
         </div>
         <div className={`text-sm font-medium ${paymentInfo.color} mb-1`}>
@@ -1125,6 +1135,7 @@ export const ProfessoresPage: React.FC = memo(() => {
                 >
                   <option value="todos">Todos os tipos</option>
                   <option value="fixo">Fixo</option>
+				  <option value="hora-fixa">Hora Fixa</option>
                   <option value="horas-variaveis">Variável por Horas</option>
                 </select>
               </div>

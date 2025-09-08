@@ -25,8 +25,9 @@ export interface Aluno extends Usuario {
 }
 
 export interface Professor extends Usuario {
-  tipoPagamento: 'fixo' | 'horas-variaveis';
+  tipoPagamento: 'fixo' | 'horas-variaveis' | 'hora-fixa';
   valorFixo?: number;
+  valorHoraFixa?: number;
   valoresHoras?: {
     umaHora: number;
     duasHoras: number;
