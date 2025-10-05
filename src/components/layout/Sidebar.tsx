@@ -5,7 +5,8 @@ import {
   Users, 
   User, 
   Settings, 
-  Calendar, 
+  Calendar,
+CreditCard,  
   BookOpen, 
   Target, 
   DollarSign, 
@@ -115,6 +116,22 @@ export const Sidebar: React.FC<SidebarProps> = memo(({
         items: pessoasItems
       });
     }
+	
+	if (userRole === 'aluno') {
+  sections.push({
+    id: 'meu-financeiro',
+    title: "💰 Financeiro",
+    icon: DollarSign,
+    items: [
+      { 
+        id: 'financeiro-aluno' as TabKeys, 
+        label: 'Meu Financeiro', 
+        icon: CreditCard, 
+        roles: ['aluno'] 
+      }
+    ]
+  });
+}
 
     // Operational section
  if (userRole === 'admin' || userRole === 'gestor' || userRole === 'professor') {
@@ -173,6 +190,17 @@ export const Sidebar: React.FC<SidebarProps> = memo(({
         ]
       });
     }
+	
+	if (userRole === 'aluno') {
+  sections.push({
+    id: 'configuracoes',
+    title: "⚙️ Configurações",
+    icon: Settings,
+    items: [
+      { id: 'meu-perfil', label: 'Meu Perfil', icon: User, roles: ['aluno'] }
+    ]
+  });
+}
 
     // Financial section
     if (userRole === 'admin' || userRole === 'gestor') {

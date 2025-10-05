@@ -485,7 +485,7 @@ export interface Torneio {
 }
 
 // Export utility types
-export type TabKeys = 'dashboard' | 'alunos' | 'professores' | 'gestores' | 'presencas' | 'agendamentos' | 'aulas-experimentais' | 'treinos' | 'planos' | 'unidades' | 'financeiro' | 'produtos' | 'alugueis' | 'configuracoes' | 'metas' | 'torneios' | 'horas-professores';
+export type TabKeys = 'dashboard' | 'alunos' | 'professores' | 'gestores' | 'presencas' | 'agendamentos' | 'aulas-experimentais' | 'treinos' | 'planos' | 'unidades' | 'financeiro' | 'produtos' | 'alugueis' | 'configuracoes' | 'metas' | 'torneios' | 'horas-professores' | 'meu-perfil' | 'financeiro-aluno' ;
 
 export interface Tab {
   key: TabKeys;

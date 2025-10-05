@@ -18,6 +18,8 @@ import { MetasPage } from '@/components/metas';
 import { ErrorBoundary } from '@/components/common';
 import { AulasExperimentaisPage } from '@/components/aulas-experimentais';
 import { HorasProfessoresPage } from '@/components/horas-professores/HorasProfessoresPage';
+import { MeuPerfilPage } from '@/components/perfil';
+import { FinanceiroAlunoPage } from '@/components/financeiro-aluno';
 
 export const MainApp: React.FC = () => {
   const { userLogado, activeTab } = useAppState();
@@ -64,6 +66,10 @@ export const MainApp: React.FC = () => {
         return <MetasPage />;
       case 'configuracoes':
         return <ConfiguracoesPage />;
+		case 'meu-perfil':
+  return <MeuPerfilPage />;
+  case 'financeiro-aluno':
+  return <FinanceiroAlunoPage />;
       default:
         return <MainDashboard />;
     }
