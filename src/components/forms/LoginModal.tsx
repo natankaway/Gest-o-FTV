@@ -159,83 +159,125 @@ export const LoginModal: React.FC = memo(() => {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className={`${
-        isDarkMode ? 'bg-gray-800 text-white' : 'bg-white'
-      } rounded-xl p-8 w-full max-w-md`}>
-        <div className="text-center mb-6">
-          <h2 className={`text-2xl font-bold ${
-            isDarkMode ? 'text-white' : 'text-gray-800'
-          }`}>
-            Sistema de Gestão FTV
-          </h2>
-          <p className={`${
-            isDarkMode ? 'text-gray-300' : 'text-gray-600'
-          } mt-2`}>
-            Faça login para continuar
-          </p>
-        </div>
-        
-        <div className="space-y-4" onKeyPress={handleKeyPress}>
-          <Input
-            label="Email"
-            type="email"
-            value={loginData.email}
-            onChange={handleEmailChange}
-            error={errors.email}
-            required
-            autoComplete="email"
-            aria-describedby="email-help"
-          />
-          
-          <div className="relative">
-            <Input
-              label="Senha"
-              type={showPassword ? 'text' : 'password'}
-              value={loginData.senha}
-              onChange={handleSenhaChange}
-              error={errors.senha}
-              required
-              autoComplete="current-password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-9 text-gray-400 hover:text-gray-600"
-              aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-gray-900/95 to-slate-900/95 backdrop-blur-sm" />
+
+      <div className={`relative w-full max-w-md transition-all duration-300 ${
+        isDarkMode ? 'bg-gray-800/95' : 'bg-white/95'
+      } backdrop-blur-xl rounded-2xl shadow-2xl border ${
+        isDarkMode ? 'border-gray-700/50' : 'border-gray-200/50'
+      }`}>
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-orange-500/5 via-transparent to-blue-500/5 pointer-events-none" />
+
+        <div className="relative p-8 sm:p-10">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-orange-500 to-orange-600 mb-4 shadow-lg">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+
+            <h2 className={`text-3xl font-bold bg-gradient-to-r from-orange-500 to-orange-600 bg-clip-text text-transparent mb-2`}>
+              Gestão FTV
+            </h2>
+            <p className={`text-sm ${
+              isDarkMode ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Sistema de Gestão de Futevôlei
+            </p>
           </div>
-          
-          <Button
-            onClick={handleLogin}
-            loading={loading}
-            className="w-full"
-            aria-describedby="login-help"
-          >
-            Entrar
-          </Button>
-        </div>
-        
-        <div className={`mt-6 p-4 rounded-lg ${
-          isDarkMode ? 'bg-gray-700' : 'bg-gray-50'
-        }`}>
-          <p className={`text-sm font-medium mb-2 ${
-            isDarkMode ? 'text-gray-200' : 'text-gray-600'
+
+          <div className="space-y-5" onKeyPress={handleKeyPress}>
+            <div className="space-y-1">
+              <Input
+                label="Email"
+                type="email"
+                value={loginData.email}
+                onChange={handleEmailChange}
+                error={errors.email}
+                required
+                autoComplete="email"
+                aria-describedby="email-help"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <div className="relative">
+                <Input
+                  label="Senha"
+                  type={showPassword ? 'text' : 'password'}
+                  value={loginData.senha}
+                  onChange={handleSenhaChange}
+                  error={errors.senha}
+                  required
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={`absolute right-3 top-9 transition-colors ${
+                    isDarkMode
+                      ? 'text-gray-400 hover:text-gray-300'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                  aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+            </div>
+
+            <Button
+              onClick={handleLogin}
+              loading={loading}
+              className="w-full h-12 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
+              aria-describedby="login-help"
+            >
+              {loading ? 'Entrando...' : 'Entrar'}
+            </Button>
+          </div>
+
+          <div className={`mt-8 p-5 rounded-xl border-2 border-dashed transition-all ${
+            isDarkMode
+              ? 'bg-gray-700/30 border-gray-600/50'
+              : 'bg-orange-50/50 border-orange-200/50'
           }`}>
-            Dados para teste:
-          </p>
-          <div className="space-y-1 text-xs">
-            <p className={isDarkMode ? 'text-gray-300' : 'text-gray-500'}>
-              <strong>Admin:</strong> admin@ct.com / admin123
-            </p>
-            <p className={isDarkMode ? 'text-gray-300' : 'text-gray-500'}>
-              <strong>Professor:</strong> carlos@email.com / 123456
-            </p>
-            <p className={isDarkMode ? 'text-gray-300' : 'text-gray-500'}>
-              <strong>Aluno:</strong> joao@email.com / 123456
-            </p>
+            <div className="flex items-start gap-3">
+              <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
+                isDarkMode ? 'bg-gray-600' : 'bg-orange-100'
+              }`}>
+                <svg className={`w-5 h-5 ${isDarkMode ? 'text-gray-300' : 'text-orange-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-semibold mb-2 ${
+                  isDarkMode ? 'text-gray-200' : 'text-gray-700'
+                }`}>
+                  Credenciais para teste
+                </p>
+                <div className="space-y-2 text-xs">
+                  <div className={`flex items-center gap-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                  }`}>
+                    <span className="font-semibold min-w-[70px]">Admin:</span>
+                    <span className="font-mono">admin@ct.com / admin123</span>
+                  </div>
+                  <div className={`flex items-center gap-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                  }`}>
+                    <span className="font-semibold min-w-[70px]">Professor:</span>
+                    <span className="font-mono">carlos@email.com / 123456</span>
+                  </div>
+                  <div className={`flex items-center gap-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                  }`}>
+                    <span className="font-semibold min-w-[70px]">Aluno:</span>
+                    <span className="font-mono">joao@email.com / 123456</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
