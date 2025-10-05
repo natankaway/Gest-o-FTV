@@ -272,3 +272,5 @@ export const useFormValidation = <T extends Record<string, any>>(
     isValid
   };
 };
+
+export { useSupabaseData } from './useSupabaseData';

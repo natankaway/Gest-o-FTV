@@ -2,6 +2,7 @@ import React, { useState, useCallback, memo } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useTheme, useAppState, useNotifications } from '@/contexts';
 import { Input, Button } from '@/components/common';
+import { authService } from '@/services';
 import type { User } from '@/types';
 
 interface LoginData {
@@ -43,95 +44,27 @@ export const LoginModal: React.FC = memo(() => {
 
   const handleLogin = useCallback(async () => {
     if (!validateForm()) return;
-    
+
     setLoading(true);
-    
-    // Simular delay de autenticação
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
+
     try {
-      const { email, senha } = loginData;
+      const user = await authService.signIn(loginData);
 
-      // Admin login
-      if (email === 'admin@ct.com' && senha === 'admin123') {
-        const adminUser: User = { 
-          id: 0, 
-          nome: 'Administrador', 
-          email, 
-          perfil: 'admin'
-        };
-        setUserLogado(adminUser);
+      if (user) {
+        setUserLogado(user);
         addNotification({
           type: 'success',
           title: 'Login realizado',
-          message: 'Bem-vindo, Administrador!'
+          message: `Bem-vindo, ${user.nome}!`
         });
-        return;
-      }
-
-      // Professor login
-      const professor = dadosMockados.professores.find(p => p.email === email && p.senha === senha);
-      if (professor) {
-        const professorUser: User = {
-          id: professor.id,
-          nome: professor.nome,
-          email: professor.email,
-          perfil: 'professor'
-        };
-        setUserLogado(professorUser);
+      } else {
+        setErrors({ email: 'Email ou senha incorretos' });
         addNotification({
-          type: 'success',
-          title: 'Login realizado',
-          message: `Bem-vindo, Prof. ${professor.nome}!`
+          type: 'error',
+          title: 'Erro no login',
+          message: 'Credenciais inválidas'
         });
-        return;
       }
-
-      // Gestor login
-      const gestor = dadosMockados.gestores.find(g => g.email === email && g.senha === senha && g.ativo);
-      if (gestor) {
-        const gestorUser: User = {
-          id: gestor.id,
-          nome: gestor.nome,
-          email: gestor.email,
-          perfil: 'gestor',
-          unidades: gestor.unidades
-        };
-        setUserLogado(gestorUser);
-        addNotification({
-          type: 'success',
-          title: 'Login realizado',
-          message: `Bem-vindo, ${gestor.nome}!`
-        });
-        return;
-      }
-
-      // Aluno login
-      const aluno = dadosMockados.alunos.find(a => a.email === email && a.senha === senha);
-      if (aluno) {
-        const alunoUser: User = {
-          id: aluno.id,
-          nome: aluno.nome,
-          email: aluno.email,
-          perfil: 'aluno',
-          unidade: aluno.unidade
-        };
-        setUserLogado(alunoUser);
-        addNotification({
-          type: 'success',
-          title: 'Login realizado',
-          message: `Bem-vindo, ${aluno.nome}!`
-        });
-        return;
-      }
-
-      // Login failed
-      setErrors({ email: 'Email ou senha incorretos' });
-      addNotification({
-        type: 'error',
-        title: 'Erro no login',
-        message: 'Credenciais inválidas'
-      });
     } catch (error) {
       console.error('Erro no login:', error);
       addNotification({
@@ -142,7 +75,7 @@ export const LoginModal: React.FC = memo(() => {
     } finally {
       setLoading(false);
     }
-  }, [validateForm, loginData, setUserLogado, dadosMockados, addNotification]);
+  }, [validateForm, loginData, setUserLogado, addNotification]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -237,48 +170,6 @@ export const LoginModal: React.FC = memo(() => {
             </Button>
           </div>
 
-          <div className={`mt-8 p-5 rounded-xl border-2 border-dashed transition-all ${
-            isDarkMode
-              ? 'bg-gray-700/30 border-gray-600/50'
-              : 'bg-orange-50/50 border-orange-200/50'
-          }`}>
-            <div className="flex items-start gap-3">
-              <div className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
-                isDarkMode ? 'bg-gray-600' : 'bg-orange-100'
-              }`}>
-                <svg className={`w-5 h-5 ${isDarkMode ? 'text-gray-300' : 'text-orange-600'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-semibold mb-2 ${
-                  isDarkMode ? 'text-gray-200' : 'text-gray-700'
-                }`}>
-                  Credenciais para teste
-                </p>
-                <div className="space-y-2 text-xs">
-                  <div className={`flex items-center gap-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                  }`}>
-                    <span className="font-semibold min-w-[70px]">Admin:</span>
-                    <span className="font-mono">admin@ct.com / admin123</span>
-                  </div>
-                  <div className={`flex items-center gap-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                  }`}>
-                    <span className="font-semibold min-w-[70px]">Professor:</span>
-                    <span className="font-mono">carlos@email.com / 123456</span>
-                  </div>
-                  <div className={`flex items-center gap-2 ${
-                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
-                  }`}>
-                    <span className="font-semibold min-w-[70px]">Aluno:</span>
-                    <span className="font-mono">joao@email.com / 123456</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
