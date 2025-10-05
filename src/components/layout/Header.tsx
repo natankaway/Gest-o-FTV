@@ -47,6 +47,7 @@ const getPageTitle = useCallback(() => {
     planos: 'Planos',
 	'meu-perfil': 'Meu Perfil',
 	'financeiro-aluno': 'Meu Financeiro',
+	'evolucao': 'Minha Evolução',
     produtos: 'Produtos',
     financeiro: 'Financeiro',
     unidades: 'Unidades',

@@ -13,6 +13,7 @@ CreditCard,
   ShoppingCart, 
   LogOut,
   ChevronDown,
+  TrendingUp,
   X,
   Trophy,
   GraduationCap,
@@ -133,6 +134,21 @@ export const Sidebar: React.FC<SidebarProps> = memo(({
   });
 }
 
+if (userRole === 'aluno') {
+  sections.push({
+    id: 'evolucao',
+    title: "📊 Evolução",
+    icon: TrendingUp,
+    items: [
+      { 
+        id: 'evolucao' as TabKeys, 
+        label: 'Minha Evolução', 
+        icon: TrendingUp, 
+        roles: ['aluno'] 
+      }
+    ]
+  });
+}
     // Operational section
  if (userRole === 'admin' || userRole === 'gestor' || userRole === 'professor') {
   const operacionalItems: MenuItem[] = [

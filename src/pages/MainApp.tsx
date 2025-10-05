@@ -20,6 +20,7 @@ import { AulasExperimentaisPage } from '@/components/aulas-experimentais';
 import { HorasProfessoresPage } from '@/components/horas-professores/HorasProfessoresPage';
 import { MeuPerfilPage } from '@/components/perfil';
 import { FinanceiroAlunoPage } from '@/components/financeiro-aluno';
+import { EvolucaoPage } from '@/components/evolucao';
 
 export const MainApp: React.FC = () => {
   const { userLogado, activeTab } = useAppState();
@@ -70,6 +71,8 @@ export const MainApp: React.FC = () => {
   return <MeuPerfilPage />;
   case 'financeiro-aluno':
   return <FinanceiroAlunoPage />;
+  case 'evolucao':
+      return <EvolucaoPage />;
       default:
         return <MainDashboard />;
     }

@@ -111,7 +111,11 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
   const [registrosHorasProfessores, setRegistrosHorasProfessores] = useLocalStorage<RegistroHorasProfessor[]>('registrosHorasProfessores', mockData.registrosHorasProfessores);
   const [aulasExperimentais, setAulasExperimentais] = useLocalStorage<AulaExperimental[]>('aulasExperimentais', mockData.aulasExperimentais);
   const [listasPresenca, setListasPresenca] = useLocalStorage<ListaPresenca[]>('listasPresenca', mockData.listasPresenca);
-  const [configCT, setConfigCT] = useLocalStorage<ConfigCT>('configCT', mockData.configCT);
+ const [conquistas, setConquistas] = useLocalStorage<Conquista[]>('conquistas', mockData.conquistas);
+const [objetivosPessoais, setObjetivosPessoais] = useLocalStorage<ObjetivoPessoal[]>('objetivosPessoais', mockData.objetivosPessoais);
+const [autoAvaliacoes, setAutoAvaliacoes] = useLocalStorage<AutoAvaliacao[]>('autoAvaliacoes', mockData.autoAvaliacoes);
+const [estatisticasAlunos, setEstatisticasAlunos] = useLocalStorage<EstatisticaAluno[]>('estatisticasAlunos', mockData.estatisticasAlunos);
+ const [configCT, setConfigCT] = useLocalStorage<ConfigCT>('configCT', mockData.configCT);
 
   // Session state (not persisted)
   const [userLogado, setUserLogado] = useState<User | null>(null);
@@ -200,6 +204,10 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
     dadosMockados,
     userLogado,
     unidadeSelecionada,
+	 conquistas,
+    objetivosPessoais,
+    autoAvaliacoes,
+    estatisticasAlunos,
     
     // Setters
     setAlunos,
@@ -222,6 +230,10 @@ export const AppStateProvider: React.FC<AppStateProviderProps> = ({ children }) 
 	setAulasExperimentais,
 	setListasPresenca,
 	setRegistrosHorasProfessores,
+	 setConquistas,
+  setObjetivosPessoais,
+  setAutoAvaliacoes,
+  setEstatisticasAlunos,
     setConfigCT,
     setUserLogado,
     setUnidadeSelecionada,

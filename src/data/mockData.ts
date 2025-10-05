@@ -278,7 +278,108 @@ const registrosHorasProfessoresMock: RegistroHorasProfessor[] = [
 }
   
 ];
+const conquistasMock: Conquista[] = [
+  {
+    id: '1',
+    nome: 'Primeiro Treino',
+    descricao: 'Complete seu primeiro treino',
+    icone: '🎯',
+    tipo: 'especial',
+    criterio: { meta: 1, progresso: 1 },
+    desbloqueadaEm: '15/01/2024',
+    dificuldade: 'facil'
+  },
+  {
+    id: '2',
+    nome: 'Sequência de 7 Dias',
+    descricao: 'Treine por 7 dias consecutivos',
+    icone: '🔥',
+    tipo: 'sequencia',
+    criterio: { meta: 7, progresso: 12 },
+    desbloqueadaEm: '22/06/2025',
+    dificuldade: 'medio'
+  },
+  // Adicione mais conquistas conforme necessário
+];
 
+const objetivosPessoaisMock: ObjetivoPessoal[] = [
+  {
+    id: 1,
+    alunoId: 1,
+    titulo: 'Treinar 3x por semana',
+    tipo: 'frequencia',
+    meta: 12,
+    progresso: 12,
+    status: 'concluido',
+    criadoEm: '01/06/2025',
+    concluidoEm: '30/06/2025'
+  },
+  // Adicione mais objetivos conforme necessário
+];
+
+const autoAvaliacoesMock: AutoAvaliacao[] = [
+  {
+    id: 1,
+    alunoId: 1,
+    treinoId: 1,
+    treino: 'Treino Técnico Avançado',
+    professorId: 2,
+    professor: 'Lucas Ferreira',
+    data: '02/07/2025',
+    nota: 5,
+    observacoes: 'Excelente evolução no saque',
+    pontosFortes: ['Saque', 'Posicionamento'],
+    pontosFracos: ['Recepção de bola forte'],
+    foco: 'Saque e recepção'
+  },
+  // Adicione mais avaliações conforme necessário
+];
+
+const estatisticasAlunosMock: EstatisticaAluno[] = [
+  {
+    alunoId: 1,
+    nivelAtual: 'intermediario',
+    progressoNivel: 80,
+    treinosParaProximoNivel: 4,
+    tempoNivelAtual: 120,
+    inicioNivelAtual: '2024-03-01',
+    frequenciaMes: 85,
+    frequenciaAno: 82,
+    frequencia6Meses: [65, 78, 85, 92, 88, 95],
+    mediaFrequenciaCT: 72,
+    horasMes: 24,
+    horasAno: 156,
+    horasTotal: 298,
+    treinosPorCategoria: {
+      tecnico: 12,
+      tatico: 5,
+      fisico: 2,
+      jogo: 1
+    },
+    sequenciaAtual: 12,
+    melhorSequencia: 15,
+    historicoNiveis: [
+      {
+        nivel: 'iniciante',
+        inicio: '2024-01-01',
+        fim: '2024-03-01',
+        duracaoMeses: 2
+      },
+      {
+        nivel: 'intermediario',
+        inicio: '2024-03-01',
+        duracaoMeses: 4
+      }
+    ],
+    comparacao: {
+      frequenciaMedia: 72,
+      frequenciaTop10: 90,
+      horasMesMedia: 18,
+      horasMesTop10: 28,
+      tempoEvolucaoMedio: 6
+    }
+  }
+];
 export const mockData: MockData = {
   planos: [
     // Unidade Centro
@@ -769,7 +870,10 @@ professores: [
   
   aulasExperimentais: aulasExperimentaisMock,
   registrosHorasProfessores: registrosHorasProfessoresMock, // ← ADICIONAR ESTA LINHA
-
+conquistas: conquistasMock,
+  objetivosPessoais: objetivosPessoaisMock,
+  autoAvaliacoes: autoAvaliacoesMock,
+  estatisticasAlunos: estatisticasAlunosMock,
   configCT: {
   nomeCT: 'Gestão FTV',
   contato: {

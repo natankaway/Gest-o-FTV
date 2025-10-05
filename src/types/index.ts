@@ -88,6 +88,102 @@ export interface Unidade {
   };
 }
 
+export interface Conquista {
+  id: string;
+  nome: string;
+  descricao: string;
+  icone: string; // emoji
+  tipo: 'sequencia' | 'frequencia' | 'treinos' | 'torneios' | 'social' | 'especial';
+  criterio: {
+    meta: number;
+    progresso?: number;
+  };
+  desbloqueadaEm?: string;
+  vezes?: number; // Quantas vezes desbloqueou (para conquistas recorrentes)
+  dificuldade: 'facil' | 'medio' | 'dificil' | 'lendario';
+}
+
+export interface ObjetivoPessoal {
+  id: number;
+  alunoId: number;
+  titulo: string;
+  descricao?: string;
+  tipo: 'frequencia' | 'torneio' | 'nivel' | 'treinos' | 'personalizado';
+  meta: number;
+  progresso: number;
+  unidade?: string; // "treinos", "dias", "torneios", etc
+  prazo?: string;
+  status: 'ativo' | 'concluido' | 'cancelado';
+  criadoEm: string;
+  concluidoEm?: string;
+  observacoes?: string;
+}
+
+export interface AutoAvaliacao {
+  id: number;
+  alunoId: number;
+  treinoId: number;
+  treino: string; // nome do treino
+  professorId: number;
+  professor: string;
+  data: string;
+  nota: number; // 1-5 estrelas
+  observacoes?: string;
+  pontosFracos?: string[];
+  pontosFortes?: string[];
+  foco?: string;
+}
+
+export interface EstatisticaAluno {
+  alunoId: number;
+  nivelAtual: 'iniciante' | 'intermediario' | 'avancado';
+  progressoNivel: number; // 0-100
+  treinosParaProximoNivel: number;
+  tempoNivelAtual: number; // dias
+  inicioNivelAtual: string;
+  
+  // Frequência
+  frequenciaMes: number; // porcentagem
+  frequenciaAno: number;
+  frequencia6Meses: number[]; // array de 6 valores para gráfico
+  mediaFrequenciaCT: number;
+  
+  // Horas
+  horasMes: number;
+  horasAno: number;
+  horasTotal: number;
+  
+  // Treinos por categoria (mês atual)
+  treinosPorCategoria: {
+    tecnico: number;
+    tatico: number;
+    fisico: number;
+    jogo: number;
+  };
+  
+  // Sequências
+  sequenciaAtual: number; // dias consecutivos
+  melhorSequencia: number;
+  
+  // Histórico de níveis
+  historicoNiveis: {
+    nivel: 'iniciante' | 'intermediario' | 'avancado';
+    inicio: string;
+    fim?: string;
+    duracaoMeses: number;
+  }[];
+  
+  // Comparação com outros alunos do mesmo nível
+  comparacao: {
+    frequenciaMedia: number;
+    frequenciaTop10: number;
+    horasMesMedia: number;
+    horasMesTop10: number;
+    tempoEvolucaoMedio: number; // meses para evoluir de nível
+  };
+}
+
+
 export interface ConfigCT {
   nomeCT: string;
   contato?: {
@@ -357,6 +453,10 @@ export interface MockData {
   torneios: Torneio[];
   aulasExperimentais: AulaExperimental[];
 listasPresenca: ListaPresenca[];  // ← ADICIONAR ESTA LINHA
+conquistas: Conquista[];
+  objetivosPessoais: ObjetivoPessoal[];
+  autoAvaliacoes: AutoAvaliacao[];
+  estatisticasAlunos: EstatisticaAluno[];
 registrosHorasProfessores: RegistroHorasProfessor[];
   configCT: ConfigCT;
 }
@@ -485,7 +585,7 @@ export interface Torneio {
 }
 
 // Export utility types
-export type TabKeys = 'dashboard' | 'alunos' | 'professores' | 'gestores' | 'presencas' | 'agendamentos' | 'aulas-experimentais' | 'treinos' | 'planos' | 'unidades' | 'financeiro' | 'produtos' | 'alugueis' | 'configuracoes' | 'metas' | 'torneios' | 'horas-professores' | 'meu-perfil' | 'financeiro-aluno' ;
+export type TabKeys = 'dashboard' | 'alunos' | 'professores' | 'gestores' | 'presencas' | 'agendamentos' | 'aulas-experimentais' | 'treinos' | 'planos' | 'unidades' | 'financeiro' | 'produtos' | 'alugueis' | 'configuracoes' | 'metas' | 'torneios' | 'horas-professores' | 'meu-perfil' | 'financeiro-aluno' | 'evolucao';
 
 export interface Tab {
   key: TabKeys;
